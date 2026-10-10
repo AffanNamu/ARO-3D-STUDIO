@@ -1,0 +1,22 @@
+{"step": "docker daemon reachable", "result": "PASS", "detail": "server 29.8.2"}
+{"step": "docker build (clean dependency install from requirements.txt)", "result": "PASS", "detail": "exit 0 in 42s; log: docs/acceptance/evidence/docker/build.log"}
+{"step": "image inspected", "result": "PASS", "detail": "id sha256:90b7bf5a1061a03dd267a1b69e701efc23ccdb33a0750adb475d274cdccc84b6 size 417 MB user=user"}
+{"step": "image runs as a non-root user", "result": "PASS", "detail": "USER user"}
+{"step": "pip check inside the image", "result": "PASS", "detail": "No broken requirements found."}
+{"step": "every aro_studio module imports on the image's Python", "result": "PASS", "detail": "python 3.11.17 imports ok"}
+{"step": "image contains no tests/.git/.env/docs", "result": "PASS", "detail": "uid+files: 1000 .dockerignore .env.example .github .gitignore CHANGELOG.md Dockerfile LICENSE README.md SECURITY.md app.py aro_3d_studio.egg-info aro_studio packages.txt pyproject.toml requirements-dev.txt requirements-triposr.txt requirements.txt scripts"}
+{"step": "no secrets embedded in the application layer", "result": "PASS", "detail": "HITS []"}
+{"step": "image ENV holds no token/secret/password", "result": "PASS", "detail": "[\"PATH=/home/user/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"LANG=C.UTF-8\",\"GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D\",\"PYTHON_VERSION=3.11.17\",\"PYTHON_SHA256=bfb74ad39efae27cda510f134ab408e00f9992c56851cfc0b1cdb5646da11599\",\"PIP_CERT=/usr/local/share/sandbox-ca.crt\",\"SSL_CERT_FILE=/usr/local/share/sandbox-ca.crt\",\"REQUESTS_CA_BUNDLE=/usr/local/"}
+{"step": "docker history contains no secrets or proxy settings", "result": "PASS", "detail": "checked 30 layers"}
+{"step": "container starts and /api/health answers (read-only rootfs, caps dropped, mem 768m, 2 cpus)", "result": "PASS", "detail": "port 17860"}
+{"step": "Docker HEALTHCHECK reports healthy", "result": "PASS", "detail": "healthy"}
+{"step": "process uid inside the running container is 1000", "result": "PASS", "detail": "uid 1000"}
+{"step": "application directory is read-only at runtime", "result": "PASS", "detail": "touch failed as expected"}
+{"step": "HTTP verification suite (auth, uploads, archives, traversal, inference failure, full pipeline, export)", "result": "PASS", "detail": "34/34 checks passed"}
+{"step": "no OOM kill under the 768m limit; memory in use after the pipeline", "result": "PASS", "detail": "OOMKilled=false mem=159.1MiB / 768MiB"}
+{"step": "service sees the container memory limit (cgroup-aware resource checks)", "result": "PASS", "detail": "cgroup limit 768 MB; ram_total 768 MB; ram_available 606 MB"}
+{"step": "data survives a container restart (named volume)", "result": "PASS", "detail": "projects before=1 after=1"}
+{"step": "data survives container replacement with the same volume", "result": "PASS", "detail": "projects=1"}
+{"step": "job history (incl. the failed inference job) persisted", "result": "PASS", "detail": "7 jobs"}
+{"step": "without a volume the data is ephemeral (documented behaviour of free Spaces)", "result": "PASS", "detail": "projects=0 in a fresh container"}
+{"step": "160 MB container: the service starts and reports the real (cgroup) limit", "result": "PASS", "detail": "ram_total/ram_available/limit = 160 67 160"}

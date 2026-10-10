@@ -43,8 +43,8 @@ def engine():
     av = e.availability(_device())
     if not av.ok:
         pytest.skip("TripoSR cannot run here: " + "; ".join(av.reasons))
-    if "triposr" not in Settings().verified_licenses:
-        pytest.skip("weights licence not verified by the deployer (ARO_VERIFIED_MODEL_LICENSES=triposr)")
+    if e.info.license.status != "verified" and "triposr" not in Settings().verified_licenses:
+        pytest.skip("weights licence not verified: " + e.info.license.notes[-300:])
     yield e
     e.unload()
 

@@ -7,3 +7,5 @@ httpx
 pip-audit
 bandit
 playwright
+tree-sitter
+tree-sitter-c-sharp

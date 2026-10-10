@@ -12,6 +12,7 @@ from typing import Any
 from aro_studio import __version__
 from aro_studio.export.gltf import ExportOptions, export_glb, node_name
 from aro_studio.export.unity_templates import DESCRIPTOR_CS, IMPORTER_CS, README_TEMPLATE
+from aro_studio.export.unity_verifier import VERIFIER_CS
 from aro_studio.export.verify import sha256_of
 from aro_studio.scene.model import MaterialDef
 from aro_studio.scene.store import Scene
@@ -36,6 +37,64 @@ def unity_material_hint(m: MaterialDef) -> dict[str, Any]:
         "_EmissionColor": [c * m.emissive_strength for c in m.emissive],
         "twoSided": m.double_sided,
         "note": "Unity smoothness = 1 - glTF roughness. Packed ORM maps: R=occlusion, G=roughness, B=metallic (HDRP mask map needs repacking).",
+    }
+
+
+def _collider_expectation(scene: Scene, c) -> dict[str, Any]:
+    d: dict[str, Any] = {
+        "node": node_name(c.name),
+        "kind": c.kind.value,
+        "center": list(c.center),
+        "size": list(c.size) if c.size else None,
+        "radius": c.radius or 0.0,
+        "height": c.height or 0.0,
+        "axis": c.axis,
+        "triangles": c.triangle_count,
+    }
+    cm = scene.collision_meshes.get(c.name)
+    if cm is not None and len(cm.faces):
+        d["boundsMin"] = [round(float(x), 5) for x in cm.bounds[0]]
+        d["boundsMax"] = [round(float(x), 5) for x in cm.bounds[1]]
+    return d
+
+
+def unity_expectations(scene: Scene) -> dict[str, Any]:
+    """Ground truth for the Unity-side verifier, computed from the scene (not from the exported glTF).
+
+    All coordinates are in the glTF/package frame (right-handed, +Y up, +Z forward, metres). The verifier applies the
+    glTFast X-mirror itself, so a wrong mirror shows up as a mismatch instead of being baked into the expectation.
+    """
+    man = scene.manifest
+    whole = scene.combined()
+    parts = []
+    for p in man.parts:
+        m = scene.meshes.get(p.name)
+        if m is None or not len(m.faces):
+            continue
+        parts.append(
+            {
+                "node": node_name(p.name),
+                "triangles": int(len(m.faces)),
+                "boundsMin": [round(float(x), 5) for x in m.bounds[0]],
+                "boundsMax": [round(float(x), 5) for x in m.bounds[1]],
+                "material": p.material,
+            }
+        )
+    return {
+        "schema": 1,
+        "frame": "gltf: right-handed, +Y up, +Z forward, metres",
+        "boundsMin": [round(float(x), 5) for x in whole.bounds[0]],
+        "boundsMax": [round(float(x), 5) for x in whole.bounds[1]],
+        "extents": [round(float(x), 5) for x in whole.extents],
+        "triangles_lod0": scene.triangle_count,
+        "lodTriangles": {
+            "0": scene.triangle_count,
+            **{str(lv): int(sum(len(m.faces) for m in scene.lod_meshes[lv].values())) for lv in scene.lod_meshes},
+        },
+        "parts": parts,
+        "materials": [m.name for m in man.materials],
+        "colliders": [_collider_expectation(scene, c) for c in man.colliders],
+        "tolerance": {"length_m": 0.01, "triangle_ratio": 0.0},
     }
 
 
@@ -150,6 +209,7 @@ def build_unity_package(
         for lod in man.lods
     ]
     (root / "Metadata" / "lods.json").write_text(json.dumps({"levels": lods}, indent=2))
+    (root / "Metadata" / "unity_expectations.json").write_text(json.dumps(unity_expectations(scene), indent=2))
     if man.vehicle:
         (root / "Metadata" / "vehicle.json").write_text(man.vehicle.model_dump_json(indent=2))
     if man.rig:
@@ -201,6 +261,7 @@ def build_unity_package(
         encoding="utf-8",
     )
     (root / "Editor" / "AroAssetImporter.cs").write_text(IMPORTER_CS, encoding="utf-8")
+    (root / "Editor" / "AroUnityVerifier.cs").write_text(VERIFIER_CS, encoding="utf-8")
     (root / "Scripts" / "AroVehicleDescriptor.cs").write_text(DESCRIPTOR_CS, encoding="utf-8")
 
     # Checksums (sorted, stable)

@@ -1,0 +1,36 @@
+[PASS] health endpoint  {"status": "ok", "version": "0.1.0"}
+[PASS] security headers (CSP, nosniff, no-referrer)  
+[PASS] API rejects requests without a token (401)  status 401
+[PASS] API rejects a wrong token (401)  status 401
+[PASS] API accepts the correct token  status 200
+[PASS] system endpoint never echoes the token  
+[PASS] system endpoint reports resources, queue and limits  cpu=4 cgroup_mem_mb=768
+[PASS] create project  status 201
+[PASS] create asset  
+[PASS] valid PNG accepted and stored by content hash  status 201
+[PASS] non-image content with an image filename rejected (400)  status 400 The file content is not a PNG, JPEG or WebP image (extension and declared type a
+[PASS] upload over 1 MB rejected (400)  status 400
+[PASS] decompression-bomb image (900 MP declared) rejected before decoding (400)  status 400 The image header is invalid.
+[PASS] truncated/corrupt image rejected (400)  status 400
+[PASS] archive rejected: zip-slip (../ member) (400)  status 400 Archive contains an unsafe path.
+[PASS] archive rejected: absolute-path member (400)  status 400 Archive contains an unsafe path.
+[PASS] archive rejected: symlink member (400)  status 400 Archive contains a symbolic link.
+[PASS] archive rejected: zip bomb (compression ratio) (400)  status 400 Archive compression ratio is suspicious (possible zip bomb).
+[PASS] path traversal in an id never reads files  status 404
+[PASS] unknown id is a clean 404 with no traceback  
+[PASS] generation job accepted (202)  status 202
+[PASS] no AI runtime: job ends MODEL_ERROR with an actionable explanation  MODEL_ERROR | The licence of the 'TripoSR' weights (MIT) is claimed, not yet verified for production use.
+[PASS] failed generation created no asset version (no placeholder geometry)  versions=0
+[PASS] service still healthy after the failed inference job  
+[PASS] create ARO TITAN 480 procedural reference  status 201
+[PASS] pipeline step: geometry  COMPLETED
+[PASS] pipeline step: rig  COMPLETED
+[PASS] pipeline step: collision  COMPLETED
+[PASS] pipeline step: lod  COMPLETED
+[PASS] pipeline step: validate  COMPLETED
+[PASS] validation status PRODUCTION_READY, 0 critical failures  PRODUCTION_READY 100.0%
+[PASS] export GLB + Unity package (verified server-side)  COMPLETED
+[PASS] downloaded GLB is a glTF binary whose SHA-256 matches the export record  1116284 bytes
+[PASS] GLB verification recorded as OK  
+
+34/34 checks passed

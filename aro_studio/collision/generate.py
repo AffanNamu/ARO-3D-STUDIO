@@ -90,8 +90,32 @@ def convex_hull(mesh: trimesh.Trimesh, max_triangles: int = MAX_CONVEX_TRIANGLES
         hull = trimesh.convex.convex_hull(reduced.vertices)
         guard += 1
     if len(hull.faces) > max_triangles:
+        hull = _sampled_hull(np.asarray(hull.vertices), max_triangles)
+    if len(hull.faces) > max_triangles:
         raise InvalidInputError(f"Could not reduce the convex hull below {max_triangles} triangles.")
     return trimesh.Trimesh(np.asarray(hull.vertices), np.asarray(hull.faces), process=False)
+
+
+def _sampled_hull(vertices: np.ndarray, max_triangles: int) -> trimesh.Trimesh:
+    """Hull of a farthest-point subset of ``vertices``.
+
+    A convex hull of ``k`` points has at most ``2k - 4`` faces, so choosing
+    ``k = max_triangles // 2 + 1`` bounds the triangle count regardless of how
+    smooth the source surface is. Farthest-point sampling keeps the extremes, so
+    the extents stay close; the hull is a subset of the true hull (slightly
+    smaller, never larger) and the caller reports the fidelity.
+    """
+    k = max(4, max_triangles // 2 + 1)
+    pts = np.asarray(vertices, dtype=float)
+    if len(pts) <= k:
+        return trimesh.convex.convex_hull(pts)
+    chosen = [int(np.argmax(pts[:, 0])), int(np.argmin(pts[:, 0]))]
+    dist = np.minimum(np.linalg.norm(pts - pts[chosen[0]], axis=1), np.linalg.norm(pts - pts[chosen[1]], axis=1))
+    while len(chosen) < k:
+        nxt = int(np.argmax(dist))
+        chosen.append(nxt)
+        dist = np.minimum(dist, np.linalg.norm(pts - pts[nxt], axis=1))
+    return trimesh.convex.convex_hull(pts[chosen])
 
 
 def add_collider(scene: Scene, collider: ColliderDef, mesh: trimesh.Trimesh | None = None) -> None:

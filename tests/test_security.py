@@ -136,3 +136,41 @@ def test_rate_limiter():
     rl.check("b")  # independent key
     t[0] = 61.0
     rl.check("a")
+
+
+# ---- container-aware resource monitoring ------------------------------------------------------------------------------
+def test_snapshot_respects_cgroup_memory_limit(monkeypatch):
+    from aro_studio.observability import resources as r
+
+    monkeypatch.setattr(r, "cgroup_memory", lambda: (256, 200))  # 256 MB limit, 200 MB used
+    snap = r.snapshot(".")
+    assert snap.ram_total_mb <= 256 and snap.ram_available_mb <= 56  # not the host's 15 GB
+
+
+def test_cgroup_files_parse_v1_v2_and_unlimited(monkeypatch, tmp_path):
+    from aro_studio.observability import resources as r
+
+    lim, use = tmp_path / "limit", tmp_path / "use"
+    monkeypatch.setattr(r, "_CGROUP_FILES", ((str(lim), str(use)),))
+    lim.write_text(str(512 * 2**20))
+    use.write_text(str(100 * 2**20))
+    assert r.cgroup_memory() == (512, 100)
+    lim.write_text("max")  # cgroup v2 unlimited
+    assert r.cgroup_memory() is None
+    lim.write_text(str(2**63))  # cgroup v1 "unlimited" sentinel
+    assert r.cgroup_memory() is None
+    assert r.cgroup_memory_limit_mb() is None
+
+
+def test_unwritable_data_dir_gives_a_clear_error(tmp_path):
+    import os
+
+    import pytest
+
+    from aro_studio.storage.layout import StorageLayout
+
+    blocker = tmp_path / "file"
+    blocker.write_text("x")
+    with pytest.raises(RuntimeError, match="not writable"):
+        StorageLayout(blocker / "data")
+    assert os.path.exists(blocker)

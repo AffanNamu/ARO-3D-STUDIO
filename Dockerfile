@@ -1,18 +1,23 @@
 # ARO 3D Studio - Hugging Face Spaces (Docker SDK) / any container host.
 # Default build is CPU-safe and contains NO AI weights. Add TripoSR with:
 #   docker build --build-arg WITH_TRIPOSR=1 --build-arg TRIPOSR_REF=<commit-sha> .
-FROM python:3.11-slim
+# Base image pinned by digest (python:3.11-slim as pulled on 2026-10-10); override with --build-arg PYTHON_IMAGE=... only deliberately.
+ARG PYTHON_IMAGE=python:3.11-slim@sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce
+FROM ${PYTHON_IMAGE}
 
 ARG WITH_TRIPOSR=0
-# Pin to a reviewed commit of github.com/VAST-AI-Research/TripoSR for reproducible builds ("main" is a moving target).
-ARG TRIPOSR_REF=main
+# Reviewed upstream commit of github.com/VAST-AI-Research/TripoSR (HEAD on 2026-10-10: "Update README.md"); never "main".
+ARG TRIPOSR_REF=107cefdc244c39106fa830359024f6a2f1c78871
 ARG TORCH_INDEX=https://download.pytorch.org/whl/cpu
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
     HOST=0.0.0.0 PORT=7860 ARO_DATA_DIR=/home/user/data
 
-RUN apt-get update && apt-get install -y --no-install-recommends git build-essential libgl1 libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# System packages are only needed to clone/compile the optional TripoSR stack (git, torchmcubes build); the default image has none.
+RUN if [ "$WITH_TRIPOSR" = "1" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends git build-essential libgl1 libglib2.0-0 \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # Hugging Face Spaces run as uid 1000
 RUN useradd -m -u 1000 user

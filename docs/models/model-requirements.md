@@ -5,8 +5,8 @@
 | Requirement | Detail |
 |---|---|
 | Python | 3.9+ (Docker image uses 3.11) |
-| Packages | `torch` (match host CUDA), `omegaconf==2.3.0`, `einops==0.7.0`, `transformers==4.35.0`, `huggingface-hub`, `torchmcubes` (compiled; needs a CUDA toolkit for GPU marching cubes, otherwise CPU), the `tsr` package from the TripoSR repo on `PYTHONPATH` |
-| Weights | `config.yaml` + `model.ckpt` from `stabilityai/TripoSR`, downloaded on first load (needs outbound access to huggingface.co) or a local directory via `ARO_TRIPOSR_MODEL_PATH` |
+| Packages | `torch >= 2.6.0` (match host CUDA; older releases are refused), `omegaconf==2.3.0`, `einops==0.7.0`, `transformers==4.35.0`, `huggingface-hub`, `torchmcubes` (compiled; needs a CUDA toolkit for GPU marching cubes, otherwise CPU), the `tsr` package from the TripoSR repo on `PYTHONPATH` |
+| Weights | `config.yaml` + `model.ckpt` from `stabilityai/TripoSR` **at the revision pinned in `aro_studio/engines/locks/triposr.json`**, SHA-256 verified before loading (first load needs outbound access to huggingface.co), or a local directory whose files match the lock (`ARO_TRIPOSR_MODEL_PATH`). Also `facebook/dino-vitb16/config.json` (pinned). **The lock is not yet complete** — run `scripts/pin_triposr_weights.py` first. |
 | VRAM | ≈ 6 GB at default settings (TripoSR README). Other presets: estimates only, not measured here |
 | CPU fallback | Supported by the code path (`ARO_DEVICE=cpu`); speed and RAM use **not measured** here; expect minutes, several GB RAM |
 

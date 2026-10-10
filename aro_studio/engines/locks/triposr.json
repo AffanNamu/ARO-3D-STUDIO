@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "engine_id": "triposr",
+  "note": "Licence evidence + supply-chain pins for TripoSR. 'weights.revision' and every sha256 below are intentionally null until scripts/pin_triposr_weights.py has been run on a host with Hugging Face access and the result reviewed and committed. While any of them is null the engine refuses to load (see docs/models/triposr-security-review.md). Do not fill these by hand from memory.",
+  "code": {
+    "repo": "https://github.com/VAST-AI-Research/TripoSR",
+    "commit": "107cefdc244c39106fa830359024f6a2f1c78871",
+    "commit_date": "2026-06-04T15:11:09+08:00",
+    "pinned_on": "2026-10-10"
+  },
+  "weights": {
+    "repo_id": "stabilityai/TripoSR",
+    "revision": null,
+    "files": {
+      "config.yaml": {"sha256": null, "size": null},
+      "model.ckpt": {"sha256": null, "size": null}
+    },
+    "pinned_on": null,
+    "pinned_by": null
+  },
+  "aux_files": [
+    {
+      "repo_id": "facebook/dino-vitb16",
+      "filename": "config.json",
+      "purpose": "TripoSR's DINOSingleImageTokenizer downloads this ViT architecture config from the Hub every time the model is constructed (tsr/models/tokenizers/image.py). The loader substitutes this pinned, checksum-verified copy so no unpinned download happens at runtime.",
+      "revision": null,
+      "sha256": null,
+      "size": null,
+      "licence_note": "Apache-2.0 per the model card as remembered by the author; NOT verified (Hub unreachable from the build sandbox). Architecture hyper-parameters only, no weights."
+    }
+  ],
+  "license": {
+    "spdx": "MIT",
+    "commercial_use": "allowed",
+    "scope": "source code and pretrained models (as stated by the upstream README)",
+    "evidence": [
+      {
+        "source": "https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE",
+        "finding": "MIT License text, 'Copyright (c) 2024 Tripo AI & Stability AI'.",
+        "file_sha256": "ade0a66629bdd7e01e46b3296b3851cff0fd27989bca53da470ad6e96ed620fb",
+        "verified_on": "2026-10-10",
+        "verified_by": "ARO engineering agent: read from a git clone at the pinned code commit",
+        "independently_fetched": true
+      },
+      {
+        "source": "https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/README.md",
+        "finding": "README line 27: 'The model is released under the MIT license, which includes the source code, pretrained models, and an interactive online demo.'",
+        "file_sha256": "ed40f078c5e451c58eae716187e0128f0ce8575e467aab2440b4ed9c75e490b9",
+        "verified_on": "2026-10-10",
+        "verified_by": "ARO engineering agent: read from a git clone at the pinned code commit",
+        "independently_fetched": true
+      },
+      {
+        "source": "https://huggingface.co/stabilityai/TripoSR",
+        "finding": "Model card identifies the model as MIT-licensed.",
+        "file_sha256": null,
+        "verified_on": "2026-10-10",
+        "verified_by": "Project owner (stated in the post-audit task instruction). The agent could NOT fetch this page (huggingface.co returns HTTP 403 from the build sandbox proxy), so this entry is an owner statement, not an independent fetch.",
+        "independently_fetched": false
+      }
+    ]
+  }
+}

@@ -6,19 +6,43 @@
 
 ## 1. TripoSR (initial image-to-3D engine)
 
+**Machine-readable record:** [`aro_studio/engines/locks/triposr.json`](../../aro_studio/engines/locks/triposr.json). The engine only loads — and its licence status only becomes `verified` — when that file is *complete*: licence evidence + weights revision pinned to a 40-hex commit + SHA-256/size of every file it loads (including the auxiliary `facebook/dino-vitb16` config the upstream code downloads). Run `tests/test_weights_security.py` to see the rules enforced.
+
+### Licence evidence (verification date: **2026-10-10**)
+
+| # | Source | Finding | How verified |
+|---|---|---|---|
+| 1 | https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE | MIT License, "Copyright (c) 2024 Tripo AI & Stability AI" (file SHA-256 `ade0a666…620fb`) | **Independently fetched** by the engineering agent from a git clone at the pinned commit |
+| 2 | …/blob/107cefd…/README.md, line 27 | "The model is released under the MIT license, which includes the source code, pretrained models, and an interactive online demo." (file SHA-256 `ed40f078…490b9`) | **Independently fetched** (same clone) |
+| 3 | https://huggingface.co/stabilityai/TripoSR (model card) | MIT | **Project-owner statement** (post-audit task instruction, 2026-10-10). The agent could **not** fetch this page (HTTP 403 from the build sandbox). `scripts/pin_triposr_weights.py` additionally records the Hub's own licence tag at the pinned revision as machine-fetched evidence and aborts if it is not `mit`. |
+
+Conclusion recorded: the upstream README states the MIT licence covers the source code **and** the pretrained models (evidence 1–2). That is a statement of *licence*; it says nothing about whether inference works, and it applies to a **specific artefact** only once the revision is pinned.
+
+### Artefact pin and checksums — **NOT YET RECORDED (blocker, not an oversight)**
+
+| Item | Value |
+|---|---|
+| Code (`tsr`) | pinned: `107cefdc244c39106fa830359024f6a2f1c78871` (2026-06-04, "Update README.md") |
+| Weights revision `stabilityai/TripoSR` | **null** — Hugging Face is unreachable from the build sandbox, so no genuine commit hash could be obtained. Fabricating one is not acceptable. |
+| SHA-256 of `config.yaml`, `model.ckpt` | **null** (same reason) |
+| `facebook/dino-vitb16` `config.json` | revision/SHA-256 **null** (same reason); licence believed Apache-2.0, **unverified** |
+
+To record them (on any host with Hugging Face access; ~1.5 GB download): `python scripts/pin_triposr_weights.py --by "<your name>"`, review `git diff aro_studio/engines/locks/triposr.json` (the script cross-checks the downloaded SHA-256 against the hash the Hub itself reports and aborts on disagreement), commit. Verify any copy of the weights at any time with `python scripts/verify_triposr_weights.py [--dir …]`.
+
+### Remaining record
+
 | Field | Record |
 |---|---|
-| Name / version | TripoSR; weights `stabilityai/TripoSR` (`config.yaml`, `model.ckpt`). **Revision not pinned** — pin a Hugging Face commit hash in `ARO_TRIPOSR_MODEL_PATH` for production. |
-| Source | Code: https://github.com/VAST-AI-Research/TripoSR · Weights/model card: https://huggingface.co/stabilityai/TripoSR |
-| Licence — code | **MIT** — *verified*: `LICENSE` read from the repository ("MIT License, Copyright (c) 2024 Tripo AI & Stability AI"). |
-| Licence — weights | **MIT** — *claimed*: the repository README states "source code, pretrained models, and an interactive online demo" are MIT. The Hugging Face model card could not be fetched here → **unverified**. The Studio refuses to run it until the deployer sets `ARO_VERIFIED_MODEL_LICENSES=triposr`. |
-| Commercial use | Allowed under MIT as stated; confirm on the model card. |
-| Redistribution / derivatives | MIT: permitted with the licence + copyright notice retained. |
-| Output restrictions | None stated in the repository licence. Training-data provenance is not documented in the repo; consider this when relying on outputs commercially. |
-| Deployment restrictions | None in MIT. |
-| Attribution | Keep the MIT notice with any redistributed copy of the code/weights. Recommended: credit "TripoSR (Tripo AI & Stability AI)" in credits. |
-| Free-tier limitations | Needs ~6 GB VRAM at default settings (README). Hugging Face *free CPU* Spaces have no GPU; CPU inference is possible but slow and RAM-heavy. Free GPU access is not available to Docker-SDK Spaces on the free plan (verify current terms at https://huggingface.co/docs/hub/spaces-gpus — not verifiable from this sandbox). |
-| Dependencies (from the repo's `requirements.txt`, read here) | `omegaconf==2.3.0`, `Pillow==10.1.0`, `einops==0.7.0`, `torchmcubes` (git), `transformers==4.35.0`, `trimesh==4.0.5`, `rembg`, `huggingface-hub`, `imageio[ffmpeg]`, `gradio`, `xatlas==0.0.9`, `moderngl==5.10.0`, plus PyTorch. Licences of these are listed below / in `dependency-licenses.md`; **torchmcubes' licence was not verified here**. |
+| Name / version | TripoSR; weights `stabilityai/TripoSR` (`config.yaml`, `model.ckpt`) at the revision in the lock |
+| Commercial use | Allowed under MIT as stated by the sources above |
+| Redistribution / derivatives | MIT: permitted with the licence and copyright notice retained |
+| Output restrictions | None stated in the repository licence. Training-data provenance is not documented upstream; keep this in mind when relying on outputs commercially |
+| Deployment restrictions | None in MIT |
+| Attribution | Keep the MIT notice with any redistributed copy; credit "TripoSR (Tripo AI & Stability AI)" |
+| Free-tier limitations | ≈ 6 GB VRAM at defaults (upstream README); Hugging Face free Docker Spaces have no GPU (verify current terms; not checkable from the sandbox) |
+| Dependencies | From the repo's own `requirements.txt` at the pinned commit: `omegaconf==2.3.0`, `Pillow==10.1.0`, `einops==0.7.0`, `torchmcubes` (git), `transformers==4.35.0`, `trimesh==4.0.5`, `rembg`, `huggingface-hub`, `imageio[ffmpeg]`, `gradio`, `xatlas==0.0.9`, `moderngl==5.10.0`, PyTorch. **`torch >= 2.6.0` is additionally required by this Studio** (see the security review) |
+
+How the Studio enforces this: `engines/registry.py::license_gate` (explicit licence gate, preserved: an unverified licence is refused with an exact instruction) **and**, independently, `engines/weights.py` (integrity gate: nothing is deserialised unless pinned + checksummed). The deployer attestation `ARO_VERIFIED_MODEL_LICENSES` can satisfy only the *licence* gate; it cannot make unpinned weights loadable.
 
 ## 2. Other components that join the AI path
 
@@ -46,4 +70,4 @@ Runtime Python dependencies of the Studio itself are audited from installed meta
 
 1. Open the model card / licence file linked above and confirm it grants commercial use of the **weights** and the **generated outputs**, and note the exact revision.
 2. Record the revision hash here and in `ARO_TRIPOSR_MODEL_PATH`.
-3. Set `ARO_VERIFIED_MODEL_LICENSES=<engine id>` (a deployer attestation, logged in the model record). Without it generation fails with `MODEL_ERROR` and this exact instruction.
+3. For engines whose lock is complete the licence status is `verified` automatically. `ARO_VERIFIED_MODEL_LICENSES=<engine id>` remains an explicit deployer attestation for the licence gate only; weights still must be pinned and checksummed to load.

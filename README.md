@@ -24,12 +24,14 @@ Zero-budget by design (₦0): open-source stack, no paid APIs, no paid hosting, 
 | Geometry inspection/repair, materials, textures, vehicle setup, rig, collision, LOD | ✅ implemented and tested |
 | Validation / production-readiness engine (46 rules; scores never override critical failures) | ✅ implemented and tested |
 | Export: GLB, glTF, OBJ, Unity package + independent verification (Khronos glTF-Validator: 0 errors/0 warnings on the TITAN 480 GLB) | ✅ implemented and tested |
-| **AI reconstruction (TripoSR)** | ⚠️ adapter written against the published API; **not executed** in the development environment (no GPU, no access to huggingface.co). Gated real-inference tests + exact activation steps provided. **Not claimed to work until run on a GPU host.** |
-| **Unity 6 import** | ⚠️ package generated and integrity-verified; **import not executed** (no Unity available). Importer script untested until first run. |
+| **TripoSR licence & supply chain** | ✅ MIT evidence recorded ([model-licenses](docs/models/model-licenses.md)); loader hardened (SHA-256 before deserialising, `weights_only`, class allow-list). ⚠️ The engine stays **gated**: the Hub revision and file checksums could not be fetched here, so the lock is incomplete. Licence verification does not prove inference works. |
+| **AI reconstruction (TripoSR)** | ⛔ **BLOCKED — never run.** No GPU and no access to huggingface.co in the build environment. Post-reconstruction pipeline is proven only on a *synthetic* mesh. Run [docs/verification/gpu-host-runbook.md](docs/verification/gpu-host-runbook.md) (`scripts/verify_on_gpu_host.sh`) to produce evidence. |
+| **Unity 6 import** | ⛔ **BLOCKED — never run.** Package is generated and integrity-verified; a Unity batch-mode verifier ships in every package but has only been syntax-checked. See [docs/verification/unity-verification-runbook.md](docs/verification/unity-verification-runbook.md). |
+| **Docker** | ✅ image built and run for real (hardened, 22/22 steps, 34/34 HTTP checks) — see [docs/deployment/docker.md](docs/deployment/docker.md) for caveats. Not deployed to a Hugging Face Space. |
 | TITAN 480 reference asset | ✅ original, procedural, clearly labelled *not AI* — used to exercise every post-reconstruction stage |
 | Future capabilities (text-to-3D, retopology, auto-rigging, part detection, …) | ⛔ not implemented, not faked |
 
-The full 22-stage acceptance run with per-stage results: [docs/acceptance/titan480-acceptance-report.md](docs/acceptance/titan480-acceptance-report.md). **Production readiness of the platform as a whole is not claimed** until stages 5–7 (real inference) and 22 (Unity import) pass; see that report.
+The full 22-stage acceptance run with per-stage results: [docs/acceptance/titan480-acceptance-report.md](docs/acceptance/titan480-acceptance-report.md). The report lists **seven separate component statuses** (platform, procedural asset, real AI asset, validated production asset, Unity import, Docker, security/regression) derived only from recorded evidence. **Production readiness is not claimed** until all seven are PASS; today the real-AI and Unity components are BLOCKED. Repository hygiene (public repo, no licence chosen): [docs/repository-safety.md](docs/repository-safety.md).
 
 ## Quick start (local, CPU, no AI)
 
@@ -60,7 +62,9 @@ pytest                                   # 200+ unit/integration/security/export
 pytest tests/e2e                         # browser end-to-end (needs Playwright Chromium)
 ARO_RUN_MODEL_TESTS=1 pytest -m model    # real TripoSR inference (GPU host + weights + verified licence)
 ruff check . && ruff format --check . && mypy aro_studio app.py
-python scripts/run_acceptance.py         # 22-stage TITAN 480 acceptance report
+python scripts/run_regression.py         # every gate with real counts → docs/acceptance/evidence/regression/
+python scripts/run_acceptance.py         # 22-stage TITAN 480 acceptance report + seven component statuses
+scripts/verify_docker.sh                 # real Docker build + hardened run + HTTP suite
 python scripts/audit_licenses.py --check # dependency licence audit
 ```
 

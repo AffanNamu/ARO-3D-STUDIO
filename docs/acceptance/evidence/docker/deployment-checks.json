@@ -1,0 +1,182 @@
+{
+  "base_url": "http://127.0.0.1:17860",
+  "when": "2026-10-10T19:03:24Z",
+  "state": {
+    "project_id": "prj_7fea3e353cb14ef887e6",
+    "asset_id": "ast_fd3d9a3f66644e368755"
+  },
+  "passed": 34,
+  "failed": 0,
+  "checks": [
+    {
+      "check": "health endpoint",
+      "result": "PASS",
+      "detail": "{\"status\": \"ok\", \"version\": \"0.1.0\"}"
+    },
+    {
+      "check": "security headers (CSP, nosniff, no-referrer)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "API rejects requests without a token (401)",
+      "result": "PASS",
+      "detail": "status 401"
+    },
+    {
+      "check": "API rejects a wrong token (401)",
+      "result": "PASS",
+      "detail": "status 401"
+    },
+    {
+      "check": "API accepts the correct token",
+      "result": "PASS",
+      "detail": "status 200"
+    },
+    {
+      "check": "system endpoint never echoes the token",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "system endpoint reports resources, queue and limits",
+      "result": "PASS",
+      "detail": "cpu=4 cgroup_mem_mb=768"
+    },
+    {
+      "check": "create project",
+      "result": "PASS",
+      "detail": "status 201"
+    },
+    {
+      "check": "create asset",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "valid PNG accepted and stored by content hash",
+      "result": "PASS",
+      "detail": "status 201"
+    },
+    {
+      "check": "non-image content with an image filename rejected (400)",
+      "result": "PASS",
+      "detail": "status 400 The file content is not a PNG, JPEG or WebP image (extension and declared type a"
+    },
+    {
+      "check": "upload over 1 MB rejected (400)",
+      "result": "PASS",
+      "detail": "status 400"
+    },
+    {
+      "check": "decompression-bomb image (900 MP declared) rejected before decoding (400)",
+      "result": "PASS",
+      "detail": "status 400 The image header is invalid."
+    },
+    {
+      "check": "truncated/corrupt image rejected (400)",
+      "result": "PASS",
+      "detail": "status 400"
+    },
+    {
+      "check": "archive rejected: zip-slip (../ member) (400)",
+      "result": "PASS",
+      "detail": "status 400 Archive contains an unsafe path."
+    },
+    {
+      "check": "archive rejected: absolute-path member (400)",
+      "result": "PASS",
+      "detail": "status 400 Archive contains an unsafe path."
+    },
+    {
+      "check": "archive rejected: symlink member (400)",
+      "result": "PASS",
+      "detail": "status 400 Archive contains a symbolic link."
+    },
+    {
+      "check": "archive rejected: zip bomb (compression ratio) (400)",
+      "result": "PASS",
+      "detail": "status 400 Archive compression ratio is suspicious (possible zip bomb)."
+    },
+    {
+      "check": "path traversal in an id never reads files",
+      "result": "PASS",
+      "detail": "status 404"
+    },
+    {
+      "check": "unknown id is a clean 404 with no traceback",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "generation job accepted (202)",
+      "result": "PASS",
+      "detail": "status 202"
+    },
+    {
+      "check": "no AI runtime: job ends MODEL_ERROR with an actionable explanation",
+      "result": "PASS",
+      "detail": "MODEL_ERROR | The licence of the 'TripoSR' weights (MIT) is claimed, not yet verified for production use."
+    },
+    {
+      "check": "failed generation created no asset version (no placeholder geometry)",
+      "result": "PASS",
+      "detail": "versions=0"
+    },
+    {
+      "check": "service still healthy after the failed inference job",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "create ARO TITAN 480 procedural reference",
+      "result": "PASS",
+      "detail": "status 201"
+    },
+    {
+      "check": "pipeline step: geometry",
+      "result": "PASS",
+      "detail": "COMPLETED"
+    },
+    {
+      "check": "pipeline step: rig",
+      "result": "PASS",
+      "detail": "COMPLETED"
+    },
+    {
+      "check": "pipeline step: collision",
+      "result": "PASS",
+      "detail": "COMPLETED"
+    },
+    {
+      "check": "pipeline step: lod",
+      "result": "PASS",
+      "detail": "COMPLETED"
+    },
+    {
+      "check": "pipeline step: validate",
+      "result": "PASS",
+      "detail": "COMPLETED"
+    },
+    {
+      "check": "validation status PRODUCTION_READY, 0 critical failures",
+      "result": "PASS",
+      "detail": "PRODUCTION_READY 100.0%"
+    },
+    {
+      "check": "export GLB + Unity package (verified server-side)",
+      "result": "PASS",
+      "detail": "COMPLETED"
+    },
+    {
+      "check": "downloaded GLB is a glTF binary whose SHA-256 matches the export record",
+      "result": "PASS",
+      "detail": "1116284 bytes"
+    },
+    {
+      "check": "GLB verification recorded as OK",
+      "result": "PASS",
+      "detail": ""
+    }
+  ]
+}

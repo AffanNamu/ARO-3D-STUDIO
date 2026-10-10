@@ -29,9 +29,16 @@ from aro_studio.security.paths import ensure_dir, safe_join
 class StorageLayout:
     def __init__(self, root: str | Path):
         self.root = Path(root).resolve()
-        ensure_dir(self.root)
-        for sub in ("projects", "logs", "tmp"):
-            ensure_dir(self.root / sub)
+        try:
+            ensure_dir(self.root)
+            for sub in ("projects", "logs", "tmp"):
+                ensure_dir(self.root / sub)
+        except OSError as e:
+            raise RuntimeError(
+                f"ARO_DATA_DIR {self.root} is not writable ({e.strerror or e}). "
+                "Mount a writable volume there (e.g. `-v aro-data:/home/user/data`, or `--tmpfs` for ephemeral use "
+                "with a read-only root filesystem)."
+            ) from e
 
     # -- paths --------------------------------------------------------------------------------
     def project_dir(self, project_id: str) -> Path:

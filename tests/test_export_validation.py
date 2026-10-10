@@ -408,3 +408,34 @@ def test_crashing_rule_becomes_failed_check_not_crash(monkeypatch, full):
     monkeypatch.setattr(engine, "_parts_inspected", lambda ctx: (_ for _ in ()).throw(RuntimeError("boom")))
     r = report(full)
     assert status(r, "G003") == "failed" and "boom" in next(c["message"] for c in r["checks"] if c["id"] == "G003")
+
+
+def test_unity_expectations_match_the_exported_glb_and_ship_with_the_verifier(pkg, full):
+    """The expectations the Unity verifier compares against must agree with what is actually in the shipped GLB."""
+    import numpy as np
+    import trimesh
+
+    _, root, _ = pkg
+    exp = json.loads((root / "Metadata" / "unity_expectations.json").read_text())
+    assert (root / "Editor" / "AroUnityVerifier.cs").is_file()
+    assert "unity_expectations.json" in (root / "Metadata" / "checksums.sha256").read_text()
+    scene = trimesh.load(root / "Models" / "ARO-TITAN-480.glb", force="scene")
+    lod0 = [g for n, g in scene.geometry.items() if n.endswith("_LOD0") or "_LOD" not in n]
+    assert lod0
+    verts = np.concatenate(
+        [
+            trimesh.transform_points(g.vertices, scene.graph.get(nn)[0])
+            for nn in scene.graph.nodes_geometry
+            for g in [scene.geometry[scene.graph[nn][1]]]
+            if "_LOD" not in scene.graph[nn][1] or scene.graph[nn][1].endswith("_LOD0")
+        ]
+    )
+    assert np.allclose(verts.min(0), exp["boundsMin"], atol=0.01) and np.allclose(
+        verts.max(0), exp["boundsMax"], atol=0.01
+    )
+    assert exp["lodTriangles"]["0"] == exp["triangles_lod0"] and sorted(exp["lodTriangles"]) == ["0", "1", "2", "3"]
+    assert (
+        {p["node"] for p in exp["parts"]}
+        and exp["colliders"]
+        and "boundsMin" in next(c for c in exp["colliders"] if c["kind"] in ("convex_hull", "vehicle_mesh"))
+    )

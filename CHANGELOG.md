@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — post-audit completion and verification
+
+* TripoSR: licence evidence recorded; machine-readable lock (`engines/locks/triposr.json`) with revision/checksum pinning tool, SHA-256 verification before load, `weights_only=True` (torch ≥ 2.6), config class allow-list. Gate stays closed until the lock is complete — by design.
+* `ai_pipeline`: orient → scale → clean → decimate → re-ground → UV/bake → collision → LOD → validate for single-mesh AI output (tested on a synthetic mesh only). Fixed convex-hull reduction for smooth meshes.
+* Evidence tooling: `record_real_inference.py` + `verify_on_gpu_host.sh` (GPU), Unity batch-mode verifier + expectations file in every package, `verify_docker.sh`, `run_regression.py`, evidence readers and the seven-component status in the acceptance report.
+* Docker: digest-pinned base, cgroup-aware resource limits, clear error for an unwritable data dir; build/run verified in a sandbox.
+* Repository safety tests; project licence deliberately left to the owner.
+* **Still not done:** real TripoSR inference, Unity 6 import verification, Hugging Face Space deployment.
+
 ## 0.1.0 — initial platform build
 
 * Platform: projects, asset library/taxonomy, immutable versioning with integrity hashes, asset status machine, production-version designation gated by validation, SQLite persistence with migrations, persistent priority job queue (retry/cancel/timeout/recovery), audit log, observability, security layer.

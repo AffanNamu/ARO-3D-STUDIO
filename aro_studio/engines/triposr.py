@@ -1,13 +1,14 @@
 """TripoSR adapter (MIT, VAST-AI-Research / Stability AI).
 
-Real integration against the public `tsr` package API:
-    TSR.from_pretrained(path_or_repo, config_name="config.yaml", weight_name="model.ckpt")
-    model.renderer.set_chunk_size(n); model.to(device)
-    scene_codes = model([image], device=device)
-    meshes = model.extract_mesh(scene_codes, has_vertex_color, resolution=...)
+Integration against the public ``tsr`` package, but **not** through upstream's ``TSR.from_pretrained``, which (at the
+pinned commit) (1) downloads from the Hub without a ``revision``, (2) calls ``torch.load`` without ``weights_only`` and
+(3) imports any class path named in ``config.yaml``; its image tokenizer also (4) downloads ``facebook/dino-vitb16``'s
+``config.json`` unpinned on every construction. See docs/models/triposr-security-review.md. This adapter instead:
 
-`tsr` is not on PyPI; it must be importable (see Dockerfile / docs/models/model-requirements.md).
-Nothing in this module runs at import time that needs torch.
+    verify every file against engines/locks/triposr.json → allow-list config class paths → construct ``TSR(cfg)`` with the
+    tokenizer download replaced by the pinned local file → ``torch.load(weights_only=True)`` → ``load_state_dict``.
+
+``tsr`` is not on PyPI; it must be importable (see Dockerfile). Nothing here imports torch at import time.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import importlib.util
 import time
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 import trimesh
 
@@ -29,44 +31,80 @@ from aro_studio.engines.base import (
     ModelLicense,
     ResourceEstimate,
 )
+from aro_studio.engines.weights import ModelLock, load_lock, resolve_weights, validate_config_classes
 
-TRIPOSR_LICENSE = ModelLicense(
-    spdx="MIT",
-    source_url="https://huggingface.co/stabilityai/TripoSR",
-    commercial_use="allowed",
-    status="claimed",
-    notes=(
-        "Code licence verified: github.com/VAST-AI-Research/TripoSR/LICENSE is the MIT licence (Tripo AI & Stability AI, 2024) "
-        "and the README states source, pretrained models and demo are MIT. The Hugging Face model card could not be "
-        "fetched from the build environment (network policy), so the WEIGHTS licence is not independently verified here."
-    ),
-)
 
-INFO = EngineInfo(
-    id="triposr",
-    name="TripoSR",
-    capability="image_to_3d",
-    version="stabilityai/TripoSR (model.ckpt)",
-    revision=None,  # pin a commit hash of the HF repo in deployment: ARO_TRIPOSR_MODEL_PATH
-    source_url="https://github.com/VAST-AI-Research/TripoSR",
-    license=TRIPOSR_LICENSE,
-    description="Feed-forward single-image reconstruction (LRM-style triplane transformer) with marching-cubes mesh extraction.",
-    requirements={
-        "python": ">=3.9",
-        "packages": [
-            "torch",
-            "omegaconf==2.3.0",
-            "einops==0.7.0",
-            "transformers==4.35.0",
-            "huggingface-hub",
-            "torchmcubes",
-            "trimesh",
-        ],
-        "vram_mb_default": 6000,
-        "vram_source": "TripoSR README: 'The default options takes about 6GB VRAM for a single image input.'",
-        "weights_download": "stabilityai/TripoSR on huggingface.co (config.yaml + model.ckpt)",
-    },
-)
+def _licence_from_lock(lock: ModelLock) -> ModelLicense:
+    """Status is 'verified' ONLY when the lock is complete (evidence + pinned revision + checksums)."""
+    missing = lock.missing()
+    lic = lock.license
+    ev = "; ".join(
+        f"{e.source} ({'independently fetched' if e.independently_fetched else 'owner statement'}, {e.verified_on})"
+        for e in lic.evidence
+    )
+    notes = f"{lic.scope}. Evidence: {ev}."
+    if missing:
+        notes += " NOT YET VERIFIED FOR A SPECIFIC ARTEFACT - still required: " + "; ".join(missing) + "."
+    return ModelLicense(
+        spdx=lic.spdx,
+        source_url="https://huggingface.co/stabilityai/TripoSR",
+        commercial_use=lic.commercial_use,
+        status="claimed" if missing else "verified",
+        notes=notes,
+    )
+
+
+def _build_info(lock: ModelLock) -> EngineInfo:
+    rev = lock.weights.revision
+    return EngineInfo(
+        id="triposr",
+        name="TripoSR",
+        capability="image_to_3d",
+        version=f"{lock.weights.repo_id}@{rev or 'UNPINNED'}",
+        revision=rev,
+        source_url="https://github.com/VAST-AI-Research/TripoSR",
+        license=_licence_from_lock(lock),
+        description="Feed-forward single-image reconstruction (LRM-style triplane transformer) with marching-cubes mesh extraction.",
+        requirements={
+            "python": ">=3.9",
+            "packages": [
+                "torch",
+                "omegaconf==2.3.0",
+                "einops==0.7.0",
+                "transformers==4.35.0",
+                "huggingface-hub",
+                "torchmcubes",
+                "trimesh",
+            ],
+            "vram_mb_default": 6000,
+            "vram_source": "TripoSR README: 'The default options takes about 6GB VRAM for a single image input.'",
+            "weights_download": f"{lock.weights.repo_id} (config.yaml + model.ckpt) at pinned revision {rev or '(not pinned yet)'}; "
+            "plus facebook/dino-vitb16 config.json (pinned)",
+            "code_commit": lock.code.get("commit"),
+        },
+    )
+
+
+# Derived from upstream SOURCE, not from running the model: tsr/utils.py::to_gradio_3d_orientation applies Rx(-90°) then
+# Ry(+90°) before display, which maps native +Z to +Y (up). Which native direction is the object's FRONT is not stated
+# upstream: confirm visually on the first real output, then use the Geometry "Re-orient" step.
+ORIENTATION_HINT = {
+    "native_up": "+Z",
+    "basis": "tsr/utils.py::to_gradio_3d_orientation = Rx(-90deg) then Ry(+90deg) at upstream commit 107cefd",
+    "forward": "UNCONFIRMED: decide from the first real output",
+    "status": "inferred_from_source_not_yet_verified_by_inference",
+}
+
+MIN_TORCH = (2, 6, 0)
+
+
+def _version_tuple(v: str) -> tuple[int, ...]:
+    nums = []
+    for part in str(v).split("+")[0].split(".")[:3]:
+        digits = "".join(ch for ch in part if ch.isdigit())
+        nums.append(int(digits) if digits else 0)
+    return tuple(nums + [0] * (3 - len(nums)))
+
 
 _PRESETS: dict[str, dict[str, Any]] = {
     "LOW_RESOURCE": {"mc_resolution": 160, "chunk_size": 2048, "foreground_ratio": 0.85, "mc_threshold": 25.0},
@@ -76,9 +114,11 @@ _PRESETS: dict[str, dict[str, Any]] = {
 
 
 class TripoSREngine(ImageTo3DEngine):
-    info = INFO
-
-    def __init__(self, model_path: str = "stabilityai/TripoSR", hf_token: str | None = None):
+    def __init__(
+        self, model_path: str = "stabilityai/TripoSR", hf_token: str | None = None, lock: ModelLock | None = None
+    ):
+        self.lock = lock or load_lock("triposr")
+        self.info = _build_info(self.lock)
         self.model_path = model_path
         self._hf_token = hf_token
         self._model = None
@@ -92,10 +132,16 @@ class TripoSREngine(ImageTo3DEngine):
             if importlib.util.find_spec(m) is None
         ]
         reasons, warnings, activation = [], [], []
+        lock_missing = self.lock.missing()
+        if lock_missing:
+            reasons.append("Supply-chain lock incomplete: " + "; ".join(lock_missing) + ".")
+            activation.append(
+                "python scripts/pin_triposr_weights.py   (needs Hugging Face access) → review the diff of engines/locks/triposr.json → commit"
+            )
         if importlib.util.find_spec("tsr") is None:
             reasons.append("The 'tsr' package (TripoSR source) is not importable.")
             activation.append(
-                "git clone https://github.com/VAST-AI-Research/TripoSR && add it to PYTHONPATH (the Dockerfile does this)."
+                f"git clone https://github.com/VAST-AI-Research/TripoSR && git -C TripoSR checkout {self.lock.code.get('commit')} && add it to PYTHONPATH (the Dockerfile does this)."
             )
         if missing:
             reasons.append("Missing Python packages: " + ", ".join(missing) + ".")
@@ -104,6 +150,12 @@ class TripoSREngine(ImageTo3DEngine):
             try:
                 import torch
 
+                if _version_tuple(getattr(torch, "__version__", "0")) < MIN_TORCH:
+                    reasons.append(
+                        f"torch {getattr(torch, '__version__', '?')} is too old: torch >= {'.'.join(map(str, MIN_TORCH))} is required because "
+                        "torch.load(weights_only=True) had a published remote-code-execution bypass in earlier releases."
+                    )
+                    activation.append("pip install 'torch>=2.6.0' (matching your CUDA build)")
                 if device.startswith("cuda") and not torch.cuda.is_available():
                     reasons.append("CUDA device requested but torch.cuda.is_available() is False.")
                     activation.append("Run on a GPU host or set ARO_DEVICE=cpu.")
@@ -116,9 +168,13 @@ class TripoSREngine(ImageTo3DEngine):
             for f in ("config.yaml", "model.ckpt"):
                 if not (p / f).is_file():
                     reasons.append(f"Local model directory is missing '{f}'.")
+        elif self.model_path != self.lock.weights.repo_id:
+            reasons.append(
+                f"ARO_TRIPOSR_MODEL_PATH='{self.model_path}' is neither the pinned repo '{self.lock.weights.repo_id}' nor a local directory."
+            )
         else:
             warnings.append(
-                f"Weights will be downloaded from huggingface.co ('{self.model_path}') on first load; this needs outbound network access."
+                f"Weights will be downloaded from huggingface.co at pinned revision {self.lock.weights.revision} and SHA-256 verified before loading."
             )
         return Availability(ok=not reasons, reasons=reasons, warnings=warnings, activation=activation)
 
@@ -177,10 +233,12 @@ class TripoSREngine(ImageTo3DEngine):
         if not av.ok:
             raise EngineUnavailableError(
                 "TripoSR cannot run in this environment: " + " ".join(av.reasons),
-                recommended_action=" ".join(av.activation) or "See docs/models/model-requirements.md.",
+                recommended_action=" | ".join(av.activation) or "See docs/models/model-requirements.md.",
                 details=av.to_dict(),
             )
         import torch
+        import tsr.models.tokenizers.image as tokenizer_module
+        from omegaconf import OmegaConf
         from tsr.system import TSR
 
         try:
@@ -188,8 +246,31 @@ class TripoSREngine(ImageTo3DEngine):
                 import os
 
                 os.environ.setdefault("HF_TOKEN", self._hf_token)
-            model = TSR.from_pretrained(self.model_path, config_name="config.yaml", weight_name="model.ckpt")
+            resolved = resolve_weights(
+                self.lock, self.model_path
+            )  # every file checksum-verified BEFORE deserialisation
+            cfg = OmegaConf.load(resolved.config)
+            OmegaConf.resolve(cfg)
+            validate_config_classes(cfg)
+
+            def pinned_download(repo_id: str | None = None, filename: str | None = None, **_: Any) -> str:
+                p = resolved.aux.get((str(repo_id), str(filename)))
+                if p is None:
+                    raise ModelError(
+                        f"TripoSR tried to download an unpinned file ({repo_id}/{filename}); refused.",
+                        recommended_action="Add it to engines/locks/triposr.json (revision + SHA-256) through a reviewed change.",
+                    )
+                return str(p)
+
+            with mock.patch.object(tokenizer_module, "hf_hub_download", pinned_download):
+                model = TSR(cfg)
+            # weights_only=True: tensors only, no arbitrary pickle execution. No fallback to the unsafe mode on failure.
+            state = torch.load(resolved.checkpoint, map_location="cpu", weights_only=True)
+            model.load_state_dict(state)
             model.to(device)
+        except ModelError:
+            self.unload()
+            raise
         except torch.cuda.OutOfMemoryError as e:
             self.unload()
             raise ModelError(
@@ -200,7 +281,7 @@ class TripoSREngine(ImageTo3DEngine):
             self.unload()
             raise ModelError(
                 f"Failed to load TripoSR weights: {type(e).__name__}: {e}",
-                recommended_action="Check the model path/network access and the weights files.",
+                recommended_action="Check the pinned files and the 'tsr' checkout (docs/models/triposr-security-review.md). Unsafe loading is never used as a fallback.",
             ) from e
         self._model, self._device = model, device
 
@@ -260,5 +341,11 @@ class TripoSREngine(ImageTo3DEngine):
             mesh=mesh,
             device=device,
             execution_time_s=time.perf_counter() - t0,
-            details={"mc_resolution": s["mc_resolution"], "coordinate_frame": "TripoSR native (unrotated)"},
+            details={
+                "mc_resolution": s["mc_resolution"],
+                "coordinate_frame": "TripoSR native (unrotated)",
+                "orientation_hint": ORIENTATION_HINT,
+                "extents": [float(x) for x in mesh.extents],
+                "weights_source": self.lock.weights.repo_id + "@" + str(self.lock.weights.revision),
+            },
         )

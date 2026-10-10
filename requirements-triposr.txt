@@ -3,6 +3,7 @@
 # The 'tsr' package itself is not on PyPI: clone https://github.com/VAST-AI-Research/TripoSR and add it to PYTHONPATH
 # (the Dockerfile does this at the commit given by TRIPOSR_REF).
 # Versions below are the ones pinned by the TripoSR repository's own requirements.txt.
+torch>=2.6.0   # required: earlier releases had a weights_only=True bypass (see docs/models/triposr-security-review.md)
 omegaconf==2.3.0
 einops==0.7.0
 transformers==4.35.0
