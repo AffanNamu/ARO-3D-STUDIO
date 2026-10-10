@@ -48,7 +48,8 @@ class Database:
                     for stmt in statements:
                         self._conn.execute(stmt)
                     self._conn.execute(
-                        "INSERT INTO schema_migrations(version, applied_at) VALUES (?, strftime('%s','now'))", (version,)
+                        "INSERT INTO schema_migrations(version, applied_at) VALUES (?, strftime('%s','now'))",
+                        (version,),
                     )
                     self._conn.execute("COMMIT")
                 except Exception:
@@ -57,7 +58,8 @@ class Database:
 
     @property
     def schema_version(self) -> int:
-        return self.query_one("SELECT COALESCE(MAX(version),0) AS v FROM schema_migrations")["v"]
+        row = self.query_one("SELECT COALESCE(MAX(version),0) AS v FROM schema_migrations")
+        return int(row["v"]) if row else 0
 
     # -- helpers ------------------------------------------------------------------------------
     def execute(self, sql: str, params: Sequence[Any] = ()) -> int:

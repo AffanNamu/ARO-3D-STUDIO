@@ -41,7 +41,9 @@ class ModelManager:
         self._last_used = 0.0
         self.last_load_time_s: dict[str, float] = {}
 
-    def _event(self, model_id: str, event: str, device: str | None = None, duration: float | None = None, **details) -> None:
+    def _event(
+        self, model_id: str, event: str, device: str | None = None, duration: float | None = None, **details
+    ) -> None:
         log.info("model %s: %s", model_id, event, extra={"stage": "model"})
         if self.db:
             self.db.execute(
@@ -95,4 +97,8 @@ class ModelManager:
             return False
 
     def status(self) -> dict:
-        return {"resident": self._resident, "idle_unload_s": self.idle_unload_s, "last_load_time_s": self.last_load_time_s}
+        return {
+            "resident": self._resident,
+            "idle_unload_s": self.idle_unload_s,
+            "last_load_time_s": self.last_load_time_s,
+        }

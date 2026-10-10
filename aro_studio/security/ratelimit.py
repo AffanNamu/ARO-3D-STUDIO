@@ -26,7 +26,9 @@ class RateLimiter:
             if len(q) >= self.limit:
                 retry = int(self.window - (now - q[0])) + 1
                 raise RateLimitedError(
-                    "Too many requests.", recommended_action=f"Wait about {retry}s and retry.", details={"retry_after_s": retry}
+                    "Too many requests.",
+                    recommended_action=f"Wait about {retry}s and retry.",
+                    details={"retry_after_s": retry},
                 )
             q.append(now)
             if len(self._hits) > 10_000:  # bound memory

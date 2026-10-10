@@ -126,6 +126,7 @@ class PivotDef(_M):
     axis: Vec3 = (0.0, 1.0, 0.0)
     limits_deg: tuple[float, float] = (0.0, 0.0)
     part: str | None = None  # part driven by this pivot
+    children: list[str] = Field(default_factory=list)  # further parts that move with it (e.g. door glass)
 
 
 class WheelDef(_M):

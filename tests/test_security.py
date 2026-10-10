@@ -11,16 +11,19 @@ from aro_studio.security.ratelimit import RateLimiter
 from aro_studio.security.uploads import require_image_bytes, sniff
 
 
-@pytest.mark.parametrize("name,expected", [
-    ("../../etc/passwd", "passwd"),
-    ("..\\..\\windows\\system32\\cmd.exe", "cmd.exe"),
-    ("my truck (final).PNG", "my_truck_final.PNG"),
-    ("", "file"),
-    ("....", "file"),
-    ("con.png", "_con.png"),
-    ("a\x00b.jpg", "ab.jpg"),
-    ("évil.jpg", "evil.jpg"),
-])
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("../../etc/passwd", "passwd"),
+        ("..\\..\\windows\\system32\\cmd.exe", "cmd.exe"),
+        ("my truck (final).PNG", "my_truck_final.PNG"),
+        ("", "file"),
+        ("....", "file"),
+        ("con.png", "_con.png"),
+        ("a\x00b.jpg", "ab.jpg"),
+        ("évil.jpg", "evil.jpg"),
+    ],
+)
 def test_sanitize_filename(name, expected):
     assert sanitize_filename(name) == expected
 

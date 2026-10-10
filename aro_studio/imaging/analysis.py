@@ -57,21 +57,26 @@ def analyze(image: Image.Image, *, declared_category_group: str | None = None) -
     alpha = np.asarray(rgba.getchannel("A"))
     has_cutout = bool((alpha < 250).mean() > 0.01)
     bg = background_stats(rgba.convert("RGB"))
+    mask: np.ndarray | None
     if has_cutout:
         bg_type, mask = "transparent", alpha > 16
     else:
         bg_type = "uniform" if bg["uniform"] else "complex"
-        mask = np.asarray(BorderColorMatte().remove(rgba).getchannel("A")) > 16 if bg["uniform"] else None
+        mask = (np.asarray(BorderColorMatte().remove(rgba).getchannel("A")) > 16) if bg["uniform"] else None
 
     bbox, frac, aspect, framing = None, 0.0, None, "unknown"
     if mask is not None and mask.any():
         ys, xs = np.where(mask)
-        bbox = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
+        bbox = (int(np.min(xs)), int(np.min(ys)), int(np.max(xs)) + 1, int(np.max(ys)) + 1)
         frac = float(mask.mean())
         bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
         aspect = bw / max(bh, 1)
         edge = max(bbox[0], bbox[1], rgba.width - bbox[2], rgba.height - bbox[3])
-        framing = "tight" if min(bbox[0], bbox[1], rgba.width - bbox[2], rgba.height - bbox[3]) <= 2 else ("small" if frac < 0.12 else "good")
+        framing = (
+            "tight"
+            if min(bbox[0], bbox[1], rgba.width - bbox[2], rgba.height - bbox[3]) <= 2
+            else ("small" if frac < 0.12 else "good")
+        )
         del edge
 
     cls = None
@@ -84,7 +89,9 @@ def analyze(image: Image.Image, *, declared_category_group: str | None = None) -
     rec: list[str] = []
     notes: list[str] = []
     if bg_type == "complex":
-        rec.append("Cluttered background: use neural background removal (rembg) or supply a cut-out PNG with transparency.")
+        rec.append(
+            "Cluttered background: use neural background removal (rembg) or supply a cut-out PNG with transparency."
+        )
     elif bg_type == "uniform":
         rec.append("Plain background detected: automatic matting is reliable for this image.")
     else:
@@ -94,14 +101,31 @@ def analyze(image: Image.Image, *, declared_category_group: str | None = None) -
     if framing == "small":
         rec.append("The subject is small in the frame; it will be cropped and enlarged, which can reduce detail.")
     if aspect is not None and aspect > 1.6:
-        notes.append("Wide subject (likely a side or three-quarter view) - single-view reconstruction is least reliable on the unseen side.")
-    notes.append("Single-image reconstruction invents the hidden sides; use the cleanest three-quarter or side view available.")
+        notes.append(
+            "Wide subject (likely a side or three-quarter view) - single-view reconstruction is least reliable on the unseen side."
+        )
+    notes.append(
+        "Single-image reconstruction invents the hidden sides; use the cleanest three-quarter or side view available."
+    )
     if cls is None:
-        notes.append("No object classifier is registered, so the object category is not auto-detected. The asset category you selected is used instead.")
+        notes.append(
+            "No object classifier is registered, so the object category is not auto-detected. The asset category you selected is used instead."
+        )
 
-    mode = "vehicle" if declared_category_group == "vehicles" else ("environment" if declared_category_group == "environment" else "generic")
+    mode = (
+        "vehicle"
+        if declared_category_group == "vehicles"
+        else ("environment" if declared_category_group == "environment" else "generic")
+    )
     return ImageAnalysis(
-        background=bg, background_type=bg_type, foreground_bbox=bbox, foreground_fraction=round(frac, 4),
-        subject_aspect=round(aspect, 3) if aspect else None, framing=framing, classification=cls,
-        recommendations=rec, recommended_mode=mode, notes=notes,
+        background=bg,
+        background_type=bg_type,
+        foreground_bbox=bbox,
+        foreground_fraction=round(frac, 4),
+        subject_aspect=round(aspect, 3) if aspect else None,
+        framing=framing,
+        classification=cls,
+        recommendations=rec,
+        recommended_mode=mode,
+        notes=notes,
     )

@@ -20,16 +20,22 @@ class EngineRegistry:
     def register(self, engine: ImageTo3DEngine) -> None:
         eid = engine.info.id.lower()
         if eid in BLOCKED_MODELS or any(b in eid for b in ("lyra",)):
-            raise InvalidInputError(f"Engine '{engine.info.id}' is blocked: {BLOCKED_MODELS.get(eid, BLOCKED_MODELS['nvidia-lyra-2.0'])}")
+            raise InvalidInputError(
+                f"Engine '{engine.info.id}' is blocked: {BLOCKED_MODELS.get(eid, BLOCKED_MODELS['nvidia-lyra-2.0'])}"
+            )
         if engine.info.license.status == "prohibited" or engine.info.license.commercial_use == "prohibited":
-            raise InvalidInputError(f"Engine '{engine.info.id}' has a licence that prohibits our use and cannot be registered.")
+            raise InvalidInputError(
+                f"Engine '{engine.info.id}' has a licence that prohibits our use and cannot be registered."
+            )
         self._engines[engine.info.id] = engine
 
     def get(self, engine_id: str) -> ImageTo3DEngine:
         try:
             return self._engines[engine_id]
         except KeyError:
-            raise InvalidInputError(f"Unknown engine '{engine_id}'.", recommended_action=f"Available engines: {sorted(self._engines)}") from None
+            raise InvalidInputError(
+                f"Unknown engine '{engine_id}'.", recommended_action=f"Available engines: {sorted(self._engines)}"
+            ) from None
 
     def all(self) -> list[ImageTo3DEngine]:
         return list(self._engines.values())

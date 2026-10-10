@@ -9,11 +9,13 @@ from aro_studio.scene.model import ColliderKind, Vec3
 from aro_studio.scene.store import Scene
 
 
-def _pt(m: np.ndarray, p: Vec3 | None) -> Vec3 | None:
-    if p is None:
-        return None
+def _p3(m: np.ndarray, p: Vec3) -> Vec3:
     q = m @ np.array([*p, 1.0])
     return (float(q[0]), float(q[1]), float(q[2]))
+
+
+def _pt(m: np.ndarray, p: Vec3 | None) -> Vec3 | None:
+    return None if p is None else _p3(m, p)
 
 
 def _dir(m: np.ndarray, d: Vec3) -> Vec3:
@@ -39,7 +41,9 @@ def transform_scene(scene: Scene, matrix: np.ndarray) -> Scene:
     if sc <= 0:
         raise InvalidInputError("Transform is singular.")
     if not np.allclose(r / sc @ (r / sc).T, np.eye(3), atol=1e-6):
-        raise InvalidInputError("Only rotations, uniform scale and translation are supported (no shear / non-uniform scale).")
+        raise InvalidInputError(
+            "Only rotations, uniform scale and translation are supported (no shear / non-uniform scale)."
+        )
     if scene.manifest.colliders and not _axis_aligned(r):
         raise InvalidInputError(
             "This scene has colliders; only axis-aligned (90°) rotations can be applied. Regenerate collision after rotating.",
@@ -47,61 +51,67 @@ def transform_scene(scene: Scene, matrix: np.ndarray) -> Scene:
         )
     out = scene.copy()
     mirrored = np.linalg.det(r) < 0
-    allm = [*out.meshes.values(), *(m for d in out.lod_meshes.values() for m in d.values()), *out.collision_meshes.values()]
-    for m in allm:
+    all_meshes = [
+        *out.meshes.values(),
+        *(m for d in out.lod_meshes.values() for m in d.values()),
+        *out.collision_meshes.values(),
+    ]
+    for m in all_meshes:
         m.apply_transform(matrix)
         if mirrored:
             m.invert()
     man = out.manifest
-    for p in man.parts:
-        p.pivot = _pt(matrix, p.pivot)  # type: ignore[assignment]
+    for part in man.parts:
+        part.pivot = _p3(matrix, part.pivot)
     for lod in man.lods:
-        for p in lod.parts:
-            p.pivot = _pt(matrix, p.pivot)  # type: ignore[assignment]
-    for c in man.colliders:
-        c.center = _pt(matrix, c.center)  # type: ignore[assignment]
-        if c.size is not None:
-            perm = np.abs(r / sc) @ np.array(c.size) * sc
-            c.size = (float(perm[0]), float(perm[1]), float(perm[2]))
-        if c.radius is not None:
-            c.radius *= sc
-        if c.height is not None:
-            c.height *= sc
-        if c.kind is ColliderKind.CAPSULE:
-            ax = np.abs(r / sc) @ np.eye(3)["XYZ".index(c.axis)]
-            c.axis = "XYZ"[int(np.argmax(ax))]  # type: ignore[assignment]
-    v = man.vehicle
-    if v:
-        v.center_of_mass = _pt(matrix, v.center_of_mass)
-        v.steering_points = [_pt(matrix, p) for p in v.steering_points]  # type: ignore[misc]
-        v.mirror_positions = [_pt(matrix, p) for p in v.mirror_positions]  # type: ignore[misc]
-        if v.wheelbase:
-            v.wheelbase *= sc
-        for a in v.axles:
-            a.position = _pt(matrix, a.position)  # type: ignore[assignment]
-            a.track_width *= sc
-            a.suspension_travel *= sc
-        for w in v.wheels:
-            w.position = _pt(matrix, w.position)  # type: ignore[assignment]
-            w.radius *= sc
-            w.width *= sc
-        for s in v.suspension_points:
-            s.position = _pt(matrix, s.position)  # type: ignore[assignment]
-            s.travel *= sc
-        for a in v.attachment_points:
-            a.position = _pt(matrix, a.position)  # type: ignore[assignment]
-            a.direction = _dir(matrix, a.direction)
-        for p in v.pivots:
-            p.position = _pt(matrix, p.position)  # type: ignore[assignment]
-            p.axis = _dir(matrix, p.axis)
-        for li in v.lights:
-            li.position = _pt(matrix, li.position)  # type: ignore[assignment]
-            li.direction = _dir(matrix, li.direction)
+        for lod_part in lod.parts:
+            lod_part.pivot = _p3(matrix, lod_part.pivot)
+    perm = np.abs(r / sc)
+    for col in man.colliders:
+        col.center = _p3(matrix, col.center)
+        if col.size is not None:
+            sz = perm @ np.array(col.size) * sc
+            col.size = (float(sz[0]), float(sz[1]), float(sz[2]))
+        if col.radius is not None:
+            col.radius *= sc
+        if col.height is not None:
+            col.height *= sc
+        if col.kind is ColliderKind.CAPSULE:
+            axis_vec = perm @ np.eye(3)["XYZ".index(col.axis)]
+            col.axis = ("X", "Y", "Z")[int(np.argmax(axis_vec))]
+    veh = man.vehicle
+    if veh:
+        if veh.center_of_mass is not None:
+            veh.center_of_mass = _p3(matrix, veh.center_of_mass)
+        veh.steering_points = [_p3(matrix, q) for q in veh.steering_points]
+        veh.mirror_positions = [_p3(matrix, q) for q in veh.mirror_positions]
+        if veh.wheelbase:
+            veh.wheelbase *= sc
+        for axle in veh.axles:
+            axle.position = _p3(matrix, axle.position)
+            axle.track_width *= sc
+            axle.suspension_travel *= sc
+        for wheel in veh.wheels:
+            wheel.position = _p3(matrix, wheel.position)
+            wheel.radius *= sc
+            wheel.width *= sc
+        for sp in veh.suspension_points:
+            sp.position = _p3(matrix, sp.position)
+            sp.travel *= sc
+        for at in veh.attachment_points:
+            at.position = _p3(matrix, at.position)
+            at.direction = _dir(matrix, at.direction)
+        for pv in veh.pivots:
+            pv.position = _p3(matrix, pv.position)
+            pv.axis = _dir(matrix, pv.axis)
+        for light in veh.lights:
+            light.position = _p3(matrix, light.position)
+            light.direction = _dir(matrix, light.direction)
     if man.rig:
-        for n in man.rig.nodes:
-            n.pivot = _pt(matrix, n.pivot)  # type: ignore[assignment]
-            if n.axis:
-                n.axis = _dir(matrix, n.axis)
+        for node in man.rig.nodes:
+            node.pivot = _p3(matrix, node.pivot)
+            if node.axis:
+                node.axis = _dir(matrix, node.axis)
     out.refresh_counts()
     return out
 

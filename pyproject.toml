@@ -34,15 +34,16 @@ dev = ["pytest>=8", "pytest-cov", "ruff", "mypy", "httpx", "pip-audit", "bandit"
 include = ["aro_studio*"]
 
 [tool.setuptools.package-data]
-aro_studio = ["ui/static/**/*", "py.typed"]
+aro_studio = ["ui/static/**/*", "py.typed", "export/*.cjs"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM"]
-ignore = ["S101", "B008"]
+# E501: `ruff format` owns code layout; remaining long lines are string literals (templates, messages)
+ignore = ["S101", "B008", "E501", "C408", "SIM105"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S", "B"]

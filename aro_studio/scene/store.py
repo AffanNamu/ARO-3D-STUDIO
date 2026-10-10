@@ -21,6 +21,7 @@ import trimesh
 
 from aro_studio.core.errors import InvalidInputError
 from aro_studio.core.hashing import canonical_json, sha256_bytes, sha256_file
+from aro_studio.core.tm import as_mesh, has_vertex_colors, vertex_colors
 from aro_studio.scene.model import SceneManifest
 
 
@@ -32,10 +33,9 @@ def mesh_to_npz(mesh: trimesh.Trimesh, path: Path) -> None:
     uv = getattr(mesh.visual, "uv", None)
     if uv is not None and len(uv) == len(mesh.vertices):
         arrays["uv"] = np.asarray(uv, dtype=np.float32)
-    if mesh.visual.kind == "vertex":
-        vc = np.asarray(mesh.visual.vertex_colors, dtype=np.uint8)
-        if len(vc) == len(mesh.vertices):
-            arrays["vertex_colors"] = vc
+    vc = vertex_colors(mesh)
+    if vc is not None and len(vc) == len(mesh.vertices):
+        arrays["vertex_colors"] = vc
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **arrays)  # type: ignore[arg-type]
 
@@ -78,7 +78,7 @@ class Scene:
         meshes = [m for m in src.values() if len(m.faces)]
         if not meshes:
             raise InvalidInputError("The scene has no geometry.")
-        return trimesh.util.concatenate(meshes) if len(meshes) > 1 else meshes[0].copy()
+        return as_mesh(trimesh.util.concatenate(meshes)) if len(meshes) > 1 else meshes[0].copy()
 
     @property
     def triangle_count(self) -> int:
@@ -95,7 +95,7 @@ class Scene:
             if m is not None:
                 p.vertex_count, p.triangle_count = len(m.vertices), len(m.faces)
                 p.has_uv = getattr(m.visual, "uv", None) is not None
-                p.has_vertex_colors = m.visual.kind == "vertex"
+                p.has_vertex_colors = has_vertex_colors(m)
         for lod in self.manifest.lods:
             meshes = self.lod_meshes.get(lod.level, {})
             for p in lod.parts:

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     max_import_mb: int = 200  # mesh / archive imports
     max_archive_members: int = 2000
     max_archive_uncompressed_mb: int = 1000
-    rate_limit_per_minute: int = 120
+    rate_limit_per_minute: int = 600
     heavy_rate_limit_per_minute: int = 20
 
     # Execution

@@ -43,10 +43,17 @@ def gpu_info() -> GpuInfo:
     if not exe:
         return GpuInfo()
     try:
-        out = subprocess.run(  # noqa: S603
-            [exe, "--query-gpu=name,memory.total,memory.free,driver_version", "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=5, check=True,
-        ).stdout.strip().splitlines()
+        out = (
+            subprocess.run(  # noqa: S603
+                [exe, "--query-gpu=name,memory.total,memory.free,driver_version", "--format=csv,noheader,nounits"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=True,
+            )
+            .stdout.strip()
+            .splitlines()
+        )
         name, total, free, driver = [x.strip() for x in out[0].split(",")]
         return GpuInfo(True, name, int(total), int(free), driver, "nvidia-smi")
     except Exception:  # noqa: BLE001 - monitoring must never raise

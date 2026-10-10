@@ -53,7 +53,15 @@ INFO = EngineInfo(
     description="Feed-forward single-image reconstruction (LRM-style triplane transformer) with marching-cubes mesh extraction.",
     requirements={
         "python": ">=3.9",
-        "packages": ["torch", "omegaconf==2.3.0", "einops==0.7.0", "transformers==4.35.0", "huggingface-hub", "torchmcubes", "trimesh"],
+        "packages": [
+            "torch",
+            "omegaconf==2.3.0",
+            "einops==0.7.0",
+            "transformers==4.35.0",
+            "huggingface-hub",
+            "torchmcubes",
+            "trimesh",
+        ],
         "vram_mb_default": 6000,
         "vram_source": "TripoSR README: 'The default options takes about 6GB VRAM for a single image input.'",
         "weights_download": "stabilityai/TripoSR on huggingface.co (config.yaml + model.ckpt)",
@@ -78,11 +86,17 @@ class TripoSREngine(ImageTo3DEngine):
 
     # -- discovery ----------------------------------------------------------------------------
     def availability(self, device: str) -> Availability:
-        missing = [m for m in ("torch", "omegaconf", "einops", "transformers", "huggingface_hub", "torchmcubes") if importlib.util.find_spec(m) is None]
+        missing = [
+            m
+            for m in ("torch", "omegaconf", "einops", "transformers", "huggingface_hub", "torchmcubes")
+            if importlib.util.find_spec(m) is None
+        ]
         reasons, warnings, activation = [], [], []
         if importlib.util.find_spec("tsr") is None:
             reasons.append("The 'tsr' package (TripoSR source) is not importable.")
-            activation.append("git clone https://github.com/VAST-AI-Research/TripoSR && add it to PYTHONPATH (the Dockerfile does this).")
+            activation.append(
+                "git clone https://github.com/VAST-AI-Research/TripoSR && add it to PYTHONPATH (the Dockerfile does this)."
+            )
         if missing:
             reasons.append("Missing Python packages: " + ", ".join(missing) + ".")
             activation.append("pip install -r requirements-triposr.txt  (torch must match the host CUDA version)")
@@ -103,7 +117,9 @@ class TripoSREngine(ImageTo3DEngine):
                 if not (p / f).is_file():
                     reasons.append(f"Local model directory is missing '{f}'.")
         else:
-            warnings.append(f"Weights will be downloaded from huggingface.co ('{self.model_path}') on first load; this needs outbound network access.")
+            warnings.append(
+                f"Weights will be downloaded from huggingface.co ('{self.model_path}') on first load; this needs outbound network access."
+            )
         return Availability(ok=not reasons, reasons=reasons, warnings=warnings, activation=activation)
 
     def presets(self) -> dict[str, dict[str, Any]]:
@@ -114,7 +130,9 @@ class TripoSREngine(ImageTo3DEngine):
         preset = settings.get("preset")
         if preset:
             if preset not in _PRESETS:
-                raise InvalidInputError(f"Unknown preset '{preset}'.", recommended_action=f"Use one of {sorted(_PRESETS)}")
+                raise InvalidInputError(
+                    f"Unknown preset '{preset}'.", recommended_action=f"Use one of {sorted(_PRESETS)}"
+                )
             base = dict(_PRESETS[preset])
         for k in ("mc_resolution", "chunk_size", "foreground_ratio", "mc_threshold"):
             if k in settings and settings[k] is not None:
@@ -141,7 +159,12 @@ class TripoSREngine(ImageTo3DEngine):
         if device.startswith("cuda"):
             if default:
                 return ResourceEstimate(6000, 4000, True, "Published by TripoSR for default options (single image).")
-            return ResourceEstimate(6000 if s["chunk_size"] in (0, 8192, 16384) else 4500, 4000, False, "Estimate only: not measured for non-default settings.")
+            return ResourceEstimate(
+                6000 if s["chunk_size"] in (0, 8192, 16384) else 4500,
+                4000,
+                False,
+                "Estimate only: not measured for non-default settings.",
+            )
         return ResourceEstimate(None, 6000, False, "CPU inference: RAM estimate only, not measured.")
 
     # -- lifecycle ----------------------------------------------------------------------------
@@ -158,7 +181,7 @@ class TripoSREngine(ImageTo3DEngine):
                 details=av.to_dict(),
             )
         import torch
-        from tsr.system import TSR  # type: ignore[import-not-found]
+        from tsr.system import TSR
 
         try:
             if self._hf_token:
@@ -169,10 +192,16 @@ class TripoSREngine(ImageTo3DEngine):
             model.to(device)
         except torch.cuda.OutOfMemoryError as e:
             self.unload()
-            raise ModelError("GPU ran out of memory while loading TripoSR.", recommended_action="Use a GPU with >= 8 GB VRAM or run on CPU.") from e
+            raise ModelError(
+                "GPU ran out of memory while loading TripoSR.",
+                recommended_action="Use a GPU with >= 8 GB VRAM or run on CPU.",
+            ) from e
         except Exception as e:
             self.unload()
-            raise ModelError(f"Failed to load TripoSR weights: {type(e).__name__}: {e}", recommended_action="Check the model path/network access and the weights files.") from e
+            raise ModelError(
+                f"Failed to load TripoSR weights: {type(e).__name__}: {e}",
+                recommended_action="Check the model path/network access and the weights files.",
+            ) from e
         self._model, self._device = model, device
 
     def unload(self) -> None:
@@ -210,7 +239,9 @@ class TripoSREngine(ImageTo3DEngine):
                     request.cancel.check()
                 if request.progress:
                     request.progress(0.6, "Extracting surface (marching cubes)")
-                meshes = model.extract_mesh(scene_codes, True, resolution=s["mc_resolution"], threshold=s["mc_threshold"])
+                meshes = model.extract_mesh(
+                    scene_codes, True, resolution=s["mc_resolution"], threshold=s["mc_threshold"]
+                )
         except torch.cuda.OutOfMemoryError:
             self.unload()
             raise
@@ -224,7 +255,10 @@ class TripoSREngine(ImageTo3DEngine):
         raw_file = request.workdir / "raw_output.glb"
         mesh.export(raw_file)  # original artefact, untouched
         return GenerationOutput(
-            raw_file=raw_file, output_format="glb", mesh=mesh, device=device,
+            raw_file=raw_file,
+            output_format="glb",
+            mesh=mesh,
+            device=device,
             execution_time_s=time.perf_counter() - t0,
             details={"mc_resolution": s["mc_resolution"], "coordinate_frame": "TripoSR native (unrotated)"},
         )

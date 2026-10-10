@@ -49,11 +49,20 @@ def concept_png() -> bytes:
 
 
 def make_scene_from_mesh(mesh: trimesh.Trimesh, name: str = "body", category: str = "prop"):
+    from aro_studio.materials.library import make_material
     from aro_studio.scene.model import PartDef, SceneManifest
     from aro_studio.scene.store import Scene
 
-    man = SceneManifest(name="test", category=category, parts=[PartDef(name=name, component="body", mesh_file="x")])
-    return Scene(manifest=man, meshes={name: mesh})
+    mat = make_material("raw_surface", "generic")
+    man = SceneManifest(
+        name="test",
+        category=category,
+        parts=[PartDef(name=name, component="body", material=mat.name, mesh_file="x")],
+        materials=[mat],
+    )
+    sc = Scene(manifest=man, meshes={name: mesh})
+    sc.refresh_counts()
+    return sc
 
 
 @pytest.fixture

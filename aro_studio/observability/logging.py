@@ -57,7 +57,9 @@ def configure_logging(level: str = "INFO", log_dir: Path | None = None) -> None:
     if log_dir:
         log_dir.mkdir(parents=True, exist_ok=True)
         for name, lvl in (("app.log", logging.INFO), ("error.log", logging.ERROR)):
-            fh = logging.handlers.RotatingFileHandler(log_dir / name, maxBytes=5_000_000, backupCount=3, encoding="utf-8")
+            fh = logging.handlers.RotatingFileHandler(
+                log_dir / name, maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+            )
             fh.setLevel(lvl)
             fh.setFormatter(fmt)
             root.addHandler(fh)

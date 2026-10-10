@@ -76,7 +76,7 @@ def load_image(data: bytes, *, max_bytes: int, max_pixels: int, min_side: int) -
     exif_orientation = 1
     try:
         exif_orientation = int(im.getexif().get(0x0112, 1))
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110 - EXIF is optional metadata; absence/corruption means "no rotation"
         pass
     has_alpha = im.mode in ("RGBA", "LA", "PA") or "transparency" in im.info
     rgba = im.convert("RGBA")
@@ -86,7 +86,9 @@ def load_image(data: bytes, *, max_bytes: int, max_pixels: int, min_side: int) -
     gray_img = ImageOps.exif_transpose(rgba).convert("L")
     scale = 1024 / max(gray_img.size)
     if scale < 1:
-        gray_img = gray_img.resize((max(1, int(gray_img.width * scale)), max(1, int(gray_img.height * scale))), Image.LANCZOS)
+        gray_img = gray_img.resize(
+            (max(1, int(gray_img.width * scale)), max(1, int(gray_img.height * scale))), Image.Resampling.LANCZOS
+        )
     g = np.asarray(gray_img, dtype=np.float32) / 255.0
     sharp = float(ndimage.laplace(g).var()) * 1000.0  # scaled for readability
     contrast, brightness = float(g.std()), float(g.mean())
@@ -117,11 +119,22 @@ def load_image(data: bytes, *, max_bytes: int, max_pixels: int, min_side: int) -
     score -= 0.10 if clipped > 0.6 else 0.0
 
     report = ImageReport(
-        format=sniffed.kind, width=im.width, height=im.height, mode=im.mode, file_size=len(data),
-        exif_orientation=exif_orientation, needs_rotation=exif_orientation != 1, has_alpha=has_alpha,
-        transparent_fraction=round(transparent_fraction, 4), frames=frames, sharpness=round(sharp, 4),
-        contrast=round(contrast, 4), brightness=round(brightness, 4), clipped_fraction=round(clipped, 4),
-        quality_score=round(max(0.0, score), 3), warnings=warnings,
+        format=sniffed.kind,
+        width=im.width,
+        height=im.height,
+        mode=im.mode,
+        file_size=len(data),
+        exif_orientation=exif_orientation,
+        needs_rotation=exif_orientation != 1,
+        has_alpha=has_alpha,
+        transparent_fraction=round(transparent_fraction, 4),
+        frames=frames,
+        sharpness=round(sharp, 4),
+        contrast=round(contrast, 4),
+        brightness=round(brightness, 4),
+        clipped_fraction=round(clipped, 4),
+        quality_score=round(max(0.0, score), 3),
+        warnings=warnings,
     )
     if im.format and im.format.lower().replace("jpeg", "jpeg") not in (sniffed.kind, "mpo"):
         raise InvalidInputError("The image content does not match its container format.")

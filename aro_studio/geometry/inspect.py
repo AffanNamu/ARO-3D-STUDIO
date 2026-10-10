@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 
-import networkx as nx
 import numpy as np
 import trimesh
 
@@ -59,6 +58,11 @@ class MeshReport:
         return next((i for i in self.issues if i.id == issue_id), None)
 
 
+def _v3(v) -> tuple[float, float, float]:
+    a = [float(x) for x in v]
+    return (a[0], a[1], a[2])
+
+
 def boundary_loops(mesh: trimesh.Trimesh) -> list[list[int]]:
     """Ordered vertex loops of boundary edges (edges used by exactly one face)."""
     faces = np.asarray(mesh.faces)
@@ -96,9 +100,31 @@ def boundary_loops(mesh: trimesh.Trimesh) -> list[list[int]]:
                 ok = False
                 break
         del prev
-        if ok and len(loop) >= 3:
-            loops.append(loop)
+        if ok:
+            loops.extend(_split_simple(loop))
     return loops
+
+
+def _split_simple(loop: list[int]) -> list[list[int]]:
+    """Split a boundary walk that revisits a vertex ("figure-8" at a pinch point) into simple loops."""
+    out: list[list[int]] = []
+    stack: list[int] = []
+    pos: dict[int, int] = {}
+    for v in loop:
+        if v in pos:
+            i = pos[v]
+            sub = stack[i:]
+            if len(sub) >= 3:
+                out.append(sub)
+            for u in stack[i + 1 :]:
+                pos.pop(u, None)
+            stack = stack[: i + 1]
+        else:
+            pos[v] = len(stack)
+            stack.append(v)
+    if len(stack) >= 3:
+        out.append(stack)
+    return out
 
 
 def _components(mesh: trimesh.Trimesh) -> list[np.ndarray]:
@@ -125,9 +151,9 @@ def inspect_mesh(
         verts = np.where(finite[:, None], verts, 0.0)
         mesh = trimesh.Trimesh(verts, faces, process=False)
 
-    ext = tuple(float(x) for x in (mesh.extents if len(verts) else (0, 0, 0)))
-    bmin = tuple(float(x) for x in (mesh.bounds[0] if len(verts) else (0, 0, 0)))
-    bmax = tuple(float(x) for x in (mesh.bounds[1] if len(verts) else (0, 0, 0)))
+    ext = _v3(mesh.extents if len(verts) else (0, 0, 0))
+    bmin = _v3(mesh.bounds[0] if len(verts) else (0, 0, 0))
+    bmax = _v3(mesh.bounds[1] if len(verts) else (0, 0, 0))
 
     # duplicate vertices (positionally identical within tolerance)
     tol = max(1e-9, float(np.linalg.norm(ext)) * 1e-8)
@@ -138,10 +164,7 @@ def inspect_mesh(
         dup_v = 0
 
     degenerate = int(len(faces) - int(mesh.nondegenerate_faces().sum())) if len(faces) else 0
-    if len(faces):
-        dup_faces = len(faces) - len(np.unique(np.sort(faces, axis=1), axis=0))
-    else:
-        dup_faces = 0
+    dup_faces = len(faces) - len(np.unique(np.sort(faces, axis=1), axis=0)) if len(faces) else 0
 
     # topology is evaluated on a merged copy so that duplicate vertices don't show up as fake holes
     m2 = trimesh.Trimesh(verts, faces, process=False)
@@ -170,7 +193,11 @@ def inspect_mesh(
 
     invalid_normals = 0
     if len(f2):
-        fn = np.cross(verts[faces[:, 1]] - verts[faces[:, 0]], verts[faces[:, 2]] - verts[faces[:, 0]]) if len(faces) else np.zeros((0, 3))
+        fn = (
+            np.cross(verts[faces[:, 1]] - verts[faces[:, 0]], verts[faces[:, 2]] - verts[faces[:, 0]])
+            if len(faces)
+            else np.zeros((0, 3))
+        )
         ln = np.linalg.norm(fn, axis=1)
         invalid_normals = int((~np.isfinite(ln) | (ln < 1e-14)).sum())
 
@@ -187,18 +214,21 @@ def inspect_mesh(
         lo, hi = VEHICLE_LENGTH_RANGE_M
         scale.update(expected_range_m=[lo, hi], plausible=bool(lo <= longest <= hi))
         if not scale["plausible"]:
-            scale["note"] = f"Longest extent is {longest:.3f} m; a vehicle is expected to be {lo}-{hi} m long. Rescale in metres."
+            scale["note"] = (
+                f"Longest extent is {longest:.3f} m; a vehicle is expected to be {lo}-{hi} m long. Rescale in metres."
+            )
     # orientation (advisory heuristic)
     axis_names = ["X", "Y", "Z"]
     long_axis = axis_names[int(np.argmax(ext))] if ext and longest > 0 else None
-    orient = {
+    orient: dict = {
         "longest_axis": long_axis,
         "ok": None,
         "note": "",
     }
     if category_group == "vehicles" and long_axis:
-        orient["ok"] = long_axis == "Z"
-        if not orient["ok"]:
+        is_z = long_axis == "Z"
+        orient["ok"] = is_z
+        if not is_z:
             orient["note"] = f"Longest axis is {long_axis}; vehicles must be built along +Z (forward) with +Y up."
     # pivot
     cx = (bmin[0] + bmax[0]) / 2
@@ -209,13 +239,30 @@ def inspect_mesh(
     }
 
     r = MeshReport(
-        vertex_count=len(verts), face_count=len(faces), extents=ext, bounds_min=bmin, bounds_max=bmax,  # type: ignore[arg-type]
-        duplicate_vertices=int(dup_v), degenerate_faces=degenerate, duplicate_faces=int(dup_faces),
-        component_count=len(comps), small_component_count=int(small), largest_component_faces=int(largest),
-        nonmanifold_edges=nonmanifold, boundary_edges=boundary_edges, hole_count=holes,
-        is_watertight=watertight, is_winding_consistent=winding, inverted=inverted,
-        invalid_normals=invalid_normals, nan_vertices=nan_vertices, volume=volume,
-        self_intersections=si.to_dict(), scale_assessment=scale, orientation_assessment=orient, pivot_assessment=pivot,
+        vertex_count=len(verts),
+        face_count=len(faces),
+        extents=ext,
+        bounds_min=bmin,
+        bounds_max=bmax,
+        duplicate_vertices=int(dup_v),
+        degenerate_faces=degenerate,
+        duplicate_faces=int(dup_faces),
+        component_count=len(comps),
+        small_component_count=int(small),
+        largest_component_faces=int(largest),
+        nonmanifold_edges=nonmanifold,
+        boundary_edges=boundary_edges,
+        hole_count=holes,
+        is_watertight=watertight,
+        is_winding_consistent=winding,
+        inverted=inverted,
+        invalid_normals=invalid_normals,
+        nan_vertices=nan_vertices,
+        volume=volume,
+        self_intersections=si.to_dict(),
+        scale_assessment=scale,
+        orientation_assessment=orient,
+        pivot_assessment=pivot,
     )
     _derive_issues(r, tri_budget)
     return r
@@ -228,33 +275,117 @@ def _derive_issues(r: MeshReport, tri_budget: int | None) -> None:
         add(Issue("empty_mesh", S.CRITICAL, 0, "The mesh has no geometry."))
         return
     if r.nan_vertices:
-        add(Issue("nan_vertices", S.CRITICAL, r.nan_vertices, f"{r.nan_vertices} vertices have NaN/Inf coordinates.", "remove_invalid"))
+        add(
+            Issue(
+                "nan_vertices",
+                S.CRITICAL,
+                r.nan_vertices,
+                f"{r.nan_vertices} vertices have NaN/Inf coordinates.",
+                "remove_invalid",
+            )
+        )
     if r.duplicate_vertices:
-        add(Issue("duplicate_vertices", S.MINOR, r.duplicate_vertices, f"{r.duplicate_vertices} duplicate vertices (weld them).", "merge_vertices"))
+        add(
+            Issue(
+                "duplicate_vertices",
+                S.MINOR,
+                r.duplicate_vertices,
+                f"{r.duplicate_vertices} duplicate vertices (weld them).",
+                "merge_vertices",
+            )
+        )
     if r.degenerate_faces:
-        add(Issue("degenerate_faces", S.MAJOR, r.degenerate_faces, f"{r.degenerate_faces} zero-area triangles.", "remove_degenerate"))
+        add(
+            Issue(
+                "degenerate_faces",
+                S.MAJOR,
+                r.degenerate_faces,
+                f"{r.degenerate_faces} zero-area triangles.",
+                "remove_degenerate",
+            )
+        )
     if r.duplicate_faces:
-        add(Issue("duplicate_faces", S.MINOR, r.duplicate_faces, f"{r.duplicate_faces} duplicated triangles.", "remove_duplicate_faces"))
+        add(
+            Issue(
+                "duplicate_faces",
+                S.MINOR,
+                r.duplicate_faces,
+                f"{r.duplicate_faces} duplicated triangles.",
+                "remove_duplicate_faces",
+            )
+        )
     if r.invalid_normals:
-        add(Issue("invalid_normals", S.MAJOR, r.invalid_normals, f"{r.invalid_normals} triangles have no valid normal.", "remove_degenerate"))
+        add(
+            Issue(
+                "invalid_normals",
+                S.MAJOR,
+                r.invalid_normals,
+                f"{r.invalid_normals} triangles have no valid normal.",
+                "remove_degenerate",
+            )
+        )
     if not r.is_winding_consistent:
-        add(Issue("inconsistent_winding", S.MAJOR, 1, "Triangle winding is inconsistent (flipped faces).", "fix_normals"))
+        add(
+            Issue(
+                "inconsistent_winding", S.MAJOR, 1, "Triangle winding is inconsistent (flipped faces).", "fix_normals"
+            )
+        )
     if r.inverted:
         add(Issue("inverted", S.MAJOR, 1, "The mesh is inside-out (negative volume).", "fix_normals"))
     if r.component_count > 1:
         sev = S.MAJOR if r.small_component_count else S.INFO
-        add(Issue("disconnected_components", sev, r.component_count, f"{r.component_count} disconnected components ({r.small_component_count} tiny).", "remove_small_components"))
+        add(
+            Issue(
+                "disconnected_components",
+                sev,
+                r.component_count,
+                f"{r.component_count} disconnected components ({r.small_component_count} tiny).",
+                "remove_small_components",
+            )
+        )
     if r.nonmanifold_edges:
-        add(Issue("non_manifold", S.MAJOR, r.nonmanifold_edges, f"{r.nonmanifold_edges} non-manifold edges (shared by >2 triangles).", None))
+        add(
+            Issue(
+                "non_manifold",
+                S.MAJOR,
+                r.nonmanifold_edges,
+                f"{r.nonmanifold_edges} non-manifold edges (shared by >2 triangles).",
+                None,
+            )
+        )
     if r.hole_count:
-        add(Issue("holes", S.MAJOR, r.hole_count, f"{r.hole_count} open boundary loop(s) ({r.boundary_edges} boundary edges).", "fill_holes"))
+        add(
+            Issue(
+                "holes",
+                S.MAJOR,
+                r.hole_count,
+                f"{r.hole_count} open boundary loop(s) ({r.boundary_edges} boundary edges).",
+                "fill_holes",
+            )
+        )
     si = r.self_intersections
     if si["intersecting_pairs"]:
-        add(Issue("self_intersections", S.MINOR, si["intersecting_pairs"], f"{si['intersecting_pairs']} intersecting triangle pairs.", None))
+        add(
+            Issue(
+                "self_intersections",
+                S.MINOR,
+                si["intersecting_pairs"],
+                f"{si['intersecting_pairs']} intersecting triangle pairs.",
+                None,
+            )
+        )
     if si["status"] == "skipped" and si.get("note") and si["note"] != "disabled":
         add(Issue("self_intersection_unchecked", S.INFO, 0, si["note"], "decimate"))
     if tri_budget and r.face_count > tri_budget:
-        add(Issue("excessive_polycount", S.MAJOR, r.face_count, f"{r.face_count} triangles exceed the budget of {tri_budget}.", "decimate"))
+        add(
+            Issue(
+                "excessive_polycount",
+                S.MAJOR,
+                r.face_count,
+                f"{r.face_count} triangles exceed the budget of {tri_budget}.",
+                "decimate",
+            )
+        )
     if r.scale_assessment.get("plausible") is False:
         add(Issue("incorrect_scale", S.MAJOR, 1, r.scale_assessment["note"], "scale"))
     if r.orientation_assessment.get("ok") is False:

@@ -104,7 +104,9 @@ class RembgRemover(BackgroundRemover):
     def remove(self, image: Image.Image) -> Image.Image:
         ok, why = self.available()
         if not ok:
-            raise EngineUnavailableError(why, recommended_action="Install rembg or choose the 'border_color_matte' remover.")
+            raise EngineUnavailableError(
+                why, recommended_action="Install rembg or choose the 'border_color_matte' remover."
+            )
         import rembg
 
         if self._session is None:
@@ -121,4 +123,6 @@ def get_remover(remover_id: str) -> BackgroundRemover:
     except KeyError:
         from aro_studio.core.errors import InvalidInputError
 
-        raise InvalidInputError(f"Unknown background remover '{remover_id}'.", recommended_action=f"Use one of: {sorted(REMOVERS)}") from None
+        raise InvalidInputError(
+            f"Unknown background remover '{remover_id}'.", recommended_action=f"Use one of: {sorted(REMOVERS)}"
+        ) from None

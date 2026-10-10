@@ -30,7 +30,11 @@ def validate_zip(
         total += info.file_size
         if total > max_uncompressed:
             raise SecurityError("Archive expands beyond the allowed size (possible zip bomb).")
-        if info.compress_size and info.file_size / max(info.compress_size, 1) > max_ratio and info.file_size > 1_000_000:
+        if (
+            info.compress_size
+            and info.file_size / max(info.compress_size, 1) > max_ratio
+            and info.file_size > 1_000_000
+        ):
             raise SecurityError("Archive compression ratio is suspicious (possible zip bomb).")
     return infos
 

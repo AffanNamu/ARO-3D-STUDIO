@@ -7,7 +7,12 @@ import unicodedata
 
 _SAFE = re.compile(r"[^A-Za-z0-9._-]+")
 _WINDOWS_RESERVED = {
-    "con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10)),
+    "con",
+    "prn",
+    "aux",
+    "nul",
+    *(f"com{i}" for i in range(1, 10)),
+    *(f"lpt{i}" for i in range(1, 10)),
 }
 
 

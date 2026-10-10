@@ -23,7 +23,11 @@ class PreprocessOptions:
     output_size: int = 512
 
     def as_settings(self) -> dict:
-        return {"remove_background": self.remove_background, "foreground_ratio": self.foreground_ratio, "output_size": self.output_size}
+        return {
+            "remove_background": self.remove_background,
+            "foreground_ratio": self.foreground_ratio,
+            "output_size": self.output_size,
+        }
 
 
 @dataclass
@@ -41,9 +45,9 @@ class PreprocessResult:
 
 def _bbox(alpha: np.ndarray, thr: int = 16) -> tuple[int, int, int, int] | None:
     ys, xs = np.where(alpha > thr)
-    if len(xs) == 0:
+    if xs.size == 0:
         return None
-    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+    return int(np.min(xs)), int(np.min(ys)), int(np.max(xs)) + 1, int(np.max(ys)) + 1
 
 
 def preprocess(image: Image.Image, opts: PreprocessOptions | None = None) -> PreprocessResult:
@@ -56,7 +60,11 @@ def preprocess(image: Image.Image, opts: PreprocessOptions | None = None) -> Pre
     rgba = im.convert("RGBA")
     existing_alpha = np.asarray(rgba.getchannel("A"))
     has_cutout = bool((existing_alpha < 250).mean() > 0.01)
-    bg = background_stats(rgba.convert("RGB")) if not has_cutout else {"uniform": True, "color": None, "spread": 0.0, "from_alpha": True}
+    bg = (
+        background_stats(rgba.convert("RGB"))
+        if not has_cutout
+        else {"uniform": True, "color": None, "spread": 0.0, "from_alpha": True}
+    )
     steps.append({"step": "background_analysis", **bg})
 
     mode = opts.remove_background
@@ -68,9 +76,19 @@ def preprocess(image: Image.Image, opts: PreprocessOptions | None = None) -> Pre
         if not ok:
             if bg["uniform"]:
                 mode = "border_color_matte"
-                steps.append({"step": "background_removal", "note": f"rembg unavailable ({why}); fell back to border-colour matte"})
+                steps.append(
+                    {
+                        "step": "background_removal",
+                        "note": f"rembg unavailable ({why}); fell back to border-colour matte",
+                    }
+                )
             else:
-                steps.append({"step": "background_removal", "warning": "Cluttered background and no neural matting available; background kept. " + why})
+                steps.append(
+                    {
+                        "step": "background_removal",
+                        "warning": "Cluttered background and no neural matting available; background kept. " + why,
+                    }
+                )
                 mode = "none"
     if mode not in ("none",):
         rgba = get_remover(mode).remove(rgba)
@@ -91,7 +109,7 @@ def preprocess(image: Image.Image, opts: PreprocessOptions | None = None) -> Pre
     inner = max(1, int(round(canvas * float(np.clip(opts.foreground_ratio, 0.3, 1.0)))))
     scale = inner / max(fg.size)
     new_size = (max(1, round(fg.width * scale)), max(1, round(fg.height * scale)))
-    fg = fg.resize(new_size, Image.LANCZOS)
+    fg = fg.resize(new_size, Image.Resampling.LANCZOS)
     cutout = Image.new("RGBA", (canvas, canvas), (0, 0, 0, 0))
     cutout.paste(fg, ((canvas - new_size[0]) // 2, (canvas - new_size[1]) // 2))
     steps.append({"step": "resize", "canvas": canvas, "subject_size": list(new_size)})

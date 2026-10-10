@@ -1,18 +1,16 @@
 import json
 
 import pytest
-import trimesh
 
 from aro_studio.core.enums import AssetStatus, Stage
-from aro_studio.core.errors import ConflictError, ImmutableVersionError, InvalidInputError, NotFoundError
-from aro_studio.scene.store import load_scene, save_scene
-from tests.conftest import make_scene_from_mesh
+from aro_studio.core.errors import ConflictError, InvalidInputError, NotFoundError
+from aro_studio.scene.store import save_scene
 
 
 def test_schema_migrates_idempotently(db):
-    assert db.schema_version == 1
+    assert db.schema_version == 2
     db.migrate()
-    assert db.schema_version == 1
+    assert db.schema_version == 2
 
 
 def test_project_lifecycle(services):
@@ -46,7 +44,9 @@ def test_permanent_delete_requires_inactive(services, layout):
 def test_asset_category_rules(services):
     projects, assets = services
     p = projects.create("P")
-    a = assets.create_asset(p["project_id"], "Titan", "heavy_truck", {"manufacturer": "ARO Motors", "model": "TITAN 480"})
+    a = assets.create_asset(
+        p["project_id"], "Titan", "heavy_truck", {"manufacturer": "ARO Motors", "model": "TITAN 480"}
+    )
     assert a["metadata"]["manufacturer"] == "ARO Motors" and a["status"] == "DRAFT"
     with pytest.raises(InvalidInputError):
         assets.create_asset(p["project_id"], "x", "nonexistent")
@@ -64,7 +64,9 @@ def test_versions_are_immutable_and_raw_preserved(services, layout, box_scene):
     before = (assets.version_path(raw["version_id"]) / "manifest.json").read_bytes()
     s2 = assets.load_scene(raw["version_id"])
     s2.meshes["body"].apply_scale(2.0)
-    v2 = assets.add_version(a["asset_id"], s2, stage=Stage.PROCESSED, operation="scale", parent_version_id=raw["version_id"])
+    v2 = assets.add_version(
+        a["asset_id"], s2, stage=Stage.PROCESSED, operation="scale", parent_version_id=raw["version_id"]
+    )
     assert v2["number"] == 2 and v2["parent_version_id"] == raw["version_id"]
     assert (assets.version_path(raw["version_id"]) / "manifest.json").read_bytes() == before
     raw_scene = assets.load_scene(raw["version_id"])
@@ -97,7 +99,9 @@ def test_raw_cannot_have_parent_and_cannot_be_deleted(services, box_scene):
     a = assets.create_asset(p["project_id"], "A", "prop")
     raw = assets.add_version(a["asset_id"], box_scene, stage=Stage.RAW, operation="import")
     with pytest.raises(InvalidInputError):
-        assets.add_version(a["asset_id"], box_scene, stage=Stage.RAW, operation="x", parent_version_id=raw["version_id"])
+        assets.add_version(
+            a["asset_id"], box_scene, stage=Stage.RAW, operation="x", parent_version_id=raw["version_id"]
+        )
     with pytest.raises(ConflictError):
         assets.delete_version(raw["version_id"])
 
@@ -111,11 +115,17 @@ def test_production_designation_requires_passing_validation(services, db, box_sc
         assets.designate_production_version(v["version_id"])
     with pytest.raises(ConflictError):
         assets.set_status(a["asset_id"], AssetStatus.PRODUCTION_READY)  # cannot be set directly
-    db.execute("INSERT INTO validation_results VALUES ('val_x',?,?,50,'NEEDS_REVIEW',1,'{}',0)", (v["version_id"], a["asset_id"]))
+    db.execute(
+        "INSERT INTO validation_results VALUES ('val_x',?,?,50,'NEEDS_REVIEW',1,'{}',0)",
+        (v["version_id"], a["asset_id"]),
+    )
     with pytest.raises(ConflictError, match="did not reach"):
         assets.designate_production_version(v["version_id"])
     db.execute("DELETE FROM validation_results")
-    db.execute("INSERT INTO validation_results VALUES ('val_y',?,?,97,'PRODUCTION_READY',0,'{}',1)", (v["version_id"], a["asset_id"]))
+    db.execute(
+        "INSERT INTO validation_results VALUES ('val_y',?,?,97,'PRODUCTION_READY',0,'{}',1)",
+        (v["version_id"], a["asset_id"]),
+    )
     out = assets.designate_production_version(v["version_id"], semver="1.0.0")
     assert out["production_version_id"] == v["version_id"] and out["status"] == "PRODUCTION_READY"
     assert out["metadata"]["asset_version"] == "1.0.0"
@@ -139,7 +149,9 @@ def test_duplicate_project_deep_copy(services, box_scene):
     p = projects.create("P")
     a = assets.create_asset(p["project_id"], "A", "prop")
     v1 = assets.add_version(a["asset_id"], box_scene, stage=Stage.RAW, operation="import")
-    assets.add_version(a["asset_id"], box_scene, stage=Stage.PROCESSED, operation="x", parent_version_id=v1["version_id"])
+    assets.add_version(
+        a["asset_id"], box_scene, stage=Stage.PROCESSED, operation="x", parent_version_id=v1["version_id"]
+    )
     dup = projects.duplicate(p["project_id"], "P copy")
     na = assets.list_assets(project_id=dup["project_id"])
     assert len(na) == 1 and na[0]["asset_id"] != a["asset_id"]

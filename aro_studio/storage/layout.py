@@ -46,7 +46,11 @@ class StorageLayout:
     def version_dir(self, project_id: str, asset_id: str, stage: Stage | str, version_id: str) -> Path:
         stage_s = Stage(stage).value
         return safe_join(
-            self.project_dir(project_id), "assets", require_id(asset_id, "asset"), stage_s, require_id(version_id, "version")
+            self.project_dir(project_id),
+            "assets",
+            require_id(asset_id, "asset"),
+            stage_s,
+            require_id(version_id, "version"),
         )
 
     def export_dir(self, project_id: str, export_id: str) -> Path:
@@ -106,7 +110,7 @@ def make_readonly(path: Path) -> None:
         except OSError:
             pass
     try:
-        os.chmod(path, 0o555)
+        os.chmod(path, 0o555)  # noqa: S103 - read-only on purpose (immutable versions)
     except OSError:
         pass
 

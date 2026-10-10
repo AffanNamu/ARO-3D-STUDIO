@@ -36,5 +36,5 @@ def require_id(value: str, kind: str) -> str:
     from aro_studio.core.errors import InvalidInputError
 
     if not is_valid_id(value, kind):
-        raise InvalidInputError(f"Malformed {kind} id.", recommended_action=f"Use an id returned by the API.")
+        raise InvalidInputError(f"Malformed {kind} id.", recommended_action="Use an id returned by the API.")
     return value

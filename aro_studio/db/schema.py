@@ -190,4 +190,21 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
             "CREATE INDEX idx_audit_ts ON audit_log(ts)",
         ],
     ),
+    (
+        2,
+        [
+            """CREATE TABLE source_images (
+                sha256 TEXT NOT NULL,
+                project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+                filename TEXT NOT NULL,
+                mime TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                width INTEGER NOT NULL,
+                height INTEGER NOT NULL,
+                report TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                PRIMARY KEY (project_id, sha256)
+            )""",
+        ],
+    ),
 ]

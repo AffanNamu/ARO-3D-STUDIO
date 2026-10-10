@@ -57,7 +57,9 @@ def find_self_intersections(
     if n == 0:
         return SelfIntersectionResult("checked", 0, 0, 0, 0.0)
     if n > max_faces:
-        return SelfIntersectionResult("skipped", 0, 0, n, 0.0, f"Mesh has {n} faces (> {max_faces}); decimate first to test intersections.")
+        return SelfIntersectionResult(
+            "skipped", 0, 0, n, 0.0, f"Mesh has {n} faces (> {max_faces}); decimate first to test intersections."
+        )
     verts = np.asarray(mesh.vertices, dtype=np.float64)
     faces = np.asarray(mesh.faces, dtype=np.int64)
     tris = verts[faces]
@@ -109,7 +111,11 @@ def find_self_intersections(
     flush()
     pairs = hits
     return SelfIntersectionResult(
-        "partial" if partial else "checked", len(pairs), checked, n, time.perf_counter() - t0,
+        "partial" if partial else "checked",
+        len(pairs),
+        checked,
+        n,
+        time.perf_counter() - t0,
         "Time budget reached before all faces were tested." if partial else "Coplanar overlaps are not detected.",
         pairs[:sample] or None,
     )

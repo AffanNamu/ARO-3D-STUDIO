@@ -45,7 +45,9 @@ def known_operations() -> list[str]:
     return sorted([*PART_OPS, *SCENE_OPS])
 
 
-def combined_report(scene: Scene, *, category: str, tri_budget: int | None, check_intersections: bool = True) -> MeshReport:
+def combined_report(
+    scene: Scene, *, category: str, tri_budget: int | None, check_intersections: bool = True
+) -> MeshReport:
     group = get_category(category).group
     mesh = scene.combined(0) if len(scene.meshes) > 1 else next(iter(scene.meshes.values()))
     return inspect_mesh(mesh, category_group=group, tri_budget=tri_budget, check_intersections=check_intersections)
@@ -84,12 +86,14 @@ def run_steps(
             for pn in targets:
                 if pn not in work.meshes:
                     raise InvalidInputError(f"Unknown part '{pn}' in step '{name}'.")
-                new_mesh, rep = fn(work.meshes[pn], **params)
+                new_mesh, op_rep = fn(work.meshes[pn], **params)
                 work.meshes[pn] = new_mesh
-                per_part[pn] = rep.to_dict()
+                per_part[pn] = op_rep.to_dict()
             log.append({"op": name, "params": params, "parts": per_part})
         else:
-            raise InvalidInputError(f"Unknown geometry operation '{name}'.", recommended_action=f"Known operations: {known_operations()}")
+            raise InvalidInputError(
+                f"Unknown geometry operation '{name}'.", recommended_action=f"Known operations: {known_operations()}"
+            )
     work.refresh_counts()
     after = combined_report(work, category=category, tri_budget=tri_budget).to_dict() if inspect_after else None
     return work, {"steps": log, "before": before, "after": after}
@@ -119,7 +123,9 @@ def _scene_op(work: Scene, name: str, params: dict[str, Any], group: str) -> tup
         m[:3, :3] *= f
         return transform_scene(work, m), {"op": name, "params": params, "factor": f}
     if name == "set_pivot":
-        t = ops.pivot_translation(b, params.get("mode", "ground_center"), tuple(params["point"]) if params.get("point") else None)
+        t = ops.pivot_translation(
+            b, params.get("mode", "ground_center"), tuple(params["point"]) if params.get("point") else None
+        )
         m = np.eye(4)
         m[:3, 3] = t
         return transform_scene(work, m), {"op": name, "params": params, "translation": t.round(9).tolist()}

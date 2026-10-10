@@ -15,6 +15,7 @@ import trimesh
 from scipy.spatial import cKDTree
 
 from aro_studio.core.errors import InvalidInputError
+from aro_studio.core.tm import vertex_colors
 from aro_studio.geometry.inspect import boundary_loops
 
 
@@ -35,10 +36,20 @@ class OpReport:
 
 def _report(op: str, before: trimesh.Trimesh, after: trimesh.Trimesh, **details: Any) -> OpReport:
     warnings = details.pop("warnings", [])
-    changed = (len(before.faces), len(before.vertices)) != (len(after.faces), len(after.vertices)) or not np.array_equal(
-        np.asarray(before.vertices), np.asarray(after.vertices)
+    changed = (len(before.faces), len(before.vertices)) != (
+        len(after.faces),
+        len(after.vertices),
+    ) or not np.array_equal(np.asarray(before.vertices), np.asarray(after.vertices))
+    return OpReport(
+        op,
+        len(before.faces),
+        len(after.faces),
+        len(before.vertices),
+        len(after.vertices),
+        bool(changed),
+        details,
+        warnings,
     )
-    return OpReport(op, len(before.faces), len(after.faces), len(before.vertices), len(after.vertices), bool(changed), details, warnings)
 
 
 def _copy_attrs_nearest(src: trimesh.Trimesh, dst: trimesh.Trimesh) -> list[str]:
@@ -52,8 +63,8 @@ def _copy_attrs_nearest(src: trimesh.Trimesh, dst: trimesh.Trimesh) -> list[str]
     if uv is not None and len(uv) == len(src.vertices):
         dst.visual = trimesh.visual.TextureVisuals(uv=np.asarray(uv)[idx])
         notes.append("uv")
-    elif src.visual.kind == "vertex":
-        dst.visual = trimesh.visual.ColorVisuals(mesh=dst, vertex_colors=np.asarray(src.visual.vertex_colors)[idx])
+    elif (vc := vertex_colors(src)) is not None:
+        dst.visual = trimesh.visual.ColorVisuals(mesh=dst, vertex_colors=vc[idx])
         notes.append("vertex_colors")
     return notes
 
@@ -115,10 +126,14 @@ def remove_small_components(
         raise InvalidInputError("min_face_ratio must be in [0, 1).")
     comps = trimesh.graph.connected_components(mesh.face_adjacency, nodes=np.arange(len(mesh.faces)), min_len=1)
     if len(comps) <= 1:
-        return _clone(mesh), _report("remove_small_components", mesh, mesh, removed_components=0, total_components=len(comps))
+        return _clone(mesh), _report(
+            "remove_small_components", mesh, mesh, removed_components=0, total_components=len(comps)
+        )
     sizes = np.array([len(c) for c in comps])
     order = np.argsort(-sizes)
-    keep_idx = set(order[:keep_at_least].tolist()) | {i for i, s in enumerate(sizes) if s >= min_face_ratio * sizes.max()}
+    keep_idx = set(order[:keep_at_least].tolist()) | {
+        i for i, s in enumerate(sizes) if s >= min_face_ratio * sizes.max()
+    }
     keep_faces = np.zeros(len(mesh.faces), dtype=bool)
     for i in keep_idx:
         keep_faces[comps[i]] = True
@@ -126,8 +141,11 @@ def remove_small_components(
     out.update_faces(keep_faces)
     out.remove_unreferenced_vertices()
     return out, _report(
-        "remove_small_components", mesh, out,
-        removed_components=len(comps) - len(keep_idx), total_components=len(comps),
+        "remove_small_components",
+        mesh,
+        out,
+        removed_components=len(comps) - len(keep_idx),
+        total_components=len(comps),
         removed_faces=int((~keep_faces).sum()),
     )
 
@@ -145,7 +163,9 @@ def fix_normals(mesh: trimesh.Trimesh) -> tuple[trimesh.Trimesh, OpReport]:
         trimesh.repair.fix_normals(out, multibody=True)
     out._cache.clear()
     _ = out.vertex_normals  # recompute
-    return out, _report("fix_normals", mesh, out, inverted_whole_mesh=flipped, winding_consistent=bool(out.is_winding_consistent))
+    return out, _report(
+        "fix_normals", mesh, out, inverted_whole_mesh=flipped, winding_consistent=bool(out.is_winding_consistent)
+    )
 
 
 def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimesh.Trimesh, OpReport]:
@@ -175,7 +195,9 @@ def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimes
         filled += 1
     if new_v:
         out = trimesh.Trimesh(
-            vertices=np.vstack([verts, np.array(new_v)]), faces=np.vstack([np.asarray(out.faces), np.array(new_f)]), process=False
+            vertices=np.vstack([verts, np.array(new_v)]),
+            faces=np.vstack([np.asarray(out.faces), np.array(new_f)]),
+            process=False,
         )
         trimesh.repair.fix_winding(out)
     warn = [f"{skipped} large opening(s) were left open (> {max_hole_edges} edges)."] if skipped else []
@@ -183,7 +205,9 @@ def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimes
 
 
 # -- smoothing / optimisation -----------------------------------------------------------------
-def smooth(mesh: trimesh.Trimesh, iterations: int = 5, lamb: float = 0.5, nu: float = 0.53) -> tuple[trimesh.Trimesh, OpReport]:
+def smooth(
+    mesh: trimesh.Trimesh, iterations: int = 5, lamb: float = 0.5, nu: float = 0.53
+) -> tuple[trimesh.Trimesh, OpReport]:
     """Taubin smoothing (low-pass without the shrinkage of plain Laplacian smoothing)."""
     if not 1 <= iterations <= 100:
         raise InvalidInputError("iterations must be 1-100.")
@@ -209,15 +233,25 @@ def decimate(
         return _clone(mesh), _report("decimate", mesh, mesh, target_faces=target_faces, note="already below target")
     reduction = 1.0 - target_faces / n
     pts, faces = fast_simplification.simplify(
-        np.asarray(mesh.vertices, dtype=np.float64), np.asarray(mesh.faces, dtype=np.int64),
-        target_reduction=reduction, agg=aggressiveness,
+        np.asarray(mesh.vertices, dtype=np.float64),
+        np.asarray(mesh.faces, dtype=np.int64),
+        target_reduction=reduction,
+        agg=aggressiveness,
     )
     out = trimesh.Trimesh(pts, faces, process=False)
     transferred = _copy_attrs_nearest(mesh, out)
     warnings = []
     if "uv" in transferred:
         warnings.append("UVs were transferred by nearest vertex; check texture seams on the decimated mesh.")
-    return out, _report("decimate", mesh, out, target_faces=target_faces, achieved_ratio=len(out.faces) / n, attributes_transferred=transferred, warnings=warnings)
+    return out, _report(
+        "decimate",
+        mesh,
+        out,
+        target_faces=target_faces,
+        achieved_ratio=len(out.faces) / n,
+        attributes_transferred=transferred,
+        warnings=warnings,
+    )
 
 
 # -- transforms -------------------------------------------------------------------------------
@@ -241,7 +275,9 @@ def rotation_to_canonical(up: str, forward: str) -> np.ndarray:
     return m
 
 
-def apply_matrix(mesh: trimesh.Trimesh, matrix: np.ndarray, op: str = "transform", **details: Any) -> tuple[trimesh.Trimesh, OpReport]:
+def apply_matrix(
+    mesh: trimesh.Trimesh, matrix: np.ndarray, op: str = "transform", **details: Any
+) -> tuple[trimesh.Trimesh, OpReport]:
     out = mesh.copy()
     out.apply_transform(matrix)
     if np.linalg.det(matrix[:3, :3]) < 0:
@@ -290,7 +326,9 @@ def pivot_translation(bounds: np.ndarray, mode: str, custom: tuple[float, float,
     return -p
 
 
-def set_pivot(mesh: trimesh.Trimesh, mode: str = "ground_center", custom: tuple[float, float, float] | None = None) -> tuple[trimesh.Trimesh, OpReport]:
+def set_pivot(
+    mesh: trimesh.Trimesh, mode: str = "ground_center", custom: tuple[float, float, float] | None = None
+) -> tuple[trimesh.Trimesh, OpReport]:
     t = pivot_translation(mesh.bounds, mode, custom)
     m = np.eye(4)
     m[:3, 3] = t
