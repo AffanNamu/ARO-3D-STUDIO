@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aro-3d-studio"
+version = "0.1.0"
+description = "ARO 3D Studio - 3D asset creation, processing, validation and export platform for African Online Roads"
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = [
+  "numpy>=1.26",
+  "pillow>=10.1",
+  "trimesh>=4.4",
+  "scipy>=1.11",
+  "networkx>=3.2",
+  "rtree>=1.2",
+  "fast-simplification>=0.1.7",
+  "xatlas>=0.0.9",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "python-multipart>=0.0.9",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+# AI reconstruction (TripoSR). Heavy: install only on a GPU/torch-capable host.
+triposr = ["torch", "torchvision", "omegaconf==2.3.0", "einops==0.7.0", "transformers==4.35.0", "huggingface-hub", "torchmcubes", "rembg", "onnxruntime"]
+dev = ["pytest>=8", "pytest-cov", "ruff", "mypy", "httpx", "pip-audit", "bandit"]
+
+[tool.setuptools.packages.find]
+include = ["aro_studio*"]
+
+[tool.setuptools.package-data]
+aro_studio = ["ui/static/**/*", "py.typed"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM"]
+ignore = ["S101", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B"]
+"scripts/*" = ["S"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "model: requires real model weights + torch (set ARO_RUN_MODEL_TESTS=1)",
+  "slow: slow test",
+  "performance: performance budget test",
+]
