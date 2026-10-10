@@ -7,6 +7,7 @@ import hmac
 import json
 import mimetypes
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -72,8 +73,21 @@ async def read_limited(f: UploadFile, max_bytes: int) -> bytes:
 
 
 def create_app(ctx: StudioContext | None = None) -> FastAPI:
-    app = FastAPI(title="ARO 3D Studio", version=__version__, docs_url="/api/docs", openapi_url="/api/openapi.json")
     holder: dict[str, StudioContext] = {}
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        yield
+        if "ctx" in holder and ctx is None:  # we built it, so we close it (worker threads, model, database)
+            holder["ctx"].close()
+
+    app = FastAPI(
+        title="ARO 3D Studio",
+        version=__version__,
+        docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
+        lifespan=lifespan,
+    )
 
     def get_ctx() -> StudioContext:
         if "ctx" not in holder:
@@ -82,11 +96,6 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
 
     if ctx is not None:
         holder["ctx"] = ctx
-
-    @app.on_event("shutdown")
-    def _shutdown() -> None:  # pragma: no cover
-        if "ctx" in holder and ctx is None:
-            holder["ctx"].close()
 
     # -- middleware -----------------------------------------------------------------------------
     @app.middleware("http")
@@ -172,6 +181,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 "tri_budget_lod0": s.tri_budget_lod0,
             },
             "data_dir_size_mb": round(c.layout.dir_size(c.layout.root) / 1e6, 2),
+            "cache_size_mb": round(c.layout.dir_size(c.layout.root / "cache") / 1e6, 2),
         }
 
     @app.get("/api/taxonomy")
@@ -187,8 +197,8 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         return {"items": c.audit.recent(min(limit, 500))}
 
     @app.post("/api/maintenance/cleanup")
-    def cleanup(c: StudioContext = C):
-        return c.jobs.submit("cleanup", {}, priority=9)
+    def cleanup(purge_cache: bool = False, c: StudioContext = C):
+        return c.jobs.submit("cleanup", {"purge_cache": purge_cache}, priority=9)
 
     @app.post("/api/models/unload")
     def unload(c: StudioContext = C):
@@ -430,6 +440,9 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
             name=asset["name"],
             category=asset["category"],
             max_bytes=c.settings.max_import_mb * 1_000_000,
+            max_archive_members=c.settings.max_archive_members,
+            max_archive_mb=c.settings.max_archive_uncompressed_mb,
+            tmp_root=c.layout.root / "tmp",  # private, studio-owned scratch space (never the shared system /tmp)
         )
         v = c.assets.add_version(
             aid,

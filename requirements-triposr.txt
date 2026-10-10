@@ -1,0 +1,12 @@
+# TripoSR runtime (MIT). Install on a GPU host AFTER installing the torch build matching your CUDA version:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121     (example)
+# The 'tsr' package itself is not on PyPI: clone https://github.com/VAST-AI-Research/TripoSR and add it to PYTHONPATH
+# (the Dockerfile does this at the commit given by TRIPOSR_REF).
+# Versions below are the ones pinned by the TripoSR repository's own requirements.txt.
+omegaconf==2.3.0
+einops==0.7.0
+transformers==4.35.0
+huggingface-hub
+rembg
+onnxruntime
+git+https://github.com/tatsy/torchmcubes.git

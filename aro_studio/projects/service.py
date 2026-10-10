@@ -142,8 +142,8 @@ class ProjectService:
             if p["status"] == "active":
                 raise ConflictError("Archive or soft-delete the project before permanent deletion.")
             with self.db.transaction():
-                for t in ("generations", "exports"):
-                    self.db.execute(f"DELETE FROM {t} WHERE project_id=?", (project_id,))  # noqa: S608
+                self.db.execute("DELETE FROM generations WHERE project_id=?", (project_id,))
+                self.db.execute("DELETE FROM exports WHERE project_id=?", (project_id,))
                 self.db.execute(
                     "DELETE FROM validation_results WHERE asset_id IN (SELECT asset_id FROM assets WHERE project_id=?)",
                     (project_id,),
@@ -199,15 +199,16 @@ class ProjectService:
                         v["created_at"],
                     ),
                 )
+                # Identifiers below come from this fixed tuple and from PRAGMA table_info; all values are bound parameters.
                 for t in ("materials", "textures", "lods"):
                     cols = [
                         c["name"]
-                        for c in self.db.query(f"PRAGMA table_info({t})")
+                        for c in self.db.query(f"PRAGMA table_info({t})")  # nosec B608
                         if c["name"] not in (f"{t[:-1]}_id", "version_id")
                     ]  # noqa: S608
-                    for r in self.db.query(f"SELECT {','.join(cols)} FROM {t} WHERE version_id=?", (v["version_id"],)):  # noqa: S608
+                    for r in self.db.query(f"SELECT {','.join(cols)} FROM {t} WHERE version_id=?", (v["version_id"],)):  # noqa: S608  # nosec B608
                         self.db.execute(
-                            f"INSERT INTO {t}(version_id,{','.join(cols)}) VALUES (?{',?' * len(cols)})",  # noqa: S608 - table from a fixed tuple, columns from PRAGMA
+                            f"INSERT INTO {t}(version_id,{','.join(cols)}) VALUES (?{',?' * len(cols)})",  # noqa: S608  # nosec B608
                             (nvid, *[r[c] for c in cols]),
                         )
             if a["production_version_id"] in vmap:

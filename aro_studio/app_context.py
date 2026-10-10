@@ -165,8 +165,15 @@ def _export_handler(exports: ExportService):
 
 def _cleanup_handler(layout: StorageLayout, db: Database):
     def run(ctx) -> dict[str, Any]:
+        import shutil
+
         n = layout.clean_tmp()
-        return {"temp_entries_removed": n}
+        freed = 0
+        if ctx.params.get("purge_cache"):
+            cache = layout.root / "cache"
+            freed = layout.dir_size(cache) if cache.exists() else 0
+            shutil.rmtree(cache, ignore_errors=True)  # preview GLBs are regenerated on demand; versions are untouched
+        return {"temp_entries_removed": n, "cache_bytes_freed": freed}
 
     return run
 

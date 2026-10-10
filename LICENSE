@@ -1,0 +1,8 @@
+Copyright (c) 2026 ARO Motors / African Online Roads. All rights reserved.
+
+PLACEHOLDER: the project owner has not yet chosen a licence for this repository's own source code, so no
+permission is granted beyond what applicable law allows. Replace this file with the chosen licence (e.g. a
+proprietary licence, or an OSI-approved one such as MIT/Apache-2.0) before distributing the code.
+
+Third-party components keep their own licences: see docs/dependency-licenses.md and docs/models/model-licenses.md.
+three.js (bundled in aro_studio/ui/static/vendor) is MIT licensed: aro_studio/ui/static/vendor/THREE-LICENSE.txt.

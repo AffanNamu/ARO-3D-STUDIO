@@ -312,8 +312,9 @@ class JobQueue:
         if started:
             sets.append("started_at=?")
             args.append(time.time())  # noqa: E702
+        # `sets` only ever contains fixed "column=?" fragments built above; every value is a bound parameter.
         if sets:
-            self.db.execute(f"UPDATE jobs SET {', '.join(sets)} WHERE job_id=?", (*args, job_id))  # noqa: S608
+            self.db.execute(f"UPDATE jobs SET {', '.join(sets)} WHERE job_id=?", (*args, job_id))  # noqa: S608  # nosec B608
         if state is not None or message:
             self._event(job_id, "INFO", state.value if state else None, message or (state.value if state else ""))
 

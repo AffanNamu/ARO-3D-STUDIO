@@ -110,7 +110,8 @@ def make_readonly(path: Path) -> None:
         except OSError:
             pass
     try:
-        os.chmod(path, 0o555)  # noqa: S103 - read-only on purpose (immutable versions)
+        # read-only on purpose: version directories are immutable
+        os.chmod(path, 0o555)  # noqa: S103  # nosec B103
     except OSError:
         pass
 

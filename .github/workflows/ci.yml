@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint · format · types · security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy aro_studio app.py
+      - run: bandit -q -r aro_studio -x aro_studio/ui -ll
+      - run: pip-audit -r requirements.txt
+      - run: python scripts/audit_licenses.py --check
+
+  tests:
+    name: Tests (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}", cache: pip }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Khronos glTF-Validator (npm)
+        run: |
+          mkdir -p "$RUNNER_TEMP/gv" && cd "$RUNNER_TEMP/gv" && npm init -y >/dev/null && npm i gltf-validator
+          echo "ARO_GLTF_VALIDATOR_NODE_PATH=$RUNNER_TEMP/gv/node_modules" >> "$GITHUB_ENV"
+      - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
+      - run: pytest --ignore=tests/e2e -q --cov=aro_studio --cov-report=term-missing:skip-covered
+
+  e2e:
+    name: Browser end-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
+      - run: playwright install --with-deps chromium
+      - run: ARO_E2E_SHOTS=e2e-shots pytest tests/e2e -q
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: e2e-screenshots, path: e2e-shots }
+
+  asset-validation:
+    name: Reference asset acceptance (post-reconstruction stages)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: |
+          mkdir -p "$RUNNER_TEMP/gv" && cd "$RUNNER_TEMP/gv" && npm init -y >/dev/null && npm i gltf-validator
+          echo "ARO_GLTF_VALIDATOR_NODE_PATH=$RUNNER_TEMP/gv/node_modules" >> "$GITHUB_ENV"
+      - run: pip install -r requirements.txt && pip install -e . --no-deps
+      # Exit code 1 only on FAIL; BLOCKED/PARTIAL stages (no GPU / no Unity) are reported, never hidden.
+      - run: python scripts/run_acceptance.py --out acceptance-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: acceptance-report, path: acceptance-out }
+
+  docker:
+    name: Docker build (CPU image, no weights)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t aro-3d-studio:ci .
+      - run: |
+          docker run -d --name aro -p 7860:7860 aro-3d-studio:ci
+          for i in $(seq 1 30); do curl -sf localhost:7860/api/health && break || sleep 2; done
+          curl -sf localhost:7860/api/health
+      # Deployment is intentionally NOT automatic: pushing to a Space is a manual, reviewed step (see docs/deployment).

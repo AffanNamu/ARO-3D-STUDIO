@@ -62,13 +62,16 @@ def run_steps(
     cancel: CancellationToken | None = None,
     progress: Callable[[float, str], None] | None = None,
     inspect_after: bool = True,
+    check_intersections: bool = False,
 ) -> tuple[Scene, dict[str, Any]]:
     """Apply ``steps`` to a copy of ``scene``. Returns (new_scene, report). The input is untouched."""
     if not scene.meshes:
         raise InvalidInputError("The scene has no geometry to process.")
     group = get_category(category).group
     work = scene.copy()
-    before = combined_report(work, category=category, tri_budget=tri_budget).to_dict()
+    before = combined_report(
+        work, category=category, tri_budget=tri_budget, check_intersections=check_intersections
+    ).to_dict()
     log: list[dict[str, Any]] = []
     for i, step in enumerate(steps):
         if cancel:

@@ -1,0 +1,278 @@
+{
+  "verdict": "NOT COMPLETE \u2014 production readiness is not claimed",
+  "env": {
+    "python": "3.13.16",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "studio": "0.1.0",
+    "resources": {
+      "cpu_count": 4,
+      "cpu_percent": 25.0,
+      "ram_total_mb": 16093,
+      "ram_available_mb": 15368,
+      "disk_total_mb": 258019,
+      "disk_free_mb": 29253,
+      "process_rss_mb": 142,
+      "gpu": {
+        "available": false,
+        "name": null,
+        "total_mb": null,
+        "free_mb": null,
+        "driver": null,
+        "source": "none"
+      },
+      "torch_cuda": false
+    }
+  },
+  "state": {
+    "source": "procedural_reference",
+    "validation": {
+      "status": "PRODUCTION_READY",
+      "overall": 99.7,
+      "critical_failures": 0,
+      "major_failures": 0,
+      "categories": {
+        "geometry": {
+          "score": 98.5,
+          "weight": 20,
+          "applicable": true,
+          "failed": 0,
+          "warnings": 1
+        },
+        "materials": {
+          "score": 100.0,
+          "weight": 10,
+          "applicable": true,
+          "failed": 0,
+          "warnings": 0
+        },
+        "textures": {
+          "score": null,
+          "weight": 10,
+          "applicable": false,
+          "failed": 0,
+          "warnings": 0
+        },
+        "lod": {
+          "score": 100.0,
+          "weight": 15,
+          "applicable": true,
+          "failed": 0,
+          "warnings": 0
+        },
+        "collision": {
+          "score": 100.0,
+          "weight": 10,
+          "applicable": true,
+          "failed": 0,
+          "warnings": 0
+        },
+        "vehicle": {
+          "score": 100.0,
+          "weight": 20,
+          "applicable": true,
+          "failed": 0,
+          "warnings": 0
+        },
+        "unity": {
+          "score": 100.0,
+          "weight": 15,
+          "applicable": true,
+          "failed": 0,
+          "warnings": 0
+        }
+      },
+      "blocking_reasons": [],
+      "validation_id": "val_8883b8842c36429fa96f"
+    },
+    "warnings": [
+      "G010 No self-intersections: 1298 intersecting triangle pairs"
+    ],
+    "export_dir": "/tmp/aro_acceptance_mm6z4ibh/projects/prj_48a8147ac75f4c439e95/exports/exp_e74ac64f1fa1430eb7ef",
+    "final_version": "ver_dbe70de6fbf34b8faa38",
+    "khronos": {
+      "ran": true,
+      "validator_version": "2.0.0-dev.3.10",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "ok": true,
+      "messages": []
+    },
+    "glb_path": "/tmp/aro_acceptance_mm6z4ibh/projects/prj_48a8147ac75f4c439e95/exports/exp_46e122505b984857b9a0/ARO-TITAN-480-v0.7.glb"
+  },
+  "stages": [
+    {
+      "n": 1,
+      "stage": "Create ARO TITAN 480 project",
+      "status": "PASS",
+      "detail": "project prj_48a8147ac75f4c439e95, asset ast_cbea93097eb24026ae6b",
+      "seconds": 0.0
+    },
+    {
+      "n": 2,
+      "stage": "Upload concept image",
+      "status": "PARTIAL",
+      "detail": "image is a software render of the procedural reference model, not an artist's concept image; stored by content hash",
+      "seconds": 0.65,
+      "sha256": "91f82e04063e5b1969c5d6851ec0ce41584eb8c4e210d3e7385f6cf8857dc03d"
+    },
+    {
+      "n": 3,
+      "stage": "Validate the input",
+      "status": "PASS",
+      "detail": "1024x1024 png, quality 1.0, warnings: none; analysis: bg=uniform, category auto-detected=None",
+      "seconds": 0.0
+    },
+    {
+      "n": 4,
+      "stage": "Preprocess the image",
+      "status": "PASS",
+      "detail": "orientation \u2192 background_analysis \u2192 background_removal \u2192 crop \u2192 resize \u2192 normalize \u2192 512x512 model input",
+      "seconds": 0.18
+    },
+    {
+      "n": 5,
+      "stage": "Load the image-to-3D model",
+      "status": "BLOCKED",
+      "detail": "TripoSR cannot load here: The 'tsr' package (TripoSR source) is not importable.; Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes.; weights licence 'claimed' not yet verified (set ARO_VERIFIED_MODEL_LICENSES=triposr). To activate: git clone https://github.com/VAST-AI-Research/TripoSR && add it to PYTHONPATH (the Dockerfile does this). | pip install -r requirements-triposr.txt  (torch must match the host CUDA version)",
+      "seconds": 0.0,
+      "reasons": [
+        "The 'tsr' package (TripoSR source) is not importable.",
+        "Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes."
+      ]
+    },
+    {
+      "n": 6,
+      "stage": "Run actual reconstruction",
+      "status": "BLOCKED",
+      "detail": "no real reconstruction was run; NO placeholder geometry was substituted. See docs/models/model-requirements.md for the GPU test strategy",
+      "seconds": 0.0
+    },
+    {
+      "n": 7,
+      "stage": "Save raw output",
+      "status": "PARTIAL",
+      "detail": "no AI output exists; the procedural reference was saved as the raw version ver_e9f660cc8aee4f8eacad so the remaining stages can run on a real, structured vehicle",
+      "seconds": 0.09
+    },
+    {
+      "n": 8,
+      "stage": "Process the geometry",
+      "status": "PASS",
+      "detail": "standard cleanup: 15,736 \u2192 15,736 faces; steps ['remove_invalid', 'merge_vertices', 'remove_degenerate', 'remove_duplicate_faces', 'remove_small_components', 'fix_normals']",
+      "seconds": 1.92
+    },
+    {
+      "n": 9,
+      "stage": "Repair valid geometry problems",
+      "status": "PARTIAL",
+      "detail": "defects found before repair: {'duplicate_vertices': 1}; after: holes=0, non-manifold=0. Repair operations (merge, fill holes, normals, fragments) are unit-tested on damaged meshes",
+      "seconds": 0.0
+    },
+    {
+      "n": 10,
+      "stage": "Process materials",
+      "status": "PASS",
+      "detail": "12 PBR materials (paint, glass, rubber, chrome, plastic, lights, interior\u2026)",
+      "seconds": 0.1
+    },
+    {
+      "n": 11,
+      "stage": "Process textures where supported",
+      "status": "SKIPPED",
+      "detail": "the procedural reference uses flat-colour PBR materials (no vertex colours to bake). The texture pipeline (xatlas unwrap, projection baking, resize, compress, packing) is covered by tests/test_textures.py",
+      "seconds": 0.0
+    },
+    {
+      "n": 12,
+      "stage": "Configure vehicle metadata",
+      "status": "PASS",
+      "detail": "ARO Motors TITAN 480 \u00b7 heavy_truck \u00b7 6x4; components: ['attachment', 'axle', 'body', 'bumper', 'cabin', 'chassis', 'door', 'exhaust', 'grille', 'headlight', 'interior', 'mirror', 'taillight', 'tire', 'wheel', 'window', 'wiper']; 7 pivots, 6 lights, 4 attachment points, CoM (0.0, 1.1, -0.6)",
+      "seconds": 0.0
+    },
+    {
+      "n": 13,
+      "stage": "Configure wheels and axles",
+      "status": "PASS",
+      "detail": "3 axles, 10 wheels (steered: 2, driven: 8), wheelbase 3.80 m \u2014 taken from the reference spec, not auto-detected",
+      "seconds": 0.0
+    },
+    {
+      "n": 14,
+      "stage": "Generate/prepare collision geometry",
+      "status": "PASS",
+      "detail": "2 colliders (COL_Body:96, COL_Cabin:68); rig of 33 nodes",
+      "seconds": 0.1,
+      "fidelity": {
+        "COL_Body": {
+          "exact_triangles": 96,
+          "max_corner_gap_m": 0.0,
+          "reduced_triangles": 96,
+          "volume_ratio": 1.0
+        },
+        "COL_Cabin": {
+          "exact_triangles": 68,
+          "max_corner_gap_m": 0.0,
+          "reduced_triangles": 68,
+          "volume_ratio": 1.0
+        }
+      }
+    },
+    {
+      "n": 15,
+      "stage": "Generate LODs",
+      "status": "PASS",
+      "detail": "triangles: LOD0 15,736 \u2192 LOD1 8,922 \u2192 LOD2 4,664 \u2192 LOD3 2,356",
+      "seconds": 0.36
+    },
+    {
+      "n": 16,
+      "stage": "Validate the entire asset",
+      "status": "PASS",
+      "detail": "PRODUCTION_READY \u00b7 overall 99.7% \u00b7 critical 0 \u00b7 major 0 \u00b7 geometry 98.5%, materials 100.0%, lod 100.0%, collision 100.0%, vehicle 100.0%, unity 100.0%",
+      "seconds": 1.98
+    },
+    {
+      "n": 17,
+      "stage": "Display in the 3D viewer",
+      "status": "PASS",
+      "detail": "Playwright/Chromium e2e: loaded the asset in the three.js viewer, exercised views, wireframe, shading, grid, bounds, collision, rig, LOD switching, lighting, stats",
+      "seconds": 51.94
+    },
+    {
+      "n": 18,
+      "stage": "Save the project version",
+      "status": "PASS",
+      "detail": "7 immutable versions: v0.1:reference.titan480, v0.2:geometry, v0.3:materials, v0.4:rig, v0.5:collision, v0.6:lod, v0.7:finalize; CURRENT PRODUCTION VERSION = ver_dbe70de6fbf34b8faa38",
+      "seconds": 2.11
+    },
+    {
+      "n": 19,
+      "stage": "Export GLB",
+      "status": "PASS",
+      "detail": "1.12 MB, sha256 5ab462e66e087903\u2026, triangles per LOD {'LOD0': 15736, 'LOD1': 8922, 'LOD2': 4664, 'LOD3': 2356}; Khronos validator: 0 errors / 0 warnings (v2.0.0-dev.3.10)",
+      "seconds": 0.92
+    },
+    {
+      "n": 20,
+      "stage": "Generate Unity-ready output",
+      "status": "PASS",
+      "detail": "Unity package 1.13 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; also glTF COMPLETED, OBJ COMPLETED",
+      "seconds": 2.08
+    },
+    {
+      "n": 21,
+      "stage": "Validate export integrity",
+      "status": "PASS",
+      "detail": "20 package checks + 13 GLB checks re-read from disk (checksums, accessors, hierarchy, LOD counts, collision nodes)",
+      "seconds": 0.0
+    },
+    {
+      "n": 22,
+      "stage": "Test import compatibility with Unity 6",
+      "status": "BLOCKED",
+      "detail": "Unity 6 is not installed in this environment, so the package was NOT imported into Unity. Structural compatibility is covered by stage 21 (+ Khronos glTF-Validator). To complete: install glTFast in a Unity 6 project, import the package, run ARO \u25b8 Build Vehicle Prefab (see Metadata/README.md in the package) and report the result.",
+      "seconds": 0.0
+    }
+  ]
+}

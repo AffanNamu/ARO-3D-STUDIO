@@ -38,6 +38,7 @@ def import_mesh_bytes(
     max_bytes: int,
     max_archive_members: int = 2000,
     max_archive_mb: int = 1000,
+    tmp_root: Path | None = None,
 ) -> tuple[Scene, dict]:
     if not data:
         raise InvalidInputError("The uploaded file is empty.")
@@ -46,7 +47,7 @@ def import_mesh_bytes(
     ext = Path(sanitize_filename(filename, default="mesh.glb")).suffix.lower()
     kind = sniff(data).kind
     report: dict = {"source_filename": sanitize_filename(filename), "warnings": []}
-    with tempfile.TemporaryDirectory(prefix="import_") as td:
+    with tempfile.TemporaryDirectory(prefix="import_", dir=tmp_root) as td:
         work = Path(td)
         if kind == "zip":
             extracted = safe_extract_zip(

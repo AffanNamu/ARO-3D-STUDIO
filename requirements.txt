@@ -1,0 +1,18 @@
+# Runtime dependencies (CPU-safe). AI reconstruction extras: requirements-triposr.txt
+numpy>=1.26,<3
+pillow>=10.1
+trimesh>=4.4
+scipy>=1.11
+networkx>=3.2
+rtree>=1.2
+fast-simplification>=0.1.7
+xatlas>=0.0.9
+pygltflib>=1.16
+shapely>=2.0
+mapbox-earcut>=1.0
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+pydantic>=2.6
+pydantic-settings>=2.2
+psutil>=5.9

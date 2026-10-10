@@ -1,0 +1,22 @@
+import { api, token } from '../api.js';
+import { confirmDialog, empty, errorToast, field, fmt, h, kv, notice, toast } from '../dom.js';
+import { trackJob } from '../jobs.js';
+
+export async function mount(root) {
+  const [sys, audit] = await Promise.all([api.get('/api/system'), api.get('/api/audit?limit=40')]);
+  const r = sys.resources;
+  root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Settings'), h('p', { class: 'sub' }, 'Runtime configuration is read from environment variables (see .env.example); secrets are never shown here.'))));
+  const tokenIn = h('input', { type: 'password', placeholder: sys.auth_enabled ? 'Access token for this tab' : 'Authentication is disabled on this deployment', value: token.get(), autocomplete: 'off' });
+  root.append(h('div', { class: 'grid c2' },
+    h('div', { class: 'card' }, h('h3', null, 'Runtime'), kv({ Version: sys.version, Uptime: fmt.dur(sys.uptime_s), 'DB schema': sys.schema_version, Device: sys.device_setting, Workers: sys.workers, 'Resident model': sys.models.resident || 'none', 'Idle unload after': `${sys.models.idle_unload_s}s`, Auth: sys.auth_enabled ? 'access token required' : h('span', { class: 'chip warn' }, 'open (no ARO_ACCESS_TOKEN set)') })),
+    h('div', { class: 'card' }, h('h3', null, 'Resources'), kv({ CPU: `${r.cpu_count} vCPU (${r.cpu_percent}%)`, RAM: `${fmt.bytes(r.ram_available_mb * 2 ** 20)} free / ${fmt.bytes(r.ram_total_mb * 2 ** 20)}`, 'Container memory limit': sys.cgroup_memory_limit_mb ? `${sys.cgroup_memory_limit_mb} MB` : 'none detected', Disk: `${fmt.bytes(r.disk_free_mb * 2 ** 20)} free`, GPU: r.gpu.available ? `${r.gpu.name} · ${r.gpu.free_mb}/${r.gpu.total_mb} MB free · driver ${r.gpu.driver}` : 'none', 'Studio data': `${sys.data_dir_size_mb} MB` })),
+    h('div', { class: 'card' }, h('h3', null, 'Limits'), kv({ 'Max upload': `${sys.limits.max_upload_mb} MB`, 'Max image pixels': fmt.int(sys.limits.max_image_pixels), 'Job timeout': `${sys.limits.job_timeout_s}s`, 'LOD0 triangle budget': fmt.int(sys.limits.tri_budget_lod0) })),
+    h('div', { class: 'card' }, h('h3', null, 'Access'), field('Access token (this browser tab only)', tokenIn), h('button', { class: 'btn', onclick: () => { token.set(tokenIn.value.trim()); toast('Token saved for this tab', '', 'ok'); } }, 'Save token')),
+    h('div', { class: 'card' }, h('h3', null, 'Maintenance'), h('div', { class: 'btn-row' },
+      h('button', { class: 'btn', onclick: async () => { try { trackJob(await api.post('/api/maintenance/cleanup'), { label: 'Clean temp files' }); } catch (e) { errorToast(e); } } }, 'Clean temporary files'),
+      h('button', { class: 'btn', onclick: async () => { try { trackJob(await api.post('/api/maintenance/cleanup?purge_cache=true'), { label: 'Purge cache' }); } catch (e) { errorToast(e); } } }, `Purge preview cache (${sys.cache_size_mb} MB)`),
+      h('button', { class: 'btn', onclick: async () => { try { await api.post('/api/models/unload'); toast('Model unloaded', '', 'ok'); } catch (e) { errorToast(e); } } }, 'Unload model')),
+      h('p', { class: 'hint', style: { marginTop: '8px' } }, `Generation cache: ${sys.cache.cache_hits} hit(s) from ${sys.cache.completed} completed generation(s). Hugging Face free Spaces have ephemeral disk: export projects you want to keep.`)),
+    h('div', { class: 'card' }, h('h3', null, 'Performance'), Object.keys(sys.metrics.timings).length ? h('table', null, h('thead', null, h('tr', null, h('th', null, 'Metric'), h('th', { class: 'num' }, 'n'), h('th', { class: 'num' }, 'mean'), h('th', { class: 'num' }, 'max'))), h('tbody', null, ...Object.entries(sys.metrics.timings).map(([k, v]) => h('tr', null, h('td', null, k), h('td', { class: 'num' }, v.count), h('td', { class: 'num' }, fmt.dur(v.mean_s)), h('td', { class: 'num' }, fmt.dur(v.max_s)))))) : h('div', { class: 'hint' }, 'No timings recorded yet.'))),
+    h('div', { class: 'card', style: { marginTop: '14px' } }, h('h3', null, 'Audit log'), audit.items.length ? h('table', null, h('thead', null, h('tr', null, h('th', null, 'When'), h('th', null, 'Action'), h('th', null, 'Target'), h('th', null, 'Details'))), h('tbody', null, ...audit.items.map((a) => h('tr', null, h('td', { class: 'hint' }, fmt.date(a.ts)), h('td', null, a.action), h('td', { class: 'mono hint' }, a.target || '—'), h('td', { class: 'mono hint' }, JSON.stringify(a.details)))))) : empty('No audit entries yet.')));
+}
