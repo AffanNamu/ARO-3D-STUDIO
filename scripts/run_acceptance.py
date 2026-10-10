@@ -337,6 +337,11 @@ def run(ctx, rep: Report, state: dict, args) -> None:
             "viewer / save / export stages for AI output are recorded by scripts/record_real_inference.py",
         )
         return
+    rep.add(
+        11,
+        "PARTIAL",
+        "not applicable to this input: the procedural reference uses flat-colour PBR materials (no vertex colours to bake). The texture pipeline (xatlas unwrap, projection baking, resize, compress, packing) is covered by tests/test_textures.py",
+    )
     v = sc.manifest.vehicle
     rep.add(
         12,

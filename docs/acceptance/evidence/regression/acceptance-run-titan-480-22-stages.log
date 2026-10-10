@@ -1,0 +1,25 @@
+[ 1] PASS     Create ARO TITAN 480 project                  project prj_5474003dfedc4ca08cc8, asset ast_b85d5f061e7844bdace6
+[ 2] PARTIAL  Upload concept image                          image is a software render of the procedural reference model, not an artist's concept image; stored by content
+[ 3] PASS     Validate the input                            1024x1024 png, quality 1.0, warnings: none; analysis: bg=uniform, category auto-detected=None
+[ 4] PASS     Preprocess the image                          orientation → background_analysis → background_removal → crop → resize → normalize → 512x512 model input
+[ 5] BLOCKED  Load the image-to-3D model                    TripoSR cannot load here: Supply-chain lock incomplete: weights revision of stabilityai/TripoSR pinned to a 40
+[ 6] BLOCKED  Run actual reconstruction                     no real reconstruction was run; NO placeholder geometry was substituted. See docs/models/model-requirements.md
+[ 7] PARTIAL  Save raw output                               no AI output exists; the procedural reference was saved as the raw version ver_bbb1056bccaa4d3ead87 so the rem
+[ 8] PASS     Process the geometry                          standard cleanup: 15,736 → 15,736 faces; steps ['remove_invalid', 'merge_vertices', 'remove_degenerate', 'remo
+[ 9] PARTIAL  Repair valid geometry problems                defects found before repair: {'duplicate_vertices': 1}; after: holes=0, non-manifold=0. Repair operations (mer
+[10] PASS     Process materials                             12 PBR materials (paint, glass, rubber, chrome, plastic, lights, interior…)
+[12] PASS     Configure vehicle metadata                    ARO Motors TITAN 480 · heavy_truck · 6x4; components: ['attachment', 'axle', 'body', 'bumper', 'cabin', 'chass
+[13] PASS     Configure wheels and axles                    3 axles, 10 wheels (steered: 2, driven: 8), wheelbase 3.80 m — taken from the reference spec, not auto-detecte
+[14] PASS     Generate/prepare collision geometry           2 colliders (COL_Body:96, COL_Cabin:68); rig of 33 nodes
+[15] PASS     Generate LODs                                 triangles: LOD0 15,736 → LOD1 8,922 → LOD2 4,664 → LOD3 2,356
+[16] PASS     Validate the entire asset                     PRODUCTION_READY · overall 99.7% · critical 0 · major 0 · geometry 98.5%, materials 100.0%, lod 100.0%, collis
+[17] PASS     Display in the 3D viewer                      Playwright/Chromium e2e: loaded the asset in the three.js viewer, exercised views, wireframe, shading, grid, b
+[18] PASS     Save the project version                      7 immutable versions: v0.1:reference.titan480, v0.2:geometry, v0.3:materials, v0.4:rig, v0.5:collision, v0.6:l
+[19] PASS     Export GLB                                    1.12 MB, sha256 5ab462e66e087903…, triangles per LOD {'LOD0': 15736, 'LOD1': 8922, 'LOD2': 4664, 'LOD3': 2356}
+[20] PASS     Generate Unity-ready output                   Unity package 1.14 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; 
+[21] PASS     Validate export integrity                     21 package checks + 13 GLB checks re-read from disk (checksums, accessors, hierarchy, LOD counts, collision no
+[22] BLOCKED  Test import compatibility with Unity 6        Unity 6 import has not been run: no unity-verification.json. Run Unity in batch mode with ARO.Studio.Editor.Ar
+[11] BLOCKED  Process textures where supported              not reached (an earlier stage did not complete)
+
+NOT COMPLETE — production readiness is not claimed
+report: /home/user/ARO-3D-STUDIO/docs/acceptance/titan480-acceptance-report.md  (data kept in /tmp/aro_acceptance_6qlzdjue)

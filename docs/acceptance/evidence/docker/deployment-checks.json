@@ -1,9 +1,9 @@
 {
   "base_url": "http://127.0.0.1:17860",
-  "when": "2026-10-10T19:03:24Z",
+  "when": "2026-10-10T19:17:13Z",
   "state": {
-    "project_id": "prj_7fea3e353cb14ef887e6",
-    "asset_id": "ast_fd3d9a3f66644e368755"
+    "project_id": "prj_d52c15c72e834e7dbaf8",
+    "asset_id": "ast_36226426a7e149358e66"
   },
   "passed": 34,
   "failed": 0,

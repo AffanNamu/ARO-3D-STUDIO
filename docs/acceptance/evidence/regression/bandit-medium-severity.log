@@ -1,0 +1,13 @@
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/jobs/queue.py:317
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/jobs/queue.py:317
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:206
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:206
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:209
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:209
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:209
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:209
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:211
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:211
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:211
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:211
+[tester]	WARNING	nosec encountered (B608), but no failed test on file aro_studio/projects/service.py:211

@@ -1,17 +1,294 @@
 {
   "verdict": "NOT COMPLETE \u2014 production readiness is not claimed",
+  "components": [
+    {
+      "component": "1. Platform implementation",
+      "status": "PASS",
+      "detail": "7 gates passed; 246 tests passed, 4 skipped (skips are listed, never counted as passes)",
+      "evidence": null,
+      "facts": {
+        "steps": {
+          "ruff check": "PASS",
+          "ruff format --check": "PASS",
+          "mypy": "PASS",
+          "licence audit": "PASS",
+          "pytest (unit + integration + security + performance)": "PASS",
+          "pytest browser e2e (Playwright)": "PASS",
+          "acceptance run (TITAN 480, 22 stages)": "PASS"
+        },
+        "totals": {
+          "tests": 250,
+          "passed": 246,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 4
+        },
+        "commit": "105ffd799e21f2f99873614894163eb33013845b",
+        "dirty_tree": true
+      }
+    },
+    {
+      "component": "2. Procedural reference asset (ARO TITAN 480)",
+      "status": "PASS",
+      "detail": "stages 8-21 passed (9 repair and 11 texture-bake not applicable to a defect-free flat-colour asset, covered by unit tests) on the procedural TITAN 480; validation PRODUCTION_READY. This is NOT an AI asset.",
+      "evidence": null,
+      "facts": {}
+    },
+    {
+      "component": "3. Real AI-generated asset",
+      "status": "BLOCKED",
+      "detail": "TripoSR has never been run: no inference-evidence.json. Needs a GPU host + Hugging Face access (docs/verification/gpu-host-runbook.md).",
+      "evidence": null,
+      "facts": {}
+    },
+    {
+      "component": "4. Validated production asset (from real AI output)",
+      "status": "BLOCKED",
+      "detail": "TripoSR has never been run: no inference-evidence.json. Needs a GPU host + Hugging Face access (docs/verification/gpu-host-runbook.md).",
+      "evidence": null,
+      "facts": {}
+    },
+    {
+      "component": "5. Verified Unity 6 import",
+      "status": "BLOCKED",
+      "detail": "Unity 6 import has not been run: no unity-verification.json. Run Unity in batch mode with ARO.Studio.Editor.AroUnityVerifier.Run (docs/verification/unity-verification-runbook.md).",
+      "evidence": null,
+      "facts": {}
+    },
+    {
+      "component": "6. Docker deployment",
+      "status": "PASS",
+      "detail": "22/22 Docker steps passed (build, hardening, health, persistence, limits). Caveats: base image overridden at build time (PYTHON_IMAGE=aro-sandbox-base:py311): the Dockerfile default is a digest-pinned python:3.11-slim; build used --network host (sandbox without bridge networking); build went through an egress proxy.",
+      "evidence": "/home/user/ARO-3D-STUDIO/docs/acceptance/evidence/docker/docker-verification.json",
+      "facts": {
+        "steps": 22,
+        "failed": [],
+        "http": {
+          "base_url": "http://127.0.0.1:17860",
+          "when": "2026-10-10T19:17:13Z",
+          "state": {
+            "project_id": "prj_d52c15c72e834e7dbaf8",
+            "asset_id": "ast_36226426a7e149358e66"
+          },
+          "passed": 34,
+          "failed": 0,
+          "checks": [
+            {
+              "check": "health endpoint",
+              "result": "PASS",
+              "detail": "{\"status\": \"ok\", \"version\": \"0.1.0\"}"
+            },
+            {
+              "check": "security headers (CSP, nosniff, no-referrer)",
+              "result": "PASS",
+              "detail": ""
+            },
+            {
+              "check": "API rejects requests without a token (401)",
+              "result": "PASS",
+              "detail": "status 401"
+            },
+            {
+              "check": "API rejects a wrong token (401)",
+              "result": "PASS",
+              "detail": "status 401"
+            },
+            {
+              "check": "API accepts the correct token",
+              "result": "PASS",
+              "detail": "status 200"
+            },
+            {
+              "check": "system endpoint never echoes the token",
+              "result": "PASS",
+              "detail": ""
+            },
+            {
+              "check": "system endpoint reports resources, queue and limits",
+              "result": "PASS",
+              "detail": "cpu=4 cgroup_mem_mb=768"
+            },
+            {
+              "check": "create project",
+              "result": "PASS",
+              "detail": "status 201"
+            },
+            {
+              "check": "create asset",
+              "result": "PASS",
+              "detail": ""
+            },
+            {
+              "check": "valid PNG accepted and stored by content hash",
+              "result": "PASS",
+              "detail": "status 201"
+            },
+            {
+              "check": "non-image content with an image filename rejected (400)",
+              "result": "PASS",
+              "detail": "status 400 The file content is not a PNG, JPEG or WebP image (extension and declared type a"
+            },
+            {
+              "check": "upload over 1 MB rejected (400)",
+              "result": "PASS",
+              "detail": "status 400"
+            },
+            {
+              "check": "decompression-bomb image (900 MP declared) rejected before decoding (400)",
+              "result": "PASS",
+              "detail": "status 400 The image header is invalid."
+            },
+            {
+              "check": "truncated/corrupt image rejected (400)",
+              "result": "PASS",
+              "detail": "status 400"
+            },
+            {
+              "check": "archive rejected: zip-slip (../ member) (400)",
+              "result": "PASS",
+              "detail": "status 400 Archive contains an unsafe path."
+            },
+            {
+              "check": "archive rejected: absolute-path member (400)",
+              "result": "PASS",
+              "detail": "status 400 Archive contains an unsafe path."
+            },
+            {
+              "check": "archive rejected: symlink member (400)",
+              "result": "PASS",
+              "detail": "status 400 Archive contains a symbolic link."
+            },
+            {
+              "check": "archive rejected: zip bomb (compression ratio) (400)",
+              "result": "PASS",
+              "detail": "status 400 Archive compression ratio is suspicious (possible zip bomb)."
+            },
+            {
+              "check": "path traversal in an id never reads files",
+              "result": "PASS",
+              "detail": "status 404"
+            },
+            {
+              "check": "unknown id is a clean 404 with no traceback",
+              "result": "PASS",
+              "detail": ""
+            },
+            {
+              "check": "generation job accepted (202)",
+              "result": "PASS",
+              "detail": "status 202"
+            },
+            {
+              "check": "no AI runtime: job ends MODEL_ERROR with an actionable explanation",
+              "result": "PASS",
+              "detail": "MODEL_ERROR | The licence of the 'TripoSR' weights (MIT) is claimed, not yet verified for production use."
+            },
+            {
+              "check": "failed generation created no asset version (no placeholder geometry)",
+              "result": "PASS",
+              "detail": "versions=0"
+            },
+            {
+              "check": "service still healthy after the failed inference job",
+              "result": "PASS",
+              "detail": ""
+            },
+            {
+              "check": "create ARO TITAN 480 procedural reference",
+              "result": "PASS",
+              "detail": "status 201"
+            },
+            {
+              "check": "pipeline step: geometry",
+              "result": "PASS",
+              "detail": "COMPLETED"
+            },
+            {
+              "check": "pipeline step: rig",
+              "result": "PASS",
+              "detail": "COMPLETED"
+            },
+            {
+              "check": "pipeline step: collision",
+              "result": "PASS",
+              "detail": "COMPLETED"
+            },
+            {
+              "check": "pipeline step: lod",
+              "result": "PASS",
+              "detail": "COMPLETED"
+            },
+            {
+              "check": "pipeline step: validate",
+              "result": "PASS",
+              "detail": "COMPLETED"
+            },
+            {
+              "check": "validation status PRODUCTION_READY, 0 critical failures",
+              "result": "PASS",
+              "detail": "PRODUCTION_READY 100.0%"
+            },
+            {
+              "check": "export GLB + Unity package (verified server-side)",
+              "result": "PASS",
+              "detail": "COMPLETED"
+            },
+            {
+              "check": "downloaded GLB is a glTF binary whose SHA-256 matches the export record",
+              "result": "PASS",
+              "detail": "1116284 bytes"
+            },
+            {
+              "check": "GLB verification recorded as OK",
+              "result": "PASS",
+              "detail": ""
+            }
+          ]
+        },
+        "caveats": [
+          "base image overridden at build time (PYTHON_IMAGE=aro-sandbox-base:py311): the Dockerfile default is a digest-pinned python:3.11-slim",
+          "build used --network host (sandbox without bridge networking)",
+          "build went through an egress proxy"
+        ],
+        "image_id": "sha256:6331e059257944291b34a09674011fbde22c184f29bde07e67ad12da438e43fd"
+      }
+    },
+    {
+      "component": "7. Security and regression tests",
+      "status": "PASS",
+      "detail": "bandit + pip-audit + the full test suite (incl. security, resource-limit and archive-protection tests) passed",
+      "evidence": null,
+      "facts": {
+        "steps": {
+          "bandit (medium+ severity)": "PASS",
+          "pip-audit (requirements.txt)": "PASS",
+          "pytest (unit + integration + security + performance)": "PASS",
+          "pytest browser e2e (Playwright)": "PASS"
+        },
+        "totals": {
+          "tests": 250,
+          "passed": 246,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 4
+        },
+        "commit": "105ffd799e21f2f99873614894163eb33013845b",
+        "dirty_tree": true
+      }
+    }
+  ],
   "env": {
     "python": "3.13.16",
     "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
     "studio": "0.1.0",
     "resources": {
       "cpu_count": 4,
-      "cpu_percent": 25.0,
+      "cpu_percent": 31.2,
       "ram_total_mb": 16093,
-      "ram_available_mb": 15368,
+      "ram_available_mb": 15261,
       "disk_total_mb": 258019,
-      "disk_free_mb": 29253,
-      "process_rss_mb": 142,
+      "disk_free_mb": 22803,
+      "process_rss_mb": 126,
       "gpu": {
         "available": false,
         "name": null,
@@ -82,13 +359,13 @@
         }
       },
       "blocking_reasons": [],
-      "validation_id": "val_8883b8842c36429fa96f"
+      "validation_id": "val_cdf04aaa98134cf3aa74"
     },
     "warnings": [
       "G010 No self-intersections: 1298 intersecting triangle pairs"
     ],
-    "export_dir": "/tmp/aro_acceptance_mm6z4ibh/projects/prj_48a8147ac75f4c439e95/exports/exp_e74ac64f1fa1430eb7ef",
-    "final_version": "ver_dbe70de6fbf34b8faa38",
+    "export_dir": "/tmp/aro_acceptance_birmi86b/projects/prj_3203762367714a40a95b/exports/exp_2bab7be3ed4c47debe71",
+    "final_version": "ver_7d325296e64644788138",
     "khronos": {
       "ran": true,
       "validator_version": "2.0.0-dev.3.10",
@@ -98,14 +375,14 @@
       "ok": true,
       "messages": []
     },
-    "glb_path": "/tmp/aro_acceptance_mm6z4ibh/projects/prj_48a8147ac75f4c439e95/exports/exp_46e122505b984857b9a0/ARO-TITAN-480-v0.7.glb"
+    "glb_path": "/tmp/aro_acceptance_birmi86b/projects/prj_3203762367714a40a95b/exports/exp_630b83aa61f44d35b56b/ARO-TITAN-480-v0.7.glb"
   },
   "stages": [
     {
       "n": 1,
       "stage": "Create ARO TITAN 480 project",
       "status": "PASS",
-      "detail": "project prj_48a8147ac75f4c439e95, asset ast_cbea93097eb24026ae6b",
+      "detail": "project prj_3203762367714a40a95b, asset ast_d03aed246c454fed8530",
       "seconds": 0.0
     },
     {
@@ -113,7 +390,7 @@
       "stage": "Upload concept image",
       "status": "PARTIAL",
       "detail": "image is a software render of the procedural reference model, not an artist's concept image; stored by content hash",
-      "seconds": 0.65,
+      "seconds": 0.7,
       "sha256": "91f82e04063e5b1969c5d6851ec0ce41584eb8c4e210d3e7385f6cf8857dc03d"
     },
     {
@@ -128,15 +405,16 @@
       "stage": "Preprocess the image",
       "status": "PASS",
       "detail": "orientation \u2192 background_analysis \u2192 background_removal \u2192 crop \u2192 resize \u2192 normalize \u2192 512x512 model input",
-      "seconds": 0.18
+      "seconds": 0.21
     },
     {
       "n": 5,
       "stage": "Load the image-to-3D model",
       "status": "BLOCKED",
-      "detail": "TripoSR cannot load here: The 'tsr' package (TripoSR source) is not importable.; Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes.; weights licence 'claimed' not yet verified (set ARO_VERIFIED_MODEL_LICENSES=triposr). To activate: git clone https://github.com/VAST-AI-Research/TripoSR && add it to PYTHONPATH (the Dockerfile does this). | pip install -r requirements-triposr.txt  (torch must match the host CUDA version)",
+      "detail": "TripoSR cannot load here: Supply-chain lock incomplete: weights revision of stabilityai/TripoSR pinned to a 40-hex commit; SHA-256 + size of stabilityai/TripoSR/config.yaml; SHA-256 + size of stabilityai/TripoSR/model.ckpt; revision + SHA-256 + size of auxiliary file facebook/dino-vitb16/config.json.; The 'tsr' package (TripoSR source) is not importable.; Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes.; weights licence 'claimed' not yet verified (set ARO_VERIFIED_MODEL_LICENSES=triposr). To activate: python scripts/pin_triposr_weights.py   (needs Hugging Face access) \u2192 review the diff of engines/locks/triposr.json \u2192 commit | git clone https://github.com/VAST-AI-Research/TripoSR && git -C TripoSR checkout 107cefdc244c39106fa830359024f6a2f1c78871 && add it to PYTHONPATH (the Dockerfile does this). | pip install -r requirements-triposr.txt  (torch must match the host CUDA version)",
       "seconds": 0.0,
       "reasons": [
+        "Supply-chain lock incomplete: weights revision of stabilityai/TripoSR pinned to a 40-hex commit; SHA-256 + size of stabilityai/TripoSR/config.yaml; SHA-256 + size of stabilityai/TripoSR/model.ckpt; revision + SHA-256 + size of auxiliary file facebook/dino-vitb16/config.json.",
         "The 'tsr' package (TripoSR source) is not importable.",
         "Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes."
       ]
@@ -152,7 +430,7 @@
       "n": 7,
       "stage": "Save raw output",
       "status": "PARTIAL",
-      "detail": "no AI output exists; the procedural reference was saved as the raw version ver_e9f660cc8aee4f8eacad so the remaining stages can run on a real, structured vehicle",
+      "detail": "no AI output exists; the procedural reference was saved as the raw version ver_38214aac5f154777a34f so the remaining stages can run on a real, structured vehicle",
       "seconds": 0.09
     },
     {
@@ -160,7 +438,7 @@
       "stage": "Process the geometry",
       "status": "PASS",
       "detail": "standard cleanup: 15,736 \u2192 15,736 faces; steps ['remove_invalid', 'merge_vertices', 'remove_degenerate', 'remove_duplicate_faces', 'remove_small_components', 'fix_normals']",
-      "seconds": 1.92
+      "seconds": 2.26
     },
     {
       "n": 9,
@@ -179,8 +457,8 @@
     {
       "n": 11,
       "stage": "Process textures where supported",
-      "status": "SKIPPED",
-      "detail": "the procedural reference uses flat-colour PBR materials (no vertex colours to bake). The texture pipeline (xatlas unwrap, projection baking, resize, compress, packing) is covered by tests/test_textures.py",
+      "status": "PARTIAL",
+      "detail": "not applicable to this input: the procedural reference uses flat-colour PBR materials (no vertex colours to bake). The texture pipeline (xatlas unwrap, projection baking, resize, compress, packing) is covered by tests/test_textures.py",
       "seconds": 0.0
     },
     {
@@ -223,55 +501,55 @@
       "stage": "Generate LODs",
       "status": "PASS",
       "detail": "triangles: LOD0 15,736 \u2192 LOD1 8,922 \u2192 LOD2 4,664 \u2192 LOD3 2,356",
-      "seconds": 0.36
+      "seconds": 0.31
     },
     {
       "n": 16,
       "stage": "Validate the entire asset",
       "status": "PASS",
       "detail": "PRODUCTION_READY \u00b7 overall 99.7% \u00b7 critical 0 \u00b7 major 0 \u00b7 geometry 98.5%, materials 100.0%, lod 100.0%, collision 100.0%, vehicle 100.0%, unity 100.0%",
-      "seconds": 1.98
+      "seconds": 2.31
     },
     {
       "n": 17,
       "stage": "Display in the 3D viewer",
       "status": "PASS",
       "detail": "Playwright/Chromium e2e: loaded the asset in the three.js viewer, exercised views, wireframe, shading, grid, bounds, collision, rig, LOD switching, lighting, stats",
-      "seconds": 51.94
+      "seconds": 54.36
     },
     {
       "n": 18,
       "stage": "Save the project version",
       "status": "PASS",
-      "detail": "7 immutable versions: v0.1:reference.titan480, v0.2:geometry, v0.3:materials, v0.4:rig, v0.5:collision, v0.6:lod, v0.7:finalize; CURRENT PRODUCTION VERSION = ver_dbe70de6fbf34b8faa38",
-      "seconds": 2.11
+      "detail": "7 immutable versions: v0.1:reference.titan480, v0.2:geometry, v0.3:materials, v0.4:rig, v0.5:collision, v0.6:lod, v0.7:finalize; CURRENT PRODUCTION VERSION = ver_7d325296e64644788138",
+      "seconds": 2.48
     },
     {
       "n": 19,
       "stage": "Export GLB",
       "status": "PASS",
       "detail": "1.12 MB, sha256 5ab462e66e087903\u2026, triangles per LOD {'LOD0': 15736, 'LOD1': 8922, 'LOD2': 4664, 'LOD3': 2356}; Khronos validator: 0 errors / 0 warnings (v2.0.0-dev.3.10)",
-      "seconds": 0.92
+      "seconds": 1.01
     },
     {
       "n": 20,
       "stage": "Generate Unity-ready output",
       "status": "PASS",
-      "detail": "Unity package 1.13 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; also glTF COMPLETED, OBJ COMPLETED",
-      "seconds": 2.08
+      "detail": "Unity package 1.14 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; also glTF COMPLETED, OBJ COMPLETED",
+      "seconds": 2.44
     },
     {
       "n": 21,
       "stage": "Validate export integrity",
       "status": "PASS",
-      "detail": "20 package checks + 13 GLB checks re-read from disk (checksums, accessors, hierarchy, LOD counts, collision nodes)",
+      "detail": "21 package checks + 13 GLB checks re-read from disk (checksums, accessors, hierarchy, LOD counts, collision nodes)",
       "seconds": 0.0
     },
     {
       "n": 22,
       "stage": "Test import compatibility with Unity 6",
       "status": "BLOCKED",
-      "detail": "Unity 6 is not installed in this environment, so the package was NOT imported into Unity. Structural compatibility is covered by stage 21 (+ Khronos glTF-Validator). To complete: install glTFast in a Unity 6 project, import the package, run ARO \u25b8 Build Vehicle Prefab (see Metadata/README.md in the package) and report the result.",
+      "detail": "Unity 6 import has not been run: no unity-verification.json. Run Unity in batch mode with ARO.Studio.Editor.AroUnityVerifier.Run (docs/verification/unity-verification-runbook.md).",
       "seconds": 0.0
     }
   ]
