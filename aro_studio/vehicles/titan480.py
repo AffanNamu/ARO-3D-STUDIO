@@ -373,9 +373,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
             f"Door_{s}",
             R.DOOR,
             "aro_pearl_white",
-            P.extrude_profile_zy(
-                door_profile, 0.05, center_x=sx * (CAB_HALF_W + 0.025)
-            ),
+            P.extrude_profile_zy(door_profile, 0.05, center_x=sx * (CAB_HALF_W + 0.025)),
         )
 
         # A dark outer seal sits behind a smaller, opaque tinted pane. The angular
@@ -396,17 +394,13 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
             f"Window_Door_Frame_{s}",
             R.BODY,
             "aro_black_paint",
-            P.extrude_profile_zy(
-                window_frame_profile, 0.018, center_x=sx * (CAB_HALF_W + 0.055)
-            ),
+            P.extrude_profile_zy(window_frame_profile, 0.018, center_x=sx * (CAB_HALF_W + 0.055)),
         )
         add(
             f"Window_Door_{s}",
             R.WINDOW,
             "aro_tinted_glass",
-            P.extrude_profile_zy(
-                window_glass_profile, 0.01, center_x=sx * (CAB_HALF_W + 0.069)
-            ),
+            P.extrude_profile_zy(window_glass_profile, 0.01, center_x=sx * (CAB_HALF_W + 0.069)),
         )
         arm = P.tube_between([sx * 1.24, 2.60, 2.18], [sx * 1.62, 2.60, 2.18], 0.018)
         head = P.box([sx * 1.66, 2.62, 2.16], [0.12, 0.46, 0.10])

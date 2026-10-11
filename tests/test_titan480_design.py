@@ -123,4 +123,3 @@ def test_windshield_is_offset_along_the_actual_cab_plane_normal():
         plane_midpoint + outward_normal * 0.03,
         atol=1e-6,
     )
-
