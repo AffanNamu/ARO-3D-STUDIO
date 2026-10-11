@@ -194,6 +194,8 @@ def test_complete_pipeline_through_the_ui(page, server, tmp_path):
     open_step(pg, "LOD")
     pg.click("button:has-text('Generate LODs')")
     wait_version(pg, "v0.5")
+    pg.wait_for_selector("#lodbtns button")  # the viewer builds these after the version finishes loading (CI race)
+    pg.wait_for_function("() => document.querySelectorAll('#lodbtns button').length === 4")
     assert pg.locator("#lodbtns button").count() == 4
     pg.click("#lodbtns button:text-is('LOD3')")
     assert "LOD3" in pg.inner_text("#vstats")
