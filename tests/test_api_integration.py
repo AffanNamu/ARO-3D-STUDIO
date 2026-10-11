@@ -202,13 +202,15 @@ def test_auto_process_endpoint_queues_options_and_returns_pipeline_report(api, m
     captured = {}
 
     def fake_pipeline(processing, assets, raw_version_id, opts, *, progress=None, check_cancel=None):
-        captured.update({
-            "raw_version_id": raw_version_id,
-            "length_m": opts.length_m,
-            "target_triangles": opts.target_triangles,
-            "texture_resolution": opts.texture_resolution,
-            "lod": opts.lod,
-        })
+        captured.update(
+            {
+                "raw_version_id": raw_version_id,
+                "length_m": opts.length_m,
+                "target_triangles": opts.target_triangles,
+                "texture_resolution": opts.texture_resolution,
+                "lod": opts.lod,
+            }
+        )
         if check_cancel:
             check_cancel()
         if progress:

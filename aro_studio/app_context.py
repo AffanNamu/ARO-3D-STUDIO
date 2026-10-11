@@ -149,11 +149,7 @@ def _auto_process_handler(processing: ProcessingService, assets: AssetService, s
         raw_version_id = ctx.params["raw_version_id"]
         raw_scene = assets.load_scene(raw_version_id)
         provenance = raw_scene.manifest.provenance
-        inferred_up = (
-            "+Z"
-            if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr"
-            else "+Y"
-        )
+        inferred_up = "+Z" if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr" else "+Y"
         opts = AIPipelineOptions(
             up=ctx.params.get("up") or inferred_up,
             forward=ctx.params.get("forward"),

@@ -123,7 +123,16 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 ):  # job polling is a cheap read; never throttle progress UIs
                     c.limiter.check(client)
                 if request.method in ("POST", "PUT", "PATCH", "DELETE") and any(
-                    x in path for x in ("/generate", "/batch-generate", "/auto-process", "/process", "/export", "/sources", "/import")
+                    x in path
+                    for x in (
+                        "/generate",
+                        "/batch-generate",
+                        "/auto-process",
+                        "/process",
+                        "/export",
+                        "/sources",
+                        "/import",
+                    )
                 ):
                     c.heavy_limiter.check(client + ":heavy")
             response = await call_next(request)
