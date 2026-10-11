@@ -101,7 +101,12 @@ def test_collision_separate_and_optimised(full):
 
 def test_collision_body_approximates_chassis_within_tolerance(full):
     hull = full.collision_meshes["COL_Body"]
-    pts = full.meshes["Chassis_Frame"].vertices
+    chassis_meshes = [
+        mesh
+        for name, mesh in full.meshes.items()
+        if name == "Chassis_Frame" or name.startswith("Chassis_Crossmember_")
+    ]
+    pts = np.vstack([mesh.vertices for mesh in chassis_meshes])
     _, dist, _ = trimesh.proximity.closest_point(hull, pts)
     inside = hull.contains(pts)
     assert np.where(inside, 0.0, dist).max() < 0.15  # simplified hull may clip corners, but only slightly

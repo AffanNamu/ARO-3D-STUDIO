@@ -175,9 +175,9 @@ def _fender_arch(center_z: float, side_x: float, radius: float, tube_radius: flo
     return mesh
 
 
-def _front_aro_logo(z: float) -> trimesh.Trimesh:
-    """Small original ARO monogram as raised strokes; renderer-independent geometry."""
-    r = 0.008
+def _front_aro_logo_parts(z: float) -> list[tuple[str, trimesh.Trimesh]]:
+    """Return each raised ARO logo stroke as its own watertight solid."""
+    radius = 0.008
     strokes = [
         # A
         ((-0.235, 2.105, z), (-0.180, 2.245, z)),
@@ -191,14 +191,24 @@ def _front_aro_logo(z: float) -> trimesh.Trimesh:
         ((-0.010, 2.185, z), (-0.075, 2.185, z)),
         ((-0.043, 2.185, z), (0.012, 2.105, z)),
     ]
-    logo = [P.tube_between(a, b, r, sections=8) for a, b in strokes]
-    logo.append(P.torus_z([0.105, 2.175, z], 0.038, r, major_sections=24, minor_sections=8))
-    return P.merge(logo)
+    parts = [
+        (f"ARO_Grille_Stroke_{index:02d}", P.tube_between(start, end, radius, sections=8))
+        for index, (start, end) in enumerate(strokes, start=1)
+    ]
+    parts.append(
+        (
+            "ARO_Grille_Stroke_10",
+            P.torus_z([0.105, 2.175, z], 0.038, radius, major_sections=24, minor_sections=8),
+        )
+    )
+    return parts
 
 
-def _side_aro_logo(side_x: float, center_y: float, center_z: float) -> trimesh.Trimesh:
-    """Compact side-facing ARO mark on the cab door."""
-    r = 0.007
+def _side_aro_logo_parts(
+    side_x: float, center_y: float, center_z: float, side: str
+) -> list[tuple[str, trimesh.Trimesh]]:
+    """Return door-logo strokes separately so every mesh remains manifold and riggable."""
+    radius = 0.007
     z = center_z
     y = center_y
     strokes = [
@@ -213,10 +223,20 @@ def _side_aro_logo(side_x: float, center_y: float, center_z: float) -> trimesh.T
         ((side_x, y - 0.055, z + 0.045), (side_x, y - 0.055, z - 0.012)),
         ((side_x, y + 0.055, z - 0.012), (side_x, y - 0.055, z + 0.045)),
     ]
-    logo = [P.tube_between(a, b, r, sections=8) for a, b in strokes]
+    parts = [
+        (f"Logo_Door_{side}_{index:02d}", P.tube_between(start, end, radius, sections=8))
+        for index, (start, end) in enumerate(strokes, start=1)
+    ]
     rot = trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])
-    logo.append(P.torus_z([side_x, y, z + 0.125], 0.038, r, rot=rot, major_sections=24, minor_sections=8))
-    return P.merge(logo)
+    parts.append(
+        (
+            f"Logo_Door_{side}_09",
+            P.torus_z(
+                [side_x, y, z + 0.125], 0.038, radius, rot=rot, major_sections=24, minor_sections=8
+            ),
+        )
+    )
+    return parts
 
 
 def build_titan480(name: str = "ARO TITAN 480") -> Scene:
@@ -259,7 +279,8 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         add(f"Indicator_{s}", R.HEADLIGHT, "indicator", P.box([sx * 0.98, 1.90, 2.79], [0.34, 0.08, 0.07]))
         add(f"Bumper_Corner_Accent_{s}", R.BUMPER, "aro_gold", P.box([sx * 1.04, 0.94, 2.946], [0.045, 0.23, 0.025]))
 
-    add("ARO_Grille_Logo", R.GRILLE, "aro_gold", _front_aro_logo(2.835))
+    for logo_name, logo_mesh in _front_aro_logo_parts(2.835):
+        add(logo_name, R.GRILLE, "aro_gold", logo_mesh)
     add("Gold_Bumper_Trim", R.BUMPER, "aro_gold", P.box([0, 0.94, 2.946], [2.16, 0.035, 0.025]))
     add("Front_Nameplate", R.BODY, "aro_black_paint", P.box([0, 0.79, 2.948], [0.54, 0.12, 0.024]))
 
@@ -302,7 +323,8 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         ]
         add(f"Gold_Pinstripe_{s}", R.BODY, "aro_gold", P.merge(stripe))
         add(f"Gold_Sill_Trim_{s}", R.BODY, "aro_gold", P.box([sx * 1.275, 1.29, 1.02], [0.024, 0.028, 1.45]))
-        add(f"Logo_Door_{s}", R.DOOR, "aro_gold", _side_aro_logo(sx * 1.292, 2.10, 1.22))
+        for logo_name, logo_mesh in _side_aro_logo_parts(sx * 1.292, 2.10, 1.22, s):
+            add(logo_name, R.DOOR, "aro_gold", logo_mesh)
         add(f"Side_Step_{s}", R.BODY, "aro_black_paint", P.box([sx * 1.08, 0.80, 0.98], [0.34, 0.09, 0.58]))
         add(f"Side_Step_Grip_{s}", R.BODY, "aro_gold", P.box([sx * 1.22, 0.853, 0.98], [0.035, 0.012, 0.46]))
 
@@ -424,7 +446,11 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                 axis=(0, 1, 0),
                 limits_deg=(-70.0, 0.0) if sx > 0 else (0.0, 70.0),
                 part=f"Door_{s}",
-                children=[f"Window_Door_{s}", f"Handle_{s}", f"Logo_Door_{s}"],
+                children=[
+                    f"Window_Door_{s}",
+                    f"Handle_{s}",
+                    *[f"Logo_Door_{s}_{i:02d}" for i in range(1, 10)],
+                ],
             )
         )
         pivots.append(
