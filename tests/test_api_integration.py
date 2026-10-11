@@ -11,6 +11,8 @@ from fastapi.testclient import TestClient
 from aro_studio.api.app import create_app
 from aro_studio.app_context import build_context
 from aro_studio.config import Settings
+from aro_studio.engines.triposr import TripoSREngine
+from aro_studio.engines.weights import load_lock
 from tests.support import PlumbingEngine
 
 
@@ -280,7 +282,9 @@ def test_engine_unavailable_ends_model_error_without_placeholder_geometry(tmp_pa
 
 def test_real_triposr_adapter_refuses_without_licence_then_without_runtime(tmp_path, concept_png):
     s = Settings(data_dir=tmp_path / "data")
-    ctx = build_context(s)  # default registry: TripoSR only
+    lock = load_lock("triposr").model_copy(deep=True)
+    lock.weights.revision = None  # simulate an unverified lock without weakening the production lock
+    ctx = build_context(s, engines=[TripoSREngine(lock=lock)])
     c = TestClient(create_app(ctx))
     try:
         p, a = new_asset(c)

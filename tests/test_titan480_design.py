@@ -48,8 +48,8 @@ def test_titan_hero_palette_and_reference_details_are_present():
         assert mesh.is_watertight and mesh.volume > 0, part.name
 
     assert len(scene.manifest.vehicle.components["wheel"]) == 10
-    assert len(scene.manifest.vehicle.components["wheel_detail"]) == 10
-    assert all(len(w.detail_parts) == 1 for w in scene.manifest.vehicle.wheels)
+    assert len(scene.manifest.vehicle.components["wheel_detail"]) == 20
+    assert all(len(w.detail_parts) == 2 for w in scene.manifest.vehicle.wheels)
 
     nonmanifold = {}
     for name, mesh in scene.meshes.items():
@@ -83,9 +83,9 @@ def test_wheel_details_follow_the_wheel_rig_and_survive_all_lods():
     build_rig(scene)
 
     for wheel in scene.manifest.vehicle.wheels:
-        assert len(wheel.detail_parts) == 1
-        detail = wheel.detail_parts[0]
-        assert scene.manifest.part(detail).parent == f"Spin_{wheel.name}"
+        assert len(wheel.detail_parts) == 2
+        for detail in wheel.detail_parts:
+            assert scene.manifest.part(detail).parent == f"Spin_{wheel.name}"
 
     for lod_level in scene.manifest.lods:
         names = {part.name for part in lod_level.parts}

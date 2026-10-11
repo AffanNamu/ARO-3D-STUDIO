@@ -47,16 +47,25 @@ CAB_HALF_W = 1.22
 
 # Titan-specific palette. Keep the generic Studio reference palette unchanged for other asset families.
 TITAN_PAINT = make_material(
-    "aro_pearl_white", MaterialCategory.PAINT,
-    base_color=(0.91, 0.90, 0.86, 1.0), metallic=0.28, roughness=0.25,
+    "aro_pearl_white",
+    MaterialCategory.PAINT,
+    base_color=(0.91, 0.90, 0.86, 1.0),
+    metallic=0.28,
+    roughness=0.25,
 )
 TITAN_GOLD = make_material(
-    "aro_gold", MaterialCategory.METAL,
-    base_color=(0.83, 0.67, 0.27, 1.0), metallic=0.86, roughness=0.25,
+    "aro_gold",
+    MaterialCategory.METAL,
+    base_color=(0.83, 0.67, 0.27, 1.0),
+    metallic=0.86,
+    roughness=0.25,
 )
 TITAN_BLACK = make_material(
-    "aro_black_paint", MaterialCategory.PAINT,
-    base_color=(0.025, 0.032, 0.042, 1.0), metallic=0.42, roughness=0.30,
+    "aro_black_paint",
+    MaterialCategory.PAINT,
+    base_color=(0.025, 0.032, 0.042, 1.0),
+    metallic=0.42,
+    roughness=0.30,
 )
 
 
@@ -88,9 +97,12 @@ def _rim(center, outward: float) -> trimesh.Trimesh:
     """Steel disc wheel; the dish faces ``outward`` (+1 / -1 along X)."""
     h = 0.12
     prof = [(0.06, -h), (RIM_R, -h), (RIM_R, h), (0.12, h), (0.12, h - 0.03 * outward), (0.06, h - 0.05)]
-    m = P.revolve_x(prof, center, sections=40)
-    hub = P.cylinder_x([center[0] + outward * 0.10, center[1], center[2]], 0.07, 0.05, 24)
-    return P.merge([m, hub])
+    return P.revolve_x(prof, center, sections=40)
+
+
+def _wheel_hub(center, outward: float) -> trimesh.Trimesh:
+    """Separate hub piece; it follows the wheel rig without corrupting rim topology."""
+    return P.cylinder_x([center[0] + outward * 0.10, center[1], center[2]], 0.07, 0.05, 24)
 
 
 def _wheel_detail(center, outward: float) -> trimesh.Trimesh:
@@ -227,7 +239,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
 
     # --- cab ---------------------------------------------------------------------------------
     profile = [(0.20, 1.15), (2.55, 1.15), (2.63, 2.35), (2.22, 3.55), (0.58, 3.62), (0.20, 3.42)]
-    add("Cab_Shell", R.CABIN, "aro_pearl_white", P.extrude_profile_zy(profile, 2 * CAB_HALF_W))
+    add("Cab_Shell", R.CABIN, "body_paint", P.extrude_profile_zy(profile, 2 * CAB_HALF_W))
     add("Roof_Deflector", R.BODY, "aro_pearl_white", P.box([0, 3.78, 0.45], [2.1, 0.32, 0.55]))
     add("Cab_Roof_Accent", R.BODY, "aro_gold", P.box([0, 3.935, 0.45], [1.84, 0.018, 0.42]))
 
@@ -360,9 +372,11 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                 c = [sx * x, TIRE_R, z]
                 outward = sx if tag != "I" else -sx
                 detail_name = f"Wheel_Detail_{key}_{sfx}{tag}"
+                hub_name = f"Wheel_Hub_{key}_{sfx}{tag}"
                 add(wn, R.WHEEL, "rim_steel", _rim(c, outward=outward))
                 add(tn, R.TIRE, "rubber", _tire(c))
                 add(detail_name, R.WHEEL_DETAIL, "aro_gold", _wheel_detail(c, outward))
+                add(hub_name, R.WHEEL_DETAIL, "rim_steel", _wheel_hub(c, outward))
                 wheel_defs.append(
                     WheelDef(
                         name=wn,
@@ -375,7 +389,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                         driven=not front,
                         part=wn,
                         tire_part=tn,
-                        detail_parts=[detail_name],
+                        detail_parts=[detail_name, hub_name],
                     )
                 )
 
@@ -516,15 +530,25 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         ],
     )
 
+    titan_materials = [m.model_copy(deep=True) for m in REFERENCE_MATERIALS]
+    for material in titan_materials:
+        if material.name == "body_paint":
+            material.base_color = (0.86, 0.85, 0.80, 1.0)
+            material.metallic = 0.28
+            material.roughness = 0.25
+    titan_materials.extend(
+        [
+            TITAN_PAINT.model_copy(deep=True),
+            TITAN_GOLD.model_copy(deep=True),
+            TITAN_BLACK.model_copy(deep=True),
+        ]
+    )
+
     manifest = SceneManifest(
         name=name,
         category="heavy_truck",
         parts=[PartDef(name=n, component=r.value, material=m, mesh_file="") for n, r, m, _ in parts],
-        materials=[m.model_copy(deep=True) for m in REFERENCE_MATERIALS] + [
-            TITAN_PAINT.model_copy(deep=True),
-            TITAN_GOLD.model_copy(deep=True),
-            TITAN_BLACK.model_copy(deep=True),
-        ],
+        materials=titan_materials,
         vehicle=vehicle,
         provenance=Provenance(
             source="procedural_reference",

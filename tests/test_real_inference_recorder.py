@@ -24,9 +24,9 @@ def test_summarize_pipeline_steps_accepts_current_steprecord_schema():
 
 
 def test_summarize_pipeline_steps_accepts_legacy_name_field():
-    assert summarize_pipeline_steps(
-        [{"name": "legacy step", "status": "PASS", "seconds": 0.1}]
-    ) == [{"name": "legacy step", "status": "PASS", "seconds": 0.1}]
+    assert summarize_pipeline_steps([{"name": "legacy step", "status": "PASS", "seconds": 0.1}]) == [
+        {"name": "legacy step", "status": "PASS", "seconds": 0.1}
+    ]
 
 
 def test_summarize_pipeline_steps_ignores_non_dict_entries():

@@ -74,9 +74,9 @@ def test_glb_pivots_round_trip_world_positions(full, glb, tmp_path):
     assert world.bounds == pytest.approx(orig.bounds, abs=1e-4)
 
 
-def test_lod_visibility_is_per_node_and_counts_match(full, glb):
+def test_lod_visibility_is_per_node_and_counts_match(full, glb, tmp_path):
     gl = pygltflib.GLTF2()
-    f = Path("/tmp/claude-0/_t.glb")
+    f = tmp_path / "_t.glb"
     f.write_bytes(glb)
     gl = gl.load(str(f))
     counts = {}
@@ -160,7 +160,7 @@ def test_textured_export_embeds_and_packs_orm(tmp_path):
     assert prim.attributes.TEXCOORD_0 is not None and prim.attributes.COLOR_0 is None  # no double-applied vertex colour
 
 
-def test_vertex_colours_exported_when_untextured():
+def test_vertex_colours_exported_when_untextured(tmp_path):
     import numpy as np
 
     s = trimesh.creation.icosphere(2)
@@ -170,7 +170,7 @@ def test_vertex_colours_exported_when_untextured():
     sc = make_scene_from_mesh(s, "ball", "prop")
     data, _ = export_glb(sc)
     assert verify_glb(data, sc)["ok"]
-    f = Path("/tmp/claude-0/_vc.glb")
+    f = tmp_path / "_vc.glb"
     f.write_bytes(data)
     gl = pygltflib.GLTF2().load(str(f))
     prim = gl.meshes[0].primitives[0]

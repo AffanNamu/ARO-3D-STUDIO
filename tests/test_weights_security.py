@@ -385,7 +385,6 @@ def test_old_torch_is_refused_because_weights_only_had_a_bypass(fake_stack):
     assert triposr._version_tuple("2.10.0.dev20250101+cpu") == (2, 10, 0)
 
 
-
 @pytest.mark.parametrize("dictionary_payload", [True, False])
 def test_realhub_model_info_accepts_dict_and_object_sibling_metadata(monkeypatch, dictionary_payload):
     """The supported Hub client must handle the dict payloads returned by older huggingface_hub versions."""

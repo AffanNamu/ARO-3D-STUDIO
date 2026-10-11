@@ -9,6 +9,7 @@ from aro_studio.engines.base import ModelLicense
 from aro_studio.engines.manager import ModelManager
 from aro_studio.engines.registry import BLOCKED_MODELS, EngineRegistry, license_gate
 from aro_studio.engines.triposr import TripoSREngine
+from aro_studio.engines.weights import load_lock
 from tests.support import PlumbingEngine
 
 
@@ -39,7 +40,9 @@ def test_prohibited_licence_cannot_be_registered():
 
 
 def test_unverified_weights_licence_blocks_until_deployer_attests():
-    e = TripoSREngine()
+    lock = load_lock("triposr").model_copy(deep=True)
+    lock.weights.revision = None  # explicitly exercise the incomplete-lock security gate
+    e = TripoSREngine(lock=lock)
     assert e.info.license.status == "claimed" and e.info.license.spdx == "MIT"
     with pytest.raises(EngineUnavailableError) as ei:
         license_gate(e, set())
