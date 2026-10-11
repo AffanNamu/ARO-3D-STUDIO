@@ -18,7 +18,7 @@ from aro_studio.generation.service import GenerationService
 from aro_studio.jobs.queue import JobQueue
 from aro_studio.observability.logging import configure_logging
 from aro_studio.observability.metrics import Metrics
-from aro_studio.processing.ai_pipeline import AIPipelineOptions, run_ai_pipeline
+from aro_studio.processing.ai_pipeline import AIPipelineOptions, default_up_axis, run_ai_pipeline
 from aro_studio.processing.service import OPERATIONS, ProcessingService
 from aro_studio.projects.service import ProjectService
 from aro_studio.projects.sources import SourceService
@@ -149,11 +149,11 @@ def _auto_process_handler(processing: ProcessingService, assets: AssetService, s
         raw_version_id = ctx.params["raw_version_id"]
         raw_scene = assets.load_scene(raw_version_id)
         provenance = raw_scene.manifest.provenance
-        inferred_up = "+Z" if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr" else "+Y"
         opts = AIPipelineOptions(
-            up=ctx.params.get("up") or inferred_up,
+            up=ctx.params.get("up") or default_up_axis(provenance),
             forward=ctx.params.get("forward"),
             length_m=float(ctx.params.get("length_m", 1.0)),
+            length_supplied=bool(ctx.params.get("length_supplied", False)),
             target_triangles=int(ctx.params.get("target_triangles", 24_000)),
             texture_resolution=int(ctx.params.get("texture_resolution", 1024)),
             lod=bool(ctx.params.get("lod", True)),

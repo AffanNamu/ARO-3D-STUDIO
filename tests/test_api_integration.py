@@ -209,6 +209,7 @@ def test_auto_process_endpoint_queues_options_and_returns_pipeline_report(api, m
                 "target_triangles": opts.target_triangles,
                 "texture_resolution": opts.texture_resolution,
                 "lod": opts.lod,
+                "length_supplied": opts.length_supplied,
             }
         )
         if check_cancel:
@@ -239,7 +240,11 @@ def test_auto_process_endpoint_queues_options_and_returns_pipeline_report(api, m
         "target_triangles": 12000,
         "texture_resolution": 512,
         "lod": False,
+        "length_supplied": True,
     }
+    # omitting the length must be recorded as an ASSUMED size, not silently treated as a user decision
+    r2 = c.post(f"/api/versions/{raw_id}/auto-process", json={"lod": False})
+    assert wait(c, r2.json()["job_id"])["state"] == "COMPLETED" and captured["length_supplied"] is False
 
 
 def test_auto_process_rejects_non_raw_version(api):

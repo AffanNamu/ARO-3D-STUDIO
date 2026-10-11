@@ -127,18 +127,18 @@ function srcBody() {
     };
     upAxis.onchange = refreshForwardOptions;
     refreshForwardOptions();
-    const length = h('input', { type: 'number', min: 0.05, max: 100, step: 0.1, value: isVehicle() ? 6.5 : 1.0, 'aria-label': 'Approximate object length in metres' });
+    const length = h('input', { type: 'number', min: 0.05, max: 100, step: 0.1, placeholder: isVehicle() ? 'e.g. 6.5' : 'e.g. 0.8', 'aria-label': 'Real object length in metres' });
     const triangles = h('input', { type: 'number', min: 100, max: 25000, step: 1000, value: 24000, 'aria-label': 'Target triangle count' });
     const resolution = select([['512', '512 px · light'], ['1024', '1024 px · balanced'], ['2048', '2048 px · detailed']], '1024', { 'aria-label': 'Baked texture resolution' });
     const prepare = h('button', { class: 'btn primary', onclick: async () => {
-      const lengthM = Number(length.value), targetTriangles = Number(triangles.value);
-      if (!Number.isFinite(lengthM) || lengthM <= 0 || !Number.isFinite(targetTriangles) || targetTriangles < 100 || targetTriangles > 25000) {
+      const lengthM = length.value === '' ? null : Number(length.value), targetTriangles = Number(triangles.value);
+      if ((lengthM !== null && (!Number.isFinite(lengthM) || lengthM <= 0)) || !Number.isFinite(targetTriangles) || targetTriangles < 100 || targetTriangles > 25000) {
         return toast('Check preparation settings', 'Choose a positive object dimension and 100–25,000 target triangles.', 'warn');
       }
       prepare.disabled = true; prepare.textContent = 'Queueing preparation…';
       try {
         const job = await api.post(`/api/versions/${S.cur.version_id}/auto-process`, {
-          length_m: lengthM, up: upAxis.value, forward: forwardAxis.value || null,
+          ...(lengthM === null ? {} : { length_m: lengthM }), up: upAxis.value, forward: forwardAxis.value || null,
           target_triangles: targetTriangles, texture_resolution: Number(resolution.value), lod: true,
         });
         trackJob(job, {
@@ -162,9 +162,9 @@ function srcBody() {
     c.append(h('div', { class: 'card', style: { marginTop: '12px', padding: '12px' } },
       h('h3', null, 'Automatic mesh preparation'),
       h('p', { class: 'hint' }, 'Creates new versions while preserving the raw reconstruction. It orients and scales the mesh, cleans geometry, reduces polygons, bakes colour into a texture, creates collision and LODs, then validates.'),
-      h('p', { class: 'hint' }, 'One image cannot reveal every hidden surface or reliably identify the front of an object. Review the 3D views and validation report before using an asset in production.'),
+      h('p', { class: 'hint' }, 'One image cannot reveal every hidden surface, the true size, or the front of an object. If you leave the length empty the mesh keeps a 1 m placeholder size and the result is marked for review. Check the 3D views and validation report before production use.'),
       h('div', { class: 'row2', style: { marginTop: '8px' } }, field('Source up direction', upAxis), field('Source forward direction', forwardAxis)),
-      h('div', { class: 'row2' }, field('Approximate object length (m)', length), field('Target triangles (max 25,000 for baking)', triangles)),
+      h('div', { class: 'row2' }, field('Real length along the forward axis (m, optional)', length), field('Target triangles (max 25,000 for baking)', triangles)),
       field('Texture resolution', resolution), prepare
     ));
   }

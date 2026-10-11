@@ -48,6 +48,7 @@ from aro_studio.geometry.pipeline import combined_report, known_operations
 from aro_studio.imaging.preprocess import PreprocessOptions, preprocess
 from aro_studio.observability.logging import get_logger
 from aro_studio.observability.resources import cgroup_memory_limit_mb, snapshot
+from aro_studio.processing.ai_pipeline import default_up_axis
 from aro_studio.processing.service import OPERATIONS
 from aro_studio.scene.model import Provenance
 from aro_studio.security.filenames import sanitize_filename, slugify
@@ -690,11 +691,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 recommended_action="Choose the original raw reconstruction in the Versions panel; existing versions are never overwritten.",
             )
         if b.forward and not b.up:
-            raw_scene = c.assets.load_scene(vid)
-            provenance = raw_scene.manifest.provenance
-            inferred_up = (
-                "+Z" if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr" else "+Y"
-            )
+            inferred_up = default_up_axis(c.assets.load_scene(vid).manifest.provenance)
             if b.forward[1] == inferred_up[1]:
                 raise InvalidInputError(
                     "The selected forward direction conflicts with this mesh's default up axis.",
@@ -702,6 +699,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 )
         params = b.model_dump(exclude={"priority"})
         params["raw_version_id"] = vid
+        params["length_supplied"] = "length_m" in b.model_fields_set  # otherwise the size is an assumption
         return c.jobs.submit(
             "auto_process",
             params,

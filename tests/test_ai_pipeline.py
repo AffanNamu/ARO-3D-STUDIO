@@ -111,3 +111,63 @@ def test_pipeline_failure_is_recorded_not_hidden(studio, raw_like_mesh_glb):
         and "limited to" in str(failing[0]["detail"]["error"])
         and any("UV unwrap limit" in n for n in rep["needs_human"])
     )
+
+
+def _import_raw(studio, glb, category, name="obj"):
+    from aro_studio.assets.importer import import_mesh_bytes
+    from aro_studio.core.enums import Stage
+
+    p = studio.projects.create("generic-" + category)
+    a = studio.assets.create_asset(p["project_id"], name, category)
+    scene, _ = import_mesh_bytes(glb, "raw.glb", name=name, category=category, max_bytes=200_000_000)
+    return studio.assets.add_version(a["asset_id"], scene, stage=Stage.RAW, operation="import")
+
+
+def test_non_vehicle_asset_is_not_told_to_supply_a_vehicle_spec_and_size_is_flagged_as_assumed(
+    studio, raw_like_mesh_glb
+):
+    raw = _import_raw(studio, raw_like_mesh_glb, "prop")
+    rep = run_ai_pipeline(
+        studio.processing, studio.assets, raw["version_id"], AIPipelineOptions(length_m=1.0, up="+Z", forward="+X")
+    )
+    assert rep["ok"], [s for s in rep["steps"] if s["status"] != "PASS"]
+    notes = " | ".join(rep["needs_human"])
+    assert "vehicle specification" not in notes and "wheel" not in notes
+    assert "real-world size is not recoverable" in notes and "PLACEHOLDER" in notes
+    assert "parts, pivots and hierarchy are not detected" in notes
+    assert rep["final_extents_m"] and max(rep["final_extents_m"]) == pytest.approx(1.0, rel=1e-3)
+
+
+def test_supplied_size_is_not_flagged_as_assumed(studio, raw_like_mesh_glb):
+    raw = _import_raw(studio, raw_like_mesh_glb, "prop")
+    rep = run_ai_pipeline(
+        studio.processing,
+        studio.assets,
+        raw["version_id"],
+        AIPipelineOptions(length_m=0.8, length_supplied=True, up="+Z", forward="+X", lod=False),
+    )
+    assert rep["ok"] and not any("real-world size" in n for n in rep["needs_human"])
+
+
+def test_texture_failure_degrades_to_untextured_geometry_and_is_reported(studio, raw_like_mesh_glb, monkeypatch):
+    from aro_studio.core.errors import InvalidInputError
+
+    raw = _import_raw(studio, raw_like_mesh_glb, "prop")
+    real_run = studio.processing.run
+
+    def run(op, version_id, params):
+        if op == "textures":
+            raise InvalidInputError("UV unwrap failed for this mesh.")
+        return real_run(op, version_id, params)
+
+    monkeypatch.setattr(studio.processing, "run", run)
+    rep = run_ai_pipeline(
+        studio.processing, studio.assets, raw["version_id"], AIPipelineOptions(length_m=1.0, lod=False, up="+Z")
+    )
+    tex = next(s for s in rep["steps"] if "textures" in s["step"])
+    assert tex["status"] == "SKIPPED" and "UV unwrap failed" in str(tex["detail"])
+    assert rep["ok"] and rep["final_version_id"] and any("NO baked colour texture" in n for n in rep["needs_human"])
+    final = studio.assets.load_scene(rep["final_version_id"])
+    assert not final.manifest.textures and final.manifest.colliders
+    # the raw reconstruction was never touched
+    assert studio.assets.get_version(raw["version_id"])["stage"] == "raw"

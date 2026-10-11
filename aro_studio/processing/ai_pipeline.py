@@ -25,6 +25,7 @@ class AIPipelineOptions:
         None  # source axis that is the vehicle's front; None → longest horizontal axis, sign UNCONFIRMED
     )
     length_m: float = 6.5  # real-world length along the forward axis
+    length_supplied: bool = False  # True only when a person gave the real size; otherwise the size is an ASSUMPTION
     target_triangles: int = 24_000  # decimation target (UV unwrapping is limited to 25,000 triangles per atlas)
     texture_resolution: int = 1024
     fill_holes_edges: int = 200
@@ -42,6 +43,16 @@ class StepRecord:
     seconds: float
     version_id: str | None = None
     detail: dict[str, Any] = field(default_factory=dict)
+
+
+def default_up_axis(provenance) -> str:
+    """Native up axis of a raw mesh, from the engine's documented orientation hint (+Y for imported/glTF meshes)."""
+    if (
+        getattr(provenance, "source", None) == "ai_reconstruction"
+        and getattr(provenance, "engine_id", None) == "triposr"
+    ):
+        return "+Z"
+    return "+Y"
 
 
 def choose_axes(extents: np.ndarray, opts: AIPipelineOptions) -> tuple[str, str, list[str]]:
@@ -81,6 +92,17 @@ def run_ai_pipeline(
     raw_scene = assets.load_scene(raw_version_id)
     ext = np.asarray(raw_scene.combined().extents)
     up, fwd, needs_human = choose_axes(ext, opts)
+    from aro_studio.assets.taxonomy import get_category
+
+    try:
+        group = get_category(raw_scene.manifest.category).group
+    except StudioError:
+        group = "other"
+    if not opts.length_supplied:
+        needs_human.append(
+            f"real-world size is not recoverable from a single image: the model was scaled to {opts.length_m:g} m along "
+            "its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions"
+        )
     steps: list[StepRecord] = []
     cur = raw_version_id
     total_steps = 6 + int(opts.lod) + (2 if opts.vehicle_spec is not None else 0)
@@ -151,16 +173,27 @@ def run_ai_pipeline(
     )
     if ok and opts.target_triangles > 25_000:
         needs_human.append("target_triangles exceeds the 25,000-triangle UV unwrap limit; texture baking will fail")
-    ok = ok and run(
-        "textures: unwrap + bake colour from the RAW mesh",
-        "textures",
-        {
-            "action": "bake",
-            "resolution": opts.texture_resolution,
-            "source_version_id": raw_version_id,
-            "max_faces": 25_000,
-        },
-    )
+    if ok:
+        textured = run(
+            "textures: unwrap + bake colour from the RAW mesh",
+            "textures",
+            {
+                "action": "bake",
+                "resolution": opts.texture_resolution,
+                "source_version_id": raw_version_id,
+                "max_faces": 25_000,
+            },
+        )
+        ok = textured
+        if not textured and opts.target_triangles <= 25_000:
+            ok = True
+            # Texturing is optional: keep going with untextured geometry rather than discarding a usable mesh.
+            # (A target above the unwrap limit is a configuration error and still stops the run.)
+            steps[-1].status = "SKIPPED"
+            needs_human.append(
+                "texture baking failed (see the step detail): the prepared mesh has NO baked colour texture. "
+                "Geometry, collision, LODs and validation continued without it"
+            )
     if opts.vehicle_spec is not None:
         ok = ok and run(
             "vehicle: artist-supplied specification",
@@ -169,9 +202,14 @@ def run_ai_pipeline(
         )
         ok = ok and run("rig: pivots and hierarchy", "rig", {})
     else:
-        needs_human.append(
-            "no vehicle specification supplied: wheel/axle/pivot positions and component roles are artist work (automatic part detection is not implemented); validation WILL report NEEDS_REVIEW for a vehicle category"
-        )
+        if group == "vehicles":
+            needs_human.append(
+                "no vehicle specification supplied: wheel/axle/pivot positions and component roles are artist work (automatic part detection is not implemented); validation WILL report NEEDS_REVIEW for a vehicle category"
+            )
+        else:
+            needs_human.append(
+                "the result is one merged mesh: parts, pivots and hierarchy are not detected automatically (part detection is not implemented)"
+            )
     ok = ok and run("collision", "collision", {})
     if opts.lod:
         ok = ok and run("LOD generation", "lod", {})
@@ -221,6 +259,7 @@ def run_ai_pipeline(
         "cleaned_version_id": cleaned,
         "final_version_id": final_version,
         "validation": validation,
+        "final_extents_m": [round(float(x), 4) for x in assets.load_scene(cur).combined().extents] if ok else None,
         "steps": [s.__dict__ for s in steps],
         "options": {k: v for k, v in opts.__dict__.items() if k != "vehicle_spec"},
     }
