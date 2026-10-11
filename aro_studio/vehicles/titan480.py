@@ -67,6 +67,8 @@ TITAN_BLACK = make_material(
     metallic=0.42,
     roughness=0.30,
 )
+
+
 def _tire(center) -> trimesh.Trimesh:
     """Tyre with a rounded sidewall and shallow circumferential tread channels."""
     h = TIRE_W / 2
