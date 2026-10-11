@@ -14,10 +14,10 @@ def test_titan_hero_palette_and_reference_details_are_present():
     materials = {material.name: material for material in scene.manifest.materials}
     parts = {part.name: part for part in scene.manifest.parts}
 
-    assert {"aro_pearl_white", "aro_gold", "aro_black_paint", "aro_tinted_glass"} <= set(materials)
-    assert materials["aro_tinted_glass"].base_color[:3] == pytest.approx((0.025, 0.075, 0.11))
-    assert materials["aro_tinted_glass"].alpha_mode == "BLEND"
-    assert materials["aro_tinted_glass"].base_color[3] < 1.0
+    assert {"aro_pearl_white", "aro_gold", "aro_black_paint", "glass"} <= set(materials)
+    assert materials["glass"].base_color[:3] == pytest.approx((0.025, 0.075, 0.11))
+    assert materials["glass"].alpha_mode == "BLEND"
+    assert materials["glass"].base_color[3] < 1.0
     assert materials["aro_pearl_white"].base_color[0] >= 0.85
     assert materials["aro_pearl_white"].base_color[1] >= 0.85
     assert materials["aro_gold"].base_color[0] > materials["aro_gold"].base_color[2]
@@ -60,9 +60,11 @@ def test_titan_hero_palette_and_reference_details_are_present():
         assert mesh.is_watertight and mesh.volume > 0, part.name
 
     assert len(scene.meshes["Door_L"].vertices) > 8
-    assert len(scene.meshes["Window_Door_L"].vertices) > 8
+    assert len(scene.meshes["Window_Door_L"].vertices) == 8
+    assert len(scene.meshes["Window_Door_L"].faces) == 12
     assert len(scene.meshes["Door_R"].vertices) > 8
-    assert len(scene.meshes["Window_Door_R"].vertices) > 8
+    assert len(scene.meshes["Window_Door_R"].vertices) == 8
+    assert len(scene.meshes["Window_Door_R"].faces) == 12
 
     assert len(scene.manifest.vehicle.components["wheel"]) == 10
     assert len(scene.manifest.vehicle.components["wheel_detail"]) == 20

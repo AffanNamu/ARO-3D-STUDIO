@@ -67,17 +67,6 @@ TITAN_BLACK = make_material(
     metallic=0.42,
     roughness=0.30,
 )
-TITAN_GLASS = make_material(
-    "aro_tinted_glass",
-    MaterialCategory.GLASS,
-    base_color=(0.025, 0.075, 0.11, 0.9),
-    metallic=0.12,
-    roughness=0.18,
-    alpha_mode="BLEND",
-    double_sided=True,
-)
-
-
 def _tire(center) -> trimesh.Trimesh:
     """Tyre with a rounded sidewall and shallow circumferential tread channels."""
     h = TIRE_W / 2
@@ -304,7 +293,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
     nrm = np.array([0.0, -d[0], d[1]]) / length
     mid = np.array([0.0, (2.35 + 3.55) / 2, (2.63 + 2.22) / 2])
     glass.apply_translation(mid + nrm * 0.03)
-    add("Window_Windshield", R.WINDOW, "aro_tinted_glass", glass)
+    add("Window_Windshield", R.WINDOW, "glass", glass)
 
     # Distinct black windshield surround follows the actual rake of the glass.
     glass_half_height = length * 0.42
@@ -399,7 +388,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         add(
             f"Window_Door_{s}",
             R.WINDOW,
-            "aro_tinted_glass",
+            "glass",
             P.extrude_profile_zy(window_glass_profile, 0.01, center_x=sx * (CAB_HALF_W + 0.069)),
         )
         arm = P.tube_between([sx * 1.24, 2.60, 2.18], [sx * 1.62, 2.60, 2.18], 0.018)
@@ -657,12 +646,18 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
             material.base_color = (0.86, 0.85, 0.80, 1.0)
             material.metallic = 0.28
             material.roughness = 0.25
+        elif material.name == "glass":
+            # Keep the established export material name while tinting this scene locally.
+            material.base_color = (0.025, 0.075, 0.11, 0.9)
+            material.metallic = 0.12
+            material.roughness = 0.18
+            material.alpha_mode = "BLEND"
+            material.double_sided = True
     titan_materials.extend(
         [
             TITAN_PAINT.model_copy(deep=True),
             TITAN_GOLD.model_copy(deep=True),
             TITAN_BLACK.model_copy(deep=True),
-            TITAN_GLASS.model_copy(deep=True),
         ]
     )
 
