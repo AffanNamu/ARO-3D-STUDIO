@@ -14,6 +14,7 @@ from aro_studio.verification.evidence import (
     Evidence,
     read_ai_evidence,
     read_docker_evidence,
+    read_smoke_evidence,
     read_unity_evidence,
 )
 
@@ -66,6 +67,9 @@ def compute(root: Path, procedural: dict | None = None) -> list[dict]:
                 "rows": d.get("stages", []),
             }
     ai_real, ai_pipe, ai_prod = read_ai_evidence(ev / "ai" / "inference-evidence.json")
+    smoke = read_smoke_evidence(ev / "ai" / "smoke" / "smoke-evidence.json")
+    if smoke.status != BLOCKED:  # the Studio-level smoke test is the stronger evidence when it exists
+        ai_real = smoke
     unity = read_unity_evidence(ev / "unity" / "unity-verification.json")
     docker = read_docker_evidence(ev / "docker" / "docker-verification.json")
 

@@ -18,16 +18,17 @@
 
 Conclusion recorded: the upstream README states the MIT licence covers the source code **and** the pretrained models (evidence 1–2). That is a statement of *licence*; it says nothing about whether inference works, and it applies to a **specific artefact** only once the revision is pinned.
 
-### Artefact pin and checksums — **NOT YET RECORDED (blocker, not an oversight)**
+### Artefact pin and checksums — recorded 2026-10-11
 
 | Item | Value |
 |---|---|
 | Code (`tsr`) | pinned: `107cefdc244c39106fa830359024f6a2f1c78871` (2026-06-04, "Update README.md") |
-| Weights revision `stabilityai/TripoSR` | **null** — Hugging Face is unreachable from the build sandbox, so no genuine commit hash could be obtained. Fabricating one is not acceptable. |
-| SHA-256 of `config.yaml`, `model.ckpt` | **null** (same reason) |
-| `facebook/dino-vitb16` `config.json` | revision/SHA-256 **null** (same reason); licence believed Apache-2.0, **unverified** |
+| Weights revision `stabilityai/TripoSR` | `5b521936b01fbe1890f6f9baed0254ab6351c04a` |
+| `config.yaml` | sha256 `74ca708c…cc68e62`, 987 bytes (hash computed from the downloaded bytes: the Hub did not report one) |
+| `model.ckpt` | sha256 `429e2c6b…d970ee`, 1,677,246,742 bytes |
+| `facebook/dino-vitb16` `config.json` | revision `f205d5d8…7cc2`, sha256 `b87c0270…689c`; licence believed Apache-2.0, **unverified** (architecture hyper-parameters only) |
 
-To record them (on any host with Hugging Face access; ~1.5 GB download): `python scripts/pin_triposr_weights.py --by "<your name>"`, review `git diff aro_studio/engines/locks/triposr.json` (the script cross-checks the downloaded SHA-256 against the hash the Hub itself reports and aborts on disagreement), commit. Verify any copy of the weights at any time with `python scripts/verify_triposr_weights.py [--dir …]`.
+Provenance of the pin: written by `scripts/pin_triposr_weights.py` on a Colab T4 run (`pinned_by: Colab-T4-verification`, commit `587a0b6`); the Hub cross-check is performed by that script. The build sandbox cannot reach Hugging Face, so the author of this document did not re-fetch these values. Anyone with Hub access can re-verify at any time: `python scripts/verify_triposr_weights.py`. `ModelLock.missing()` is empty, which opens the licence gate **for this artefact identity only**; it says nothing about whether inference works.
 
 ### Remaining record
 

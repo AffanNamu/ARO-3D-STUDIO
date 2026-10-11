@@ -1,10 +1,10 @@
 # Real-model verification on a GPU host (Phase 2)
 
-**Status in this repository: BLOCKED.** The build environment has no GPU and cannot reach huggingface.co, so TripoSR has
-**never been run** here. Nothing in the repository claims otherwise: the TripoSR licence gate is closed until the model lock
-(`aro_studio/engines/locks/triposr.json`) is complete, the platform's processing code is proven only on a *synthetic*
-TripoSR-shaped mesh (`tests/test_ai_pipeline.py`, plumbing test, not AI output), and the evidence file
-`docs/acceptance/evidence/ai/inference-evidence.json` records `BLOCKED` with the reasons.
+**Status in this repository: real inference is NOT yet proven.** The build environment has no GPU and cannot reach
+huggingface.co. The model lock was completed from a Colab run on 2026-10-11 (so the licence gate opens), but no inference
+evidence has been committed. The processing code downstream of inference is proven only on a *synthetic* TripoSR-shaped mesh
+(`tests/test_ai_pipeline.py`, plumbing test, not AI output). The **preferred proof is the Studio-level smoke test**
+([real-inference-smoke.md](real-inference-smoke.md)); this runbook's `record_real_inference.py` is the lower-level recorder.
 
 ## What you need (all free)
 
@@ -72,7 +72,7 @@ before anything is reported as successful inference.
 
 | Symptom | Meaning |
 |---|---|
-| `Supply-chain lock incomplete` | step 3 not done/committed |
+| `Supply-chain lock incomplete` | the lock lost a pin (it is complete at the time of writing); re-run step 3 and commit the diff |
 | `Checksum mismatch` | file differs from the pinned bytes - do not load; investigate |
 | `config references a class outside tsr.` | the config tries to instantiate foreign code; refused |
 | `RESOURCE_LIMIT` job state | CUDA OOM; use `LOW_RESOURCE` or a larger GPU |

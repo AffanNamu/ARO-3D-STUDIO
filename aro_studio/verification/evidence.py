@@ -193,3 +193,70 @@ def read_docker_evidence(path: Path) -> Evidence:
         str(path),
         facts,
     )
+
+
+def read_smoke_evidence(path: Path) -> Evidence:
+    """Evidence from scripts/real_inference_smoke.py: PASS needs receipts for every item, never a test double or cache hit."""
+    data, err = _load(path)
+    if err:
+        return Evidence(FAIL, "evidence rejected: " + err, str(path))
+    if data is None:
+        return Evidence(
+            BLOCKED,
+            "the Studio-level real-inference smoke test has not been run: no smoke-evidence.json "
+            "(docs/verification/real-inference-smoke.md).",
+        )
+    if data.get("mode") != "real_engine":
+        return Evidence(
+            BLOCKED,
+            f"evidence is from mode '{data.get('mode')}': a test double proves wiring, never inference",
+            str(path),
+        )
+    claimed = (data.get("status") or {}).get("real_inference")
+    items = data.get("items") or []
+    facts = {
+        "claimed": claimed,
+        "items": [
+            {"name": i.get("name"), "category": i.get("category"), "result": i.get("result")}
+            for i in items
+            if isinstance(i, dict)
+        ],
+        "blockers": data.get("blockers", []),
+        "visual_quality": (data.get("status") or {}).get("visual_quality"),
+        "gpu": (data.get("environment") or {}).get("cuda"),
+    }
+    if claimed in (BLOCKED, FAIL, PARTIAL):
+        return Evidence(
+            claimed, f"smoke test reported {claimed}: {'; '.join(data.get('blockers', []))[:300]}", str(path), facts
+        )
+    if claimed != PASS:
+        return Evidence(FAIL, f"evidence rejected: invalid status {claimed!r}", str(path), facts)
+    problems = []
+    if len(items) < 3:
+        problems.append("fewer than 3 items")
+    for i in items:
+        ri = i.get("real_inference") or {}
+        if not (
+            ri.get("model_ran") is True
+            and ri.get("cache_hit") is False
+            and ri.get("finite") is True
+            and ri.get("output_sha256")
+        ):
+            problems.append(f"{i.get('name')}: missing receipts (model_ran/cache_hit/finite/output_sha256)")
+        if i.get("result") != PASS:
+            problems.append(f"{i.get('name')}: item result {i.get('result')}")
+        if ri.get("engine_id") == "plumbing_test_double":
+            problems.append(f"{i.get('name')}: produced by the test double")
+    if data.get("coverage_problems") != []:
+        problems.append(f"coverage problems: {data.get('coverage_problems')}")
+    if (data.get("negative_probe") or {}).get("result") != PASS:
+        problems.append("the invalid-file probe did not pass")
+    if problems:
+        return Evidence(FAIL, "evidence rejected: PASS claimed but " + "; ".join(problems)[:400], str(path), facts)
+    return Evidence(
+        PASS,
+        f"{len(items)} different images went through the real engine and the Studio path; visual quality is "
+        f"{facts['visual_quality'] or 'PENDING_HUMAN_REVIEW'} (a person must inspect the renders)",
+        str(path),
+        facts,
+    )

@@ -77,3 +77,42 @@ def test_components_report_seven_and_only_all_pass_is_production_ready(tmp_path)
     assert {c["status"] for c in comps} <= {"PASS", "PARTIAL", "BLOCKED", "FAIL"}
     assert production_ready([{"status": "PASS"}] * 7)
     assert not production_ready([{"status": "PASS"}] * 6 + [{"status": "PARTIAL"}])
+
+
+def _smoke_doc(**over):
+    item = {
+        "name": "x",
+        "category": "car",
+        "result": "PASS",
+        "real_inference": {
+            "model_ran": True,
+            "cache_hit": False,
+            "finite": True,
+            "output_sha256": "ab" * 32,
+            "engine_id": "triposr",
+        },
+    }
+    d = {
+        "mode": "real_engine",
+        "status": {"real_inference": "PASS", "visual_quality": "PENDING_HUMAN_REVIEW"},
+        "items": [dict(item, name=n) for n in "abc"],
+        "coverage_problems": [],
+        "negative_probe": {"result": "PASS"},
+        "blockers": [],
+    }
+    d.update(over)
+    return d
+
+
+def test_smoke_evidence_rules(tmp_path):
+    ok = ev.read_smoke_evidence(_w(tmp_path, _smoke_doc()))
+    assert ok.status == ev.PASS and "visual quality" in ok.detail
+    assert ev.read_smoke_evidence(tmp_path / "none.json").status == ev.BLOCKED
+    assert ev.read_smoke_evidence(_w(tmp_path, _smoke_doc(mode="test_double"))).status == ev.BLOCKED
+    cached = _smoke_doc()
+    cached["items"][0]["real_inference"]["cache_hit"] = True
+    assert ev.read_smoke_evidence(_w(tmp_path, cached)).status == ev.FAIL
+    few = _smoke_doc(items=_smoke_doc()["items"][:2])
+    assert ev.read_smoke_evidence(_w(tmp_path, few)).status == ev.FAIL
+    assert ev.read_smoke_evidence(_w(tmp_path, _smoke_doc(coverage_problems=["no vehicle image"]))).status == ev.FAIL
+    assert ev.read_smoke_evidence(_w(tmp_path, _smoke_doc(status={"real_inference": "PARTIAL"}))).status == ev.PARTIAL
