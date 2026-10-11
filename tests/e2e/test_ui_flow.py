@@ -259,10 +259,12 @@ def test_complete_pipeline_through_the_ui(page, server, tmp_path):
     image_bytes = io.BytesIO()
     image.save(image_bytes, format="PNG")
     data = image_bytes.getvalue()
-    pg.locator("input[aria-label='Choose multiple images']").set_input_files([
-        {"name": "first-object.png", "mimeType": "image/png", "buffer": data},
-        {"name": "second-building.png", "mimeType": "image/png", "buffer": data},
-    ])
+    pg.locator("input[aria-label='Choose multiple images']").set_input_files(
+        [
+            {"name": "first-object.png", "mimeType": "image/png", "buffer": data},
+            {"name": "second-building.png", "mimeType": "image/png", "buffer": data},
+        ]
+    )
     pg.wait_for_selector("input[aria-label='Asset name for first-object.png']")
     pg.wait_for_selector("input[aria-label='Asset name for second-building.png']")
     pg.fill("input[aria-label='Asset name for first-object.png']", "First Prop")
