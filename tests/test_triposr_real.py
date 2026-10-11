@@ -14,6 +14,7 @@ from __future__ import annotations
 import io
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -78,7 +79,8 @@ def test_real_inference_returns_a_real_finite_mesh(engine, model_input, tmp_path
 def test_full_generation_job_caches_the_second_identical_request(engine, tmp_path):
     from aro_studio.app_context import build_context
 
-    ctx = build_context(Settings(data_dir=tmp_path / "d", verified_model_licenses="triposr", device=_device()))
+    # no ARO_VERIFIED_MODEL_LICENSES override: the licence gate must open from the complete model lock alone
+    ctx = build_context(Settings(data_dir=tmp_path / "d", device=_device()))
     try:
         p = ctx.projects.create("real")
         a = ctx.assets.create_asset(p["project_id"], "real", "heavy_truck")
@@ -125,3 +127,32 @@ def test_tiny_vram_budget_is_a_resource_limit_not_a_crash(engine):
         )
     except Exception as e:  # noqa: BLE001
         assert explain_exception(e).job_state in ("RESOURCE_LIMIT", "MODEL_ERROR", "FAILED")
+
+
+def test_studio_path_with_representative_images_via_smoke_manifest(engine, tmp_path):
+    """Full Studio path for >= 3 different real images (vehicle + non-vehicle). Needs ARO_SMOKE_MANIFEST=/path/manifest.json.
+
+    Not skipped silently into a pass: without a manifest this test is reported as SKIPPED, and the smoke script's own evidence
+    (docs/acceptance/evidence/ai/smoke) is what proves real inference. See docs/verification/real-inference-smoke.md.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+
+    manifest = os.environ.get("ARO_SMOKE_MANIFEST")
+    if not manifest:
+        pytest.skip(
+            "set ARO_SMOKE_MANIFEST to a manifest of >= 3 real images (see docs/verification/real-inference-smoke.md)"
+        )
+    script = Path(__file__).resolve().parents[1] / "scripts" / "real_inference_smoke.py"
+    out = tmp_path / "smoke"
+    r = subprocess.run(
+        [sys.executable, str(script), "--manifest", manifest, "--out", str(out)],
+        capture_output=True,
+        text=True,
+        timeout=7200,
+    )
+    ev = json.loads((out / "smoke-evidence.json").read_text())
+    assert r.returncode == 0 and ev["status"]["real_inference"] == "PASS", (r.stdout[-2000:], ev["blockers"])
+    assert all(i["real_inference"]["model_ran"] and not i["real_inference"]["cache_hit"] for i in ev["items"])

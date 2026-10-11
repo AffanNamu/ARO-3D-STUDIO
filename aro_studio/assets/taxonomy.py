@@ -33,11 +33,20 @@ CATEGORIES: list[Category] = [
     _C("sign", "Signs", "environment"),
     _C("street_furniture", "Street Furniture", "environment"),
     _C("prop", "Props", "environment"),
+    _C("furniture", "Furniture", "objects"),
+    _C("household_object", "Household Objects", "objects"),
+    _C("equipment", "Equipment & Tools", "objects"),
     _C("character", "Characters", "characters", available=False),
     _C("other", "Other", "other", available=True),
 ]
 _BY_ID = {c.id: c for c in CATEGORIES}
-GROUP_LABELS = {"vehicles": "Vehicles", "environment": "Environment", "characters": "Characters", "other": "Other"}
+GROUP_LABELS = {
+    "vehicles": "Vehicles",
+    "environment": "Environment",
+    "objects": "Everyday Objects",
+    "characters": "Characters",
+    "other": "Other",
+}
 
 
 def get_category(category_id: str) -> Category:

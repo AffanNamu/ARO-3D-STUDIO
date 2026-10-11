@@ -2,13 +2,14 @@ import { api } from '../api.js';
 import { confirmDialog, empty, errorToast, field, fmt, h, kv, nav, notice, select, statusChip, toast } from '../dom.js';
 import { isTerminal, trackJob } from '../jobs.js';
 import { authImage, categoryOptions, createAssetDialog, createProjectDialog, uploadImage } from './common.js';
+import { batchPanel } from './batch.js';
 
 let timer;
 const PRESET_HELP = { LOW_RESOURCE: 'Smaller marching-cubes grid and chunk size: lower VRAM/RAM, lower detail.', BALANCED: 'TripoSR defaults (256³ grid): the only configuration with a published VRAM figure.', HIGH_QUALITY: 'Finer 320³ grid: more detail and more VRAM/time. Not benchmarked here.' };
 
 export async function mount(root, [assetId]) {
-  const [projects, engines, categories] = await Promise.all([api.get('/api/projects'), api.get('/api/engines'), categoryOptions()]);
-  const eng = engines.items[0];
+  const [projects, engines, categories, system] = await Promise.all([api.get('/api/projects'), api.get('/api/engines'), categoryOptions(), api.get('/api/system')]);
+  const eng = engines.items.find((e) => e.runnable) || engines.items[0];
   const st = { project: null, asset: null, sha: null };
   const projSel = select([['', '— choose project —'], ...projects.items.filter((p) => p.status === 'active').map((p) => [p.project_id, p.name])], '', { 'aria-label': 'Project' });
   const assetSel = select([['', '— choose asset —']], '', { 'aria-label': 'Asset' });
@@ -20,13 +21,8 @@ export async function mount(root, [assetId]) {
   const mc = h('input', { type: 'number', min: 32, max: 512, placeholder: 'preset default', 'aria-label': 'Marching cubes resolution' }); const chunk = h('input', { type: 'number', min: 0, placeholder: 'preset default', 'aria-label': 'Chunk size' });
   const cache = h('input', { type: 'checkbox', checked: true }); const force = h('input', { type: 'checkbox' }); const prio = select([['1', '1 · urgent'], ['5', '5 · normal'], ['9', '9 · background']], '5');
   const go = h('button', { class: 'btn primary', disabled: true }, 'Queue generation');
-  const batch = { items: [], busy: false };
-  const batchInput = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple: true, hidden: true, 'aria-label': 'Choose multiple images' });
-  const batchCategory = select(categories, 'other', { 'aria-label': 'Category for all images in this batch' });
-  const batchSummary = h('div', { class: 'hint' }, 'Choose multiple images of different objects.');
-  const batchList = h('div', { class: 'grid auto' });
-  const batchGo = h('button', { class: 'btn primary', disabled: true }, 'Generate selected images');
   const histBox = h('div');
+  let batchUi = null;
 
   const loadAssets = async () => {
     const r = st.project ? await api.get(`/api/assets?project_id=${st.project}`) : { items: [] };
@@ -41,35 +37,12 @@ export async function mount(root, [assetId]) {
     const qs = new URLSearchParams({ remove_background: bg.value, foreground_ratio: fg.value });
     preview.replaceChildren(h('h3', null, 'Model input preview'), authImage(`/api/projects/${st.project}/sources/${st.sha}/preprocessed.png?${qs}`, { class: 'thumb', style: { maxWidth: '260px' } }), h('div', { class: 'hint' }, 'This exact image (subject on neutral grey) is what the engine receives.'));
   };
-  const drawBatch = () => {
-    const queued = batch.items.filter((item) => item.status === 'QUEUED' || item.status === 'COMPLETED').length;
-    const failed = batch.items.filter((item) => item.status === 'FAILED' || item.status === 'MODEL_ERROR').length;
-    batchSummary.textContent = batch.items.length
-      ? `${batch.items.length} image(s) selected · ${queued} queued/completed · ${failed} failed`
-      : 'Choose multiple images of different objects.';
-    batchList.replaceChildren(...(batch.items.length ? batch.items.map((item, index) => {
-      const editable = item.status === 'Ready' && !batch.busy;
-      const nameInput = h('input', { value: item.name, maxlength: 120, disabled: !editable, 'aria-label': `Asset name for ${item.file.name}`, onchange: (e) => { item.name = e.target.value; } });
-      const categoryInput = select(categories, item.category, { 'aria-label': `Category for ${item.file.name}`, disabled: !editable });
-      categoryInput.onchange = () => { item.category = categoryInput.value; };
-      return h('div', { class: 'card', style: { padding: '10px' } },
-        h('div', { class: 'btn-row', style: { justifyContent: 'space-between' } },
-          h('b', null, item.file.name),
-          h('span', { class: item.status === 'FAILED' || item.status === 'MODEL_ERROR' ? 'chip err' : item.status === 'COMPLETED' ? 'chip ok' : 'chip' }, item.status)),
-        h('div', { class: 'hint' }, fmt.bytes(item.file.size)),
-        h('div', { class: 'row2', style: { marginTop: '8px' } }, field('Asset name', nameInput), field('Asset category', categoryInput)),
-        item.error ? h('div', { class: 'hint', style: { color: 'var(--danger, #ff7474)' } }, item.error) : null,
-        item.asset ? h('a', { class: 'btn sm', href: `#/studio/${item.asset.asset_id}` }, 'Open asset') : null,
-        editable ? h('button', { class: 'btn sm', style: { marginTop: '6px' }, onclick: () => { batch.items.splice(index, 1); drawBatch(); update(); } }, 'Remove') : null
-      );
-    }) : [empty('No images selected yet.')]));
-  };
   const update = () => {
     go.disabled = !(st.project && st.asset && st.sha && eng?.runnable);
     go.title = !eng?.runnable ? 'The engine cannot run in this environment (see the notice above).' : '';
-    batchGo.disabled = !(st.project && batch.items.some((item) => item.status === 'Ready') && eng?.runnable && !batch.busy);
+    batchUi?.refresh();
   };
-  projSel.onchange = () => { st.project = projSel.value || null; st.asset = null; st.sha = null; loadAssets(); drawPreview(); };
+  projSel.onchange = () => { st.project = projSel.value || null; st.asset = null; st.sha = null; batchUi?.refresh(); loadAssets(); drawPreview(); };
   assetSel.onchange = () => { st.asset = assetSel.value || null; update(); };
   presetSel.onchange = () => { presetHelp.textContent = PRESET_HELP[presetSel.value] || ''; };
   bg.onchange = drawPreview; fg.oninput = () => { fgv.textContent = fg.value; }; fg.onchange = drawPreview;
@@ -80,74 +53,6 @@ export async function mount(root, [assetId]) {
       trackJob(job, { label: 'Generation', onDone: (j) => { drawHist(); if (j.state === 'COMPLETED') toast('Raw asset saved', 'Open it in the 3D Studio to inspect and process.', 'ok'); } }); drawHist();
     } catch (e) { errorToast(e); }
   };
-  batchCategory.onchange = () => {
-    batch.items.filter((item) => item.status === 'Ready').forEach((item) => { item.category = batchCategory.value; });
-    drawBatch();
-  };
-  batchInput.onchange = () => {
-    const picked = Array.from(batchInput.files || []);
-    batchInput.value = '';
-    if (picked.length > 10) toast('Batch limited to 10 images', 'Choose up to 10 images per run.', 'warn');
-    batch.items = picked.slice(0, 10).map((file) => ({ file, name: file.name.replace(/\\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'New asset', category: batchCategory.value, status: 'Ready' }));
-    drawBatch();
-    update();
-  };
-  batchGo.onclick = async () => {
-    const ready = batch.items.filter((item) => item.status === 'Ready');
-    if (!st.project || !ready.length || batch.busy) return;
-    batch.busy = true;
-    batchGo.textContent = 'Uploading and queueing…';
-    ready.forEach((item) => { item.status = 'Submitting'; });
-    drawBatch();
-    update();
-    try {
-      const form = new FormData();
-      ready.forEach((item) => form.append('files', item.file, item.file.name));
-      form.append('category', batchCategory.value);
-      form.append('items_json', JSON.stringify(ready.map((item) => ({ name: item.name, category: item.category }))));
-      form.append('engine_id', eng.info.id);
-      form.append('preset', presetSel.value);
-      const settings = {};
-      if (mc.value) settings.mc_resolution = Number(mc.value);
-      if (chunk.value) settings.chunk_size = Number(chunk.value);
-      form.append('settings_json', JSON.stringify(settings));
-      form.append('preprocess_json', JSON.stringify({ remove_background: bg.value, foreground_ratio: Number(fg.value) }));
-      form.append('use_cache', String(cache.checked));
-      form.append('force', String(force.checked));
-      form.append('priority', prio.value);
-      const result = await api.post(`/api/projects/${st.project}/batch-generate`, form);
-      result.items.forEach((entry) => {
-        const item = ready[entry.index];
-        if (!item) return;
-        item.asset = entry.asset || null;
-        item.job = entry.job || null;
-        item.status = entry.status;
-        item.error = entry.error ? `${entry.error.message}${entry.error.recommended_action ? ` — ${entry.error.recommended_action}` : ''}` : '';
-        if (entry.job) {
-          trackJob(entry.job, {
-            label: `Batch · ${entry.asset?.name || entry.filename}`,
-            onDone: (job) => {
-              item.status = job.state;
-              item.error = job.error ? `${job.error.message}${job.error.recommended_action ? ` — ${job.error.recommended_action}` : ''}` : '';
-              drawBatch();
-              drawHist().catch(() => {});
-            },
-          });
-        }
-      });
-      toast('Batch submitted', `${result.queued} image(s) queued; ${result.failed} failed.`, result.failed ? 'warn' : 'ok');
-    } catch (e) {
-      ready.forEach((item) => { item.status = 'FAILED'; item.error = e.message; });
-      errorToast(e, 'Batch submission failed');
-    } finally {
-      batch.busy = false;
-      batchGo.textContent = 'Generate selected images';
-      drawBatch();
-      update();
-      drawHist().catch(() => {});
-    }
-  };
-
   const drawHist = async () => {
     const r = await api.get('/api/jobs?kind=generation&limit=15'); const gens = await api.get('/api/generations');
     const gmap = Object.fromEntries(gens.items.map((g) => [g.job_id, g]));
@@ -161,6 +66,14 @@ export async function mount(root, [assetId]) {
     }))) : empty('No generation jobs yet.'));
   };
 
+  batchUi = batchPanel({
+    categories, getProject: () => st.project, getEngine: () => eng, getLimits: () => system.limits,
+    getSettings: () => {
+      const settings = {}; if (mc.value) settings.mc_resolution = Number(mc.value); if (chunk.value) settings.chunk_size = Number(chunk.value);
+      return { settings, preprocess: { remove_background: bg.value, foreground_ratio: Number(fg.value) }, preset: presetSel.value, engineId: eng.info.id, useCache: cache.checked, force: force.checked, priority: Number(prio.value) };
+    },
+    onJobsChanged: () => drawHist().catch(() => {}),
+  });
   root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Generation'), h('p', { class: 'sub' }, 'Single-image 3D reconstruction as a queued job. The model runs for real or the job fails — there is never placeholder geometry.'))));
   if (eng && !eng.runnable) root.append(notice('warn', h('b', null, `${eng.info.name} cannot run in this environment, so generation is disabled.`), h('ul', null, ...eng.availability.reasons.map((r) => h('li', null, r)), !eng.license_verified_by_deployer ? h('li', null, `Weights licence not yet verified by the deployer (ARO_VERIFIED_MODEL_LICENSES=${eng.info.id}).`) : null), eng.availability.activation.length ? h('div', { class: 'hint' }, 'Activate: ' + eng.availability.activation.join(' · ')) : null,
     h('div', { style: { marginTop: '6px' } }, 'You can still import a mesh generated elsewhere or use the TITAN 480 reference in the ', h('a', { href: '#/studio' }, '3D Studio'), '.')));
@@ -175,20 +88,7 @@ export async function mount(root, [assetId]) {
       h('label', { class: 'check', style: { marginTop: '10px' } }, cache, 'Reuse an identical previous generation (saves GPU time)'), h('label', { class: 'check' }, force, 'Force a fresh run'), field('Priority', prio), go,
       h('p', { class: 'hint', style: { marginTop: '8px' } }, 'The cache key is input-image hash + model version + all settings. Estimated needs: ', eng ? `${eng.estimate_default.vram_mb ?? '–'} MB VRAM (${eng.estimate_default.measured ? 'published' : 'estimate'})` : '—'))),
     h('div', { class: 'card', style: { marginTop: '14px' } }, h('h3', null, 'Generation jobs'), histBox));
-  root.append(h('div', { class: 'card', style: { marginTop: '14px' } },
-    h('div', { class: 'btn-row', style: { justifyContent: 'space-between' } },
-      h('h3', null, 'Batch image-to-3D'),
-      h('span', { class: 'chip' }, 'Up to 10 images')),
-    h('p', { class: 'hint' }, 'Select images of different objects. Name and classify each asset separately; each accepted image creates its own AI generation job. Multiple views of one object are not fused.'),
-    h('div', { class: 'row2', style: { alignItems: 'end', marginTop: '10px' } },
-      field('Default category for new images', batchCategory),
-      h('div', { class: 'btn-row' }, batchInput,
-        h('button', { class: 'btn', onclick: () => batchInput.click() }, 'Choose images'))),
-    h('div', { class: 'btn-row', style: { justifyContent: 'space-between', marginTop: '10px' } },
-      batchSummary, batchGo),
-    batchList
-  ));
-  drawBatch();
+  root.append(batchUi.el);
   if (assetId) { const a = await api.get(`/api/assets/${assetId}`); st.project = a.project_id; projSel.value = a.project_id; await loadAssets(); st.asset = assetId; assetSel.value = assetId; update(); }
   await drawHist(); timer = setInterval(() => drawHist().catch(() => {}), 3000);
 }

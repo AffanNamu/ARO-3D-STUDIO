@@ -1,4 +1,11 @@
 // DOM helpers. All user-controlled strings go through textContent (never innerHTML) to prevent XSS.
+
+// Element.replaceChildren(null) inserts the literal text "null"; skip null/false the same way h() does.
+const nativeReplaceChildren = Element.prototype.replaceChildren;
+Element.prototype.replaceChildren = function replaceChildren(...kids) {
+  return nativeReplaceChildren.apply(this, kids.flat(Infinity).filter((k) => k != null && k !== false));
+};
+
 export function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
   if (attrs) for (const [k, v] of Object.entries(attrs)) {

@@ -189,6 +189,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
             "limits": {
                 "max_upload_mb": s.max_upload_mb,
                 "max_image_pixels": s.max_image_pixels,
+                "min_image_side": s.min_image_side,
                 "job_timeout_s": s.job_timeout_s,
                 "tri_budget_lod0": s.tri_budget_lod0,
             },

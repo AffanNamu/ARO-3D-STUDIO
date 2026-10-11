@@ -6,7 +6,6 @@ it uses the ARO TITAN 480 procedural reference for everything after reconstructi
 
 from __future__ import annotations
 
-import glob
 import io
 import os
 import re
@@ -20,20 +19,11 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from tests.e2e.browser import launch
+
 pw = pytest.importorskip("playwright.sync_api")
 ROOT = Path(__file__).resolve().parents[2]
 pytestmark = pytest.mark.e2e
-
-
-def _chromium() -> str | None:
-    for pat in (
-        os.environ.get("ARO_CHROMIUM", ""),
-        "/opt/pw-browsers/chromium-*/chrome-linux/chrome",
-        str(Path.home() / ".cache/ms-playwright/chromium-*/chrome-linux/chrome"),
-    ):
-        for f in glob.glob(pat) if pat else []:
-            return f
-    return None
 
 
 @pytest.fixture(scope="module")
@@ -78,13 +68,8 @@ def server(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def page(server):
-    exe = _chromium()
-    if exe is None:
-        pytest.skip("no Chromium available")
     with pw.sync_playwright() as p:
-        b = p.chromium.launch(
-            executable_path=exe, args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
-        )
+        b = launch(p)
         pg = b.new_page(viewport={"width": 1600, "height": 950})
         pg.errors = []  # type: ignore[attr-defined]
         pg.on("pageerror", lambda e: pg.errors.append(f"pageerror: {e}"))  # type: ignore[attr-defined]
@@ -156,9 +141,14 @@ def test_complete_pipeline_through_the_ui(page, server, tmp_path):
     # The generic one-click preparation action must be available on a raw asset.
     open_step(pg, "Source / Inspect")
     assert pg.locator("button:has-text('Prepare mesh for use')").count() == 1
-    assert "Automatic mesh preparation" in pg.inner_text(".step.open .body")
+    assert "automatic mesh preparation" in pg.inner_text(".step.open .body").lower()  # headings are CSS-uppercased
     stats = pg.inner_text("#vstats")
-    assert "15,736" in stats and "3.44 × 4.00 × 6.50" in stats
+    # expected values come from the model itself, so a deliberate design change does not silently break this check
+    from aro_studio.vehicles.titan480 import build_titan480
+
+    ref = build_titan480()
+    w, hgt, ln = ref.combined().extents
+    assert f"{ref.triangle_count:,}" in stats and f"{w:.2f} × {hgt:.2f} × {ln:.2f}" in stats, stats
     pg.screenshot(path=str(shots / "studio_reference.png"))
 
     # viewer controls
@@ -248,7 +238,10 @@ def test_complete_pipeline_through_the_ui(page, server, tmp_path):
     pg.goto(f"{server}/#/models")
     pg.wait_for_selector("text=Blocked models")
     body = pg.inner_text("main")
-    assert "nvidia-lyra-2.0" in body and "claimed" in body
+    from aro_studio.engines.triposr import TripoSREngine
+
+    # TripoSR's licence status is derived from the model lock (verified only when the lock is complete)
+    assert "nvidia-lyra-2.0" in body and TripoSREngine().info.license.status in body.lower()
 
     # Batch workflow: upload multiple object images, configure each asset independently.
     # This CPU-only test intentionally confirms generation remains disabled without a runnable AI engine.

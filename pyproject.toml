@@ -41,6 +41,7 @@ aro_studio = ["ui/static/**/*", "py.typed", "export/*.cjs", "engines/locks/*.jso
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["notebooks"]  # Colab notebooks use IPython magics
 target-version = "py310"
 
 [tool.ruff.lint]

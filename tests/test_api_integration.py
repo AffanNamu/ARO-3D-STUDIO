@@ -81,9 +81,13 @@ def test_health_system_taxonomy(api):
         and s["queue"]["workers"] == 1
     )
     t = c.get("/api/taxonomy").json()
-    assert {g["group"] for g in t["groups"]} == {"vehicles", "environment", "characters", "other"} and "geometry" in t[
-        "processing_operations"
-    ]
+    assert {g["group"] for g in t["groups"]} == {
+        "vehicles",
+        "environment",
+        "objects",
+        "characters",
+        "other",
+    } and "geometry" in t["processing_operations"]
     assert next(x for g in t["groups"] for x in g["categories"] if x["id"] == "character")["available"] is False
 
 
