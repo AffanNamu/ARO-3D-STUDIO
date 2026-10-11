@@ -196,11 +196,13 @@ def test_batch_generation_queues_named_per_category_assets_and_reports_partial_f
         ],
         data={
             "category": "other",
-            "items_json": json.dumps([
-                {"name": "First Prop", "category": "prop"},
-                {"name": "Small Building", "category": "building"},
-                {"name": "Invalid Image", "category": "prop"},
-            ]),
+            "items_json": json.dumps(
+                [
+                    {"name": "First Prop", "category": "prop"},
+                    {"name": "Small Building", "category": "building"},
+                    {"name": "Invalid Image", "category": "prop"},
+                ]
+            ),
             "engine_id": "plumbing_test_double",
             "preset": "LOW_RESOURCE",
             "settings_json": "{}",
