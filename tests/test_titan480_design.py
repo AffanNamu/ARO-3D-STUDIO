@@ -37,6 +37,16 @@ def test_titan_hero_palette_and_reference_details_are_present():
         "Gold_Bumper_Trim",
         "Headlight_Bezel_L",
         "Headlight_Bezel_R",
+        "Headlight_Inner_Reflector_L",
+        "Headlight_Inner_Reflector_R",
+        "Headlight_LED_Upper_L",
+        "Headlight_LED_Upper_R",
+        "Headlight_LED_Lower_L",
+        "Headlight_LED_Lower_R",
+        "Fog_Lamp_Bezel_L",
+        "Fog_Lamp_Bezel_R",
+        "Fog_Lamp_L",
+        "Fog_Lamp_R",
         "Roof_Marker_1",
         "Roof_Marker_5",
         "Gold_Pinstripe_L",
@@ -148,3 +158,15 @@ def test_cab_silhouette_and_front_end_have_layered_depth():
     assert grille.bounds[1][2] > fascia.bounds[1][2]
     assert headlights.bounds[1][2] > grille.bounds[1][2]
     assert bumper.bounds[1][2] > headlights.bounds[1][2]
+
+    for side in ("L", "R"):
+        reflector = scene.meshes[f"Headlight_Inner_Reflector_{side}"]
+        led_upper = scene.meshes[f"Headlight_LED_Upper_{side}"]
+        led_lower = scene.meshes[f"Headlight_LED_Lower_{side}"]
+        fog_bezel = scene.meshes[f"Fog_Lamp_Bezel_{side}"]
+        fog_lamp = scene.meshes[f"Fog_Lamp_{side}"]
+        assert reflector.bounds[1][2] > headlights.bounds[1][2]
+        assert led_upper.bounds[1][2] > reflector.bounds[1][2]
+        assert led_lower.bounds[1][2] > reflector.bounds[1][2]
+        assert fog_bezel.bounds[1][2] > bumper.bounds[1][2]
+        assert fog_lamp.bounds[1][2] > fog_bezel.bounds[1][2]
