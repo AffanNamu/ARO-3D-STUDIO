@@ -67,6 +67,15 @@ TITAN_BLACK = make_material(
     metallic=0.42,
     roughness=0.30,
 )
+TITAN_GLASS = make_material(
+    "aro_tinted_glass",
+    MaterialCategory.GLASS,
+    base_color=(0.025, 0.075, 0.11, 1.0),
+    metallic=0.12,
+    roughness=0.18,
+    alpha_mode="OPAQUE",
+    double_sided=True,
+)
 
 
 def _tire(center) -> trimesh.Trimesh:
@@ -295,7 +304,54 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
     nrm = np.array([0.0, -d[0], d[1]]) / length
     mid = np.array([0.0, (2.35 + 3.55) / 2, (2.63 + 2.22) / 2])
     glass.apply_translation(mid + nrm * 0.03)
-    add("Window_Windshield", R.WINDOW, "glass", glass)
+    add("Window_Windshield", R.WINDOW, "aro_tinted_glass", glass)
+
+    # Distinct black windshield surround follows the actual rake of the glass.
+    glass_half_height = length * 0.42
+    panel_mid_y, panel_mid_z = mid[1], mid[2]
+    upper_y = panel_mid_y + (d[1] / length) * glass_half_height
+    upper_z = panel_mid_z + (d[0] / length) * glass_half_height
+    lower_y = panel_mid_y - (d[1] / length) * glass_half_height
+    lower_z = panel_mid_z - (d[0] / length) * glass_half_height
+    frame_offset = nrm * 0.052
+    upper = np.array([0.0, upper_y, upper_z]) + frame_offset
+    lower = np.array([0.0, lower_y, lower_z]) + frame_offset
+    frame_half_width = 1.06
+    add(
+        "Windshield_Frame_Bottom",
+        R.BODY,
+        "aro_black_paint",
+        P.tube_between(
+            [-frame_half_width, lower[1], lower[2]],
+            [frame_half_width, lower[1], lower[2]],
+            0.018,
+            sections=10,
+        ),
+    )
+    add(
+        "Windshield_Frame_Top",
+        R.BODY,
+        "aro_black_paint",
+        P.tube_between(
+            [-frame_half_width, upper[1], upper[2]],
+            [frame_half_width, upper[1], upper[2]],
+            0.018,
+            sections=10,
+        ),
+    )
+    for sx, side in ((1, "L"), (-1, "R")):
+        add(
+            f"Windshield_Pillar_{side}",
+            R.BODY,
+            "aro_black_paint",
+            P.tube_between(
+                [sx * frame_half_width, lower[1], lower[2]],
+                [sx * frame_half_width, upper[1], upper[2]],
+                0.018,
+                sections=10,
+            ),
+        )
+
     for sx, s in ((1, "L"), (-1, "R")):
         wip = P.box([0, 0, 0], [0.025, 0.04, 0.75])
         wip.apply_transform(trimesh.transformations.rotation_matrix(ang, [1, 0, 0]))
@@ -304,8 +360,54 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
 
     # --- doors / door glass / mirrors -------------------------------------------------------
     for sx, s in ((1, "L"), (-1, "R")):
-        add(f"Door_{s}", R.DOOR, "aro_pearl_white", P.box([sx * (CAB_HALF_W + 0.025), 2.30, 1.55], [0.05, 1.70, 1.30]))
-        add(f"Window_Door_{s}", R.WINDOW, "glass", P.box([sx * (CAB_HALF_W + 0.060), 2.95, 1.55], [0.02, 0.65, 1.0]))
+        # The door follows the cab side profile instead of appearing as a rectangular slab.
+        door_profile = [
+            (0.32, 1.28),
+            (2.22, 1.28),
+            (2.08, 2.44),
+            (1.91, 3.30),
+            (0.58, 3.34),
+            (0.43, 3.12),
+        ]
+        add(
+            f"Door_{s}",
+            R.DOOR,
+            "aro_pearl_white",
+            P.extrude_profile_zy(
+                door_profile, 0.05, center_x=sx * (CAB_HALF_W + 0.025)
+            ),
+        )
+
+        # A dark outer seal sits behind a smaller, opaque tinted pane. The angular
+        # polygon matches the sloping A-pillar and keeps a visible black border.
+        window_frame_profile = [
+            (0.76, 2.48),
+            (1.81, 2.48),
+            (1.98, 3.19),
+            (0.92, 3.25),
+        ]
+        window_glass_profile = [
+            (0.82, 2.54),
+            (1.75, 2.54),
+            (1.90, 3.13),
+            (0.99, 3.19),
+        ]
+        add(
+            f"Window_Door_Frame_{s}",
+            R.BODY,
+            "aro_black_paint",
+            P.extrude_profile_zy(
+                window_frame_profile, 0.018, center_x=sx * (CAB_HALF_W + 0.055)
+            ),
+        )
+        add(
+            f"Window_Door_{s}",
+            R.WINDOW,
+            "aro_tinted_glass",
+            P.extrude_profile_zy(
+                window_glass_profile, 0.01, center_x=sx * (CAB_HALF_W + 0.069)
+            ),
+        )
         arm = P.tube_between([sx * 1.24, 2.60, 2.18], [sx * 1.62, 2.60, 2.18], 0.018)
         head = P.box([sx * 1.66, 2.62, 2.16], [0.12, 0.46, 0.10])
         add(f"Mirror_{s}", R.MIRROR, "plastic", P.merge([arm, head]))
@@ -446,6 +548,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                 part=f"Door_{s}",
                 children=[
                     f"Window_Door_{s}",
+                    f"Window_Door_Frame_{s}",
                     f"Handle_{s}",
                     *[f"Logo_Door_{s}_{i:02d}" for i in range(1, 10)],
                 ],
@@ -565,6 +668,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
             TITAN_PAINT.model_copy(deep=True),
             TITAN_GOLD.model_copy(deep=True),
             TITAN_BLACK.model_copy(deep=True),
+            TITAN_GLASS.model_copy(deep=True),
         ]
     )
 
