@@ -254,31 +254,79 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         )
 
     # --- cab ---------------------------------------------------------------------------------
-    profile = [(0.20, 1.15), (2.55, 1.15), (2.63, 2.35), (2.22, 3.55), (0.58, 3.62), (0.20, 3.42)]
+    profile = [
+        (0.20, 1.15),
+        (2.36, 1.15),
+        (2.48, 1.22),
+        (2.57, 1.46),
+        (2.63, 2.35),
+        (2.22, 3.55),
+        (2.10, 3.62),
+        (0.64, 3.62),
+        (0.46, 3.56),
+        (0.20, 3.42),
+    ]
     add("Cab_Shell", R.CABIN, "body_paint", P.extrude_profile_zy(profile, 2 * CAB_HALF_W))
-    add("Roof_Deflector", R.BODY, "aro_pearl_white", P.box([0, 3.78, 0.45], [2.1, 0.32, 0.55]))
-    add("Cab_Roof_Accent", R.BODY, "aro_gold", P.box([0, 3.935, 0.45], [1.84, 0.018, 0.42]))
+
+    # Profiled roof deflector: the sloped ends blend toward the cab roof instead of
+    # reading as a rectangular block when seen from the side.
+    fairing_profile = [
+        (0.04, 3.62),
+        (0.12, 3.82),
+        (0.29, 3.96),
+        (0.62, 3.96),
+        (0.81, 3.82),
+        (0.90, 3.62),
+    ]
+    add("Roof_Deflector", R.BODY, "aro_pearl_white", P.extrude_profile_zy(fairing_profile, 2.10))
+    add("Cab_Roof_Accent", R.BODY, "aro_gold", P.box([0, 3.965, 0.455], [1.84, 0.018, 0.42]))
 
     # --- front end ---------------------------------------------------------------------------
-    add("Bumper_Front", R.BUMPER, "plastic", P.box([0, 0.93, 2.78], [2.34, 0.42, 0.30]))
-    add("Cab_Fascia", R.BODY, "aro_black_paint", P.box([0, 1.83, 2.68], [1.96, 1.12, 0.07]))
-    add("Grille", R.GRILLE, "plastic", P.box([0, 1.85, 2.76], [1.40, 0.82, 0.07]))
+    # Layered front fascia: the bumper projects furthest forward, with the grille
+    # and headlamp modules sitting on a deeper backing panel.
+    add("Bumper_Front", R.BUMPER, "plastic", P.box([0, 0.93, 2.88], [2.34, 0.42, 0.38]))
+    add("Cab_Fascia", R.BODY, "aro_black_paint", P.box([0, 1.79, 2.72], [2.30, 1.10, 0.18]))
+    add("Grille", R.GRILLE, "plastic", P.box([0, 1.83, 2.84], [1.42, 0.76, 0.10]))
     add(
         "Grille_Trim",
         R.GRILLE,
         "aro_gold",
-        P.merge([P.box([0, 1.55 + 0.14 * i, 2.80], [1.34, 0.025, 0.025]) for i in range(5)]),
+        P.merge([P.box([0, 1.55 + 0.14 * i, 2.895], [1.34, 0.025, 0.02]) for i in range(5)]),
     )
-    for sx, s in ((1, "L"), (-1, "R")):
-        add(f"Headlight_Bezel_{s}", R.BODY, "aro_black_paint", P.box([sx * 0.98, 1.62, 2.73], [0.42, 0.28, 0.04]))
-        add(f"Headlight_{s}", R.HEADLIGHT, "headlight", P.box([sx * 0.98, 1.62, 2.77], [0.34, 0.20, 0.08]))
-        add(f"Indicator_{s}", R.HEADLIGHT, "indicator", P.box([sx * 0.98, 1.90, 2.79], [0.34, 0.08, 0.07]))
-        add(f"Bumper_Corner_Accent_{s}", R.BUMPER, "aro_gold", P.box([sx * 1.04, 0.94, 2.946], [0.045, 0.23, 0.025]))
+    # A narrow secondary intake breaks up the blank area between the main grille and bumper.
+    add("Lower_Intake", R.GRILLE, "plastic", P.box([0, 1.31, 2.87], [0.88, 0.10, 0.06]))
+    add("Lower_Intake_Trim", R.GRILLE, "aro_gold", P.box([0, 1.365, 2.905], [0.84, 0.012, 0.018]))
 
-    for logo_name, logo_mesh in _front_aro_logo_parts(2.835):
+    for sx, s in ((1, "L"), (-1, "R")):
+        add(
+            f"Headlight_Bezel_{s}",
+            R.BODY,
+            "aro_black_paint",
+            P.box([sx * 0.96, 1.64, 2.80], [0.34, 0.25, 0.04]),
+        )
+        add(
+            f"Headlight_{s}",
+            R.HEADLIGHT,
+            "headlight",
+            P.box([sx * 0.96, 1.64, 2.86], [0.28, 0.18, 0.08]),
+        )
+        add(
+            f"Indicator_{s}",
+            R.HEADLIGHT,
+            "indicator",
+            P.box([sx * 0.96, 1.87, 2.86], [0.28, 0.06, 0.06]),
+        )
+        add(
+            f"Bumper_Corner_Accent_{s}",
+            R.BUMPER,
+            "aro_gold",
+            P.box([sx * 1.04, 0.94, 3.078], [0.045, 0.23, 0.018]),
+        )
+
+    for logo_name, logo_mesh in _front_aro_logo_parts(2.89):
         add(logo_name, R.GRILLE, "aro_gold", logo_mesh)
-    add("Gold_Bumper_Trim", R.BUMPER, "aro_gold", P.box([0, 0.94, 2.946], [2.16, 0.035, 0.025]))
-    add("Front_Nameplate", R.BODY, "aro_black_paint", P.box([0, 0.79, 2.948], [0.54, 0.12, 0.024]))
+    add("Gold_Bumper_Trim", R.BUMPER, "aro_gold", P.box([0, 0.94, 3.078], [2.16, 0.035, 0.018]))
+    add("Front_Nameplate", R.BODY, "aro_black_paint", P.box([0, 0.89, 3.079], [0.54, 0.12, 0.018]))
 
     # Five small amber marker lamps across the cab roof edge.
     for i, x in enumerate((-0.72, -0.36, 0.0, 0.36, 0.72), start=1):

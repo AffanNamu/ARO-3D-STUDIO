@@ -126,3 +126,25 @@ def test_windshield_is_offset_along_the_actual_cab_plane_normal():
         plane_midpoint + outward_normal * 0.03,
         atol=1e-6,
     )
+
+
+def test_cab_silhouette_and_front_end_have_layered_depth():
+    scene = build_titan480()
+
+    cab = scene.meshes["Cab_Shell"]
+    roof_fairing = scene.meshes["Roof_Deflector"]
+    fascia = scene.meshes["Cab_Fascia"]
+    grille = scene.meshes["Grille"]
+    headlights = scene.meshes["Headlight_L"]
+    bumper = scene.meshes["Bumper_Front"]
+
+    # The side profiles are extruded polygons rather than cuboid placeholders.
+    assert len(cab.vertices) >= 20
+    assert len(roof_fairing.vertices) >= 12
+
+    # The intended front-to-back layering is measurable in the exported geometry.
+    assert fascia.extents[2] == pytest.approx(0.18, abs=1e-6)
+    assert bumper.extents[2] == pytest.approx(0.38, abs=1e-6)
+    assert grille.bounds[1][2] > fascia.bounds[1][2]
+    assert headlights.bounds[1][2] > grille.bounds[1][2]
+    assert bumper.bounds[1][2] > headlights.bounds[1][2]
