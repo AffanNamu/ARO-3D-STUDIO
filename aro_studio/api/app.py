@@ -7,6 +7,7 @@ import hmac
 import json
 import mimetypes
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -40,7 +41,7 @@ from aro_studio.core.errors import (
     UnauthorizedError,
     explain_exception,
 )
-from aro_studio.core.ids import new_id, require_id
+from aro_studio.core.ids import require_id
 from aro_studio.export.gltf import ExportOptions, export_glb
 from aro_studio.geometry.pipeline import combined_report, known_operations
 from aro_studio.imaging.preprocess import PreprocessOptions, preprocess
@@ -308,7 +309,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 recommended_action="Review the generation and preprocessing settings, then try again.",
             ) from e
 
-        batch_id = new_id("batch")
+        batch_id = f"batch_{uuid.uuid4().hex[:20]}"
         items: list[dict[str, Any]] = []
         for index, upload in enumerate(files, start=1):
             original_name = sanitize_filename(upload.filename or f"image-{index}.png")
