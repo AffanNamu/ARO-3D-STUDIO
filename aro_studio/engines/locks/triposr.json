@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "engine_id": "triposr",
-  "note": "Licence evidence + supply-chain pins for TripoSR. 'weights.revision' and every sha256 below are intentionally null until scripts/pin_triposr_weights.py has been run on a host with Hugging Face access and the result reviewed and committed. While any of them is null the engine refuses to load (see docs/models/triposr-security-review.md). Do not fill these by hand from memory.",
+  "note": "Supply-chain pins for TripoSR. The model revision and artifact hashes and sizes were recorded by scripts/pin_triposr_weights.py on 2026-10-11. The config.yaml SHA-256 was calculated from downloaded bytes because Hub metadata did not report it. Do not edit pins by hand; any change requires a reviewed pinning run and committed diff. A complete lock verifies artifact identity but does not prove inference correctness. The auxiliary DINO config licence note remains unverified.",
   "code": {
     "repo": "https://github.com/VAST-AI-Research/TripoSR",
     "commit": "107cefdc244c39106fa830359024f6a2f1c78871",
@@ -10,22 +10,28 @@
   },
   "weights": {
     "repo_id": "stabilityai/TripoSR",
-    "revision": null,
+    "revision": "5b521936b01fbe1890f6f9baed0254ab6351c04a",
     "files": {
-      "config.yaml": {"sha256": null, "size": null},
-      "model.ckpt": {"sha256": null, "size": null}
+      "config.yaml": {
+        "sha256": "74ca708ce086bf68e97709ea6b3d91f14717921c04691e84043f0eb8fcc68e62",
+        "size": 987
+      },
+      "model.ckpt": {
+        "sha256": "429e2c6b22a0923967459de24d67f05962b235f79cde6b032aa7ed2ffcd970ee",
+        "size": 1677246742
+      }
     },
-    "pinned_on": null,
-    "pinned_by": null
+    "pinned_on": "2026-10-11",
+    "pinned_by": "Colab-T4-verification"
   },
   "aux_files": [
     {
       "repo_id": "facebook/dino-vitb16",
       "filename": "config.json",
       "purpose": "TripoSR's DINOSingleImageTokenizer downloads this ViT architecture config from the Hub every time the model is constructed (tsr/models/tokenizers/image.py). The loader substitutes this pinned, checksum-verified copy so no unpinned download happens at runtime.",
-      "revision": null,
-      "sha256": null,
-      "size": null,
+      "revision": "f205d5d8e640a89a2b8ef0369670dfc37cc07fc2",
+      "sha256": "b87c0270b97db085fd82cf114a761fd0f62ae7914fbd407c752a2260646b689c",
+      "size": 454,
       "licence_note": "Apache-2.0 per the model card as remembered by the author; NOT verified (Hub unreachable from the build sandbox). Architecture hyper-parameters only, no weights."
     }
   ],
