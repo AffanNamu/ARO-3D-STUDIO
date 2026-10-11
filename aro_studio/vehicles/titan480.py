@@ -70,10 +70,10 @@ TITAN_BLACK = make_material(
 TITAN_GLASS = make_material(
     "aro_tinted_glass",
     MaterialCategory.GLASS,
-    base_color=(0.025, 0.075, 0.11, 1.0),
+    base_color=(0.025, 0.075, 0.11, 0.9),
     metallic=0.12,
     roughness=0.18,
-    alpha_mode="OPAQUE",
+    alpha_mode="BLEND",
     double_sided=True,
 )
 

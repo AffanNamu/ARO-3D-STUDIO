@@ -16,7 +16,8 @@ def test_titan_hero_palette_and_reference_details_are_present():
 
     assert {"aro_pearl_white", "aro_gold", "aro_black_paint", "aro_tinted_glass"} <= set(materials)
     assert materials["aro_tinted_glass"].base_color[:3] == pytest.approx((0.025, 0.075, 0.11))
-    assert materials["aro_tinted_glass"].alpha_mode == "OPAQUE"
+    assert materials["aro_tinted_glass"].alpha_mode == "BLEND"
+    assert materials["aro_tinted_glass"].base_color[3] < 1.0
     assert materials["aro_pearl_white"].base_color[0] >= 0.85
     assert materials["aro_pearl_white"].base_color[1] >= 0.85
     assert materials["aro_gold"].base_color[0] > materials["aro_gold"].base_color[2]
