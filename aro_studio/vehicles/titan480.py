@@ -133,8 +133,8 @@ def _fender_arch(center_z: float, side_x: float, radius: float, tube_radius: flo
     path_steps, ring_steps = 25, 12
     theta = np.linspace(0.0, np.pi, path_steps)
     phi = np.arange(ring_steps) * (2 * np.pi / ring_steps)
-    vertices = []
-    faces = []
+    vertices: list[np.ndarray] = []
+    faces: list[tuple[int, int, int]] = []
 
     for angle in theta:
         center = np.array([side_x, TIRE_R + radius * np.sin(angle), center_z + radius * np.cos(angle)])
@@ -153,9 +153,9 @@ def _fender_arch(center_z: float, side_x: float, radius: float, tube_radius: flo
             faces.extend(((a, b, c), (a, c, d)))
 
     start_center = len(vertices)
-    vertices.append([side_x, TIRE_R, center_z + radius])
+    vertices.append(np.array([side_x, TIRE_R, center_z + radius], dtype=np.float64))
     end_center = len(vertices)
-    vertices.append([side_x, TIRE_R, center_z - radius])
+    vertices.append(np.array([side_x, TIRE_R, center_z - radius], dtype=np.float64))
     end_start = (path_steps - 1) * ring_steps
     for around in range(ring_steps):
         nxt = (around + 1) % ring_steps

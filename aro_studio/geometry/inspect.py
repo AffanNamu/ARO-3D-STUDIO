@@ -147,7 +147,7 @@ def inspect_mesh(
     nan_vertices = int((~np.isfinite(verts)).any(axis=1).sum()) if len(verts) else 0
     if nan_vertices:
         # still report, but avoid propagating NaN into the other metrics
-        finite = np.isfinite(verts).all(axis=1)
+        finite = np.asarray(np.isfinite(verts).all(axis=1), dtype=np.bool_)
         verts = np.where(finite[:, None], verts, 0.0)
         mesh = trimesh.Trimesh(verts, faces, process=False)
 
