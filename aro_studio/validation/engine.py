@@ -406,7 +406,9 @@ def l006(c: Ctx):
     for lod in man.lods:
         have = {p.name for p in lod.parts}
         anim_missing += [
-            f"LOD{lod.level}:{p.name}" for p in man.parts if p.component in ("wheel", "wheel_detail", "tire") and p.name not in have
+            f"LOD{lod.level}:{p.name}"
+            for p in man.parts
+            if p.component in ("wheel", "wheel_detail", "tire") and p.name not in have
         ]
     if not man.lods:
         return S, "no LODs"

@@ -140,9 +140,7 @@ def _fender_arch(center_z: float, side_x: float, radius: float, tube_radius: flo
         center = np.array([side_x, TIRE_R + radius * np.sin(angle), center_z + radius * np.cos(angle)])
         normal = np.array([0.0, np.sin(angle), np.cos(angle)])
         for around in phi:
-            offset = tube_radius * np.array(
-                [np.cos(around), np.sin(around) * normal[1], np.sin(around) * normal[2]]
-            )
+            offset = tube_radius * np.array([np.cos(around), np.sin(around) * normal[1], np.sin(around) * normal[2]])
             vertices.append(center + offset)
 
     for step in range(path_steps - 1):
