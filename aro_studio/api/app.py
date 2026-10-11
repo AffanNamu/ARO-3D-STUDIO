@@ -692,7 +692,9 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         if b.forward and not b.up:
             raw_scene = c.assets.load_scene(vid)
             provenance = raw_scene.manifest.provenance
-            inferred_up = "+Z" if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr" else "+Y"
+            inferred_up = (
+                "+Z" if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr" else "+Y"
+            )
             if b.forward[1] == inferred_up[1]:
                 raise InvalidInputError(
                     "The selected forward direction conflicts with this mesh's default up axis.",
