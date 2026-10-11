@@ -40,7 +40,7 @@ from aro_studio.core.errors import (
     UnauthorizedError,
     explain_exception,
 )
-from aro_studio.core.ids import require_id
+from aro_studio.core.ids import new_id, require_id
 from aro_studio.export.gltf import ExportOptions, export_glb
 from aro_studio.geometry.pipeline import combined_report, known_operations
 from aro_studio.imaging.preprocess import PreprocessOptions, preprocess
@@ -121,7 +121,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 ):  # job polling is a cheap read; never throttle progress UIs
                     c.limiter.check(client)
                 if request.method in ("POST", "PUT", "PATCH", "DELETE") and any(
-                    x in path for x in ("/generate", "/process", "/export", "/sources", "/import")
+                    x in path for x in ("/generate", "/batch-generate", "/process", "/export", "/sources", "/import")
                 ):
                     c.heavy_limiter.check(client + ":heavy")
             response = await call_next(request)
@@ -266,6 +266,131 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         data = await read_limited(file, c.settings.max_upload_mb * 1_000_000)
         group = taxonomy.get_category(category).group if category else None
         return await asyncio.to_thread(c.sources.add_image, pid, file.filename or "image", data, category_group=group)
+
+    @app.post("/api/projects/{pid}/batch-generate", status_code=202)
+    async def batch_generate(
+        pid: str,
+        files: list[UploadFile] = File(...),
+        category: str = Form("other"),
+        engine_id: str | None = Form(None),
+        preset: str | None = Form(None),
+        settings_json: str = Form("{}"),
+        preprocess_json: str = Form("{}"),
+        use_cache: bool = Form(True),
+        force: bool = Form(False),
+        priority: int = Form(5, ge=1, le=9),
+        max_retries: int = Form(0, ge=0, le=3),
+        c: StudioContext = C,
+    ):
+        """Upload up to ten independent object images and queue one real reconstruction job per image.
+
+        A batch creates separate assets; it does not fuse multiple views of the same object.
+        Invalid files are reported individually while valid files continue through the queue.
+        """
+        if not 1 <= len(files) <= 10:
+            raise InvalidInputError("Choose between 1 and 10 images per batch.")
+
+        project = c.projects.get(pid)
+        if project["status"] != "active":
+            raise InvalidInputError("Images can only be queued in an active project.")
+
+        category_def = taxonomy.require_creatable(category)
+        try:
+            settings_value = json.loads(settings_json)
+            preprocess_value = json.loads(preprocess_json)
+            if not isinstance(settings_value, dict) or not isinstance(preprocess_value, dict):
+                raise ValueError("Settings must be JSON objects.")
+            # Validate preprocessing before accepting work, so malformed options do not create doomed jobs.
+            preprocess_value = PreprocessOptions(**preprocess_value).as_settings()
+        except (ValueError, TypeError) as e:
+            raise InvalidInputError(
+                "Batch settings are invalid JSON objects or contain unsupported preprocessing options.",
+                recommended_action="Review the generation and preprocessing settings, then try again.",
+            ) from e
+
+        batch_id = new_id("batch")
+        items: list[dict[str, Any]] = []
+        for index, upload in enumerate(files, start=1):
+            original_name = sanitize_filename(upload.filename or f"image-{index}.png")
+            asset = None
+            try:
+                data = await read_limited(upload, c.settings.max_upload_mb * 1_000_000)
+                source = await asyncio.to_thread(
+                    c.sources.add_image,
+                    pid,
+                    upload.filename or f"image-{index}.png",
+                    data,
+                    category_group=category_def.group,
+                )
+                stem = Path(original_name).stem
+                asset_name = " ".join(stem.replace("_", " ").replace("-", " ").split()) or f"Image {index}"
+                asset = c.assets.create_asset(
+                    pid,
+                    asset_name[:120],
+                    category,
+                    {
+                        "source_filename": original_name,
+                        "source_sha256": source["sha256"],
+                        "ingestion_mode": "batch_image_to_3d",
+                        "batch_id": batch_id,
+                    },
+                )
+                params = {
+                    "image_sha256": source["sha256"],
+                    "engine_id": engine_id or None,
+                    "preset": preset or None,
+                    "settings": settings_value,
+                    "preprocess": preprocess_value,
+                    "use_cache": use_cache,
+                    "force": force,
+                    "project_id": pid,
+                    "asset_id": asset["asset_id"],
+                    "batch_id": batch_id,
+                }
+                job = c.jobs.submit(
+                    "generation",
+                    params,
+                    project_id=pid,
+                    asset_id=asset["asset_id"],
+                    priority=priority,
+                    max_retries=max_retries,
+                )
+                items.append(
+                    {
+                        "index": index - 1,
+                        "filename": original_name,
+                        "status": "QUEUED",
+                        "source": {"sha256": source["sha256"], "width": source["width"], "height": source["height"]},
+                        "asset": {"asset_id": asset["asset_id"], "name": asset["name"], "category": asset["category"]},
+                        "job": job,
+                    }
+                )
+            except Exception as e:  # per-file failures must not discard successful sibling jobs
+                ex = explain_exception(e)
+                log.warning("batch image %d failed (%s)", index, type(e).__name__)
+                items.append(
+                    {
+                        "index": index - 1,
+                        "filename": original_name,
+                        "status": "FAILED",
+                        "asset": (
+                            {"asset_id": asset["asset_id"], "name": asset["name"], "category": asset["category"]}
+                            if asset
+                            else None
+                        ),
+                        "error": {
+                            "code": ex.code,
+                            "message": ex.message,
+                            "recommended_action": ex.recommended_action,
+                        },
+                    }
+                )
+            finally:
+                await upload.close()
+
+        queued = sum(item["status"] == "QUEUED" for item in items)
+        failed = len(items) - queued
+        return {"batch_id": batch_id, "total": len(items), "queued": queued, "failed": failed, "items": items}
 
     @app.get("/api/projects/{pid}/sources/{sha}/image")
     def source_image(pid: str, sha: str, c: StudioContext = C):
