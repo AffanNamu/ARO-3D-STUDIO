@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -65,31 +66,57 @@ def choose_axes(extents: np.ndarray, opts: AIPipelineOptions) -> tuple[str, str,
 
 
 def run_ai_pipeline(
-    processing: ProcessingService, assets, raw_version_id: str, opts: AIPipelineOptions | None = None
+    processing: ProcessingService,
+    assets,
+    raw_version_id: str,
+    opts: AIPipelineOptions | None = None,
+    *,
+    progress: Callable[[float, str], None] | None = None,
+    check_cancel: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
-    """Run the full chain and return a structured report. Stops at the first failing step (recorded, not hidden)."""
+    """Run the full chain, report step progress, and stop at the first recorded failure."""
     opts = opts or AIPipelineOptions()
+    if check_cancel:
+        check_cancel()
     raw_scene = assets.load_scene(raw_version_id)
     ext = np.asarray(raw_scene.combined().extents)
     up, fwd, needs_human = choose_axes(ext, opts)
     steps: list[StepRecord] = []
     cur = raw_version_id
+    total_steps = 6 + int(opts.lod) + (2 if opts.vehicle_spec is not None else 0)
+    completed_steps = 0
+
+    def announce(message: str) -> None:
+        if check_cancel:
+            check_cancel()
+        if progress:
+            progress(min(0.97, 0.03 + 0.92 * completed_steps / total_steps), message)
+
+    def advance(message: str) -> None:
+        nonlocal completed_steps
+        completed_steps += 1
+        if progress:
+            progress(min(0.98, 0.03 + 0.92 * completed_steps / total_steps), message)
 
     def run(name: str, op: str, params: dict[str, Any]) -> bool:
         nonlocal cur
+        announce(name)
         t = time.perf_counter()
         try:
             r = processing.run(op, cur, params)
         except StudioError as e:
             steps.append(StepRecord(name, "FAIL", time.perf_counter() - t, None, {"error": e.to_dict()}))
+            advance(f"{name} failed")
             return False
         except Exception as e:  # noqa: BLE001
             steps.append(StepRecord(name, "FAIL", time.perf_counter() - t, None, {"error": f"{type(e).__name__}: {e}"}))
+            advance(f"{name} failed")
             return False
         vid = r.get("version_id") if op != "validate" else None
         if vid and op != "validate":
             cur = vid
         steps.append(StepRecord(name, "PASS", time.perf_counter() - t, vid or cur, r))
+        advance(f"{name} complete")
         return True
 
     ok = run(
@@ -150,6 +177,7 @@ def run_ai_pipeline(
         ok = ok and run("LOD generation", "lod", {})
     validation = None
     if ok:
+        announce("Validation")
         t = time.perf_counter()
         try:
             from aro_studio.validation.engine import ValidationConfig
@@ -180,9 +208,10 @@ def run_ai_pipeline(
                 StepRecord("validation", "FAIL", time.perf_counter() - t, cur, {"error": f"{type(e).__name__}: {e}"})
             )
             ok = False
+        advance("Validation complete" if ok else "Validation failed")
     final_version = None
     if ok:
-        ok = run("finalize", "finalize", {"note": "ai pipeline"})
+        ok = run("finalize", "finalize", {"note": "AI mesh preparation pipeline"})
         final_version = cur
     return {
         "ok": ok,

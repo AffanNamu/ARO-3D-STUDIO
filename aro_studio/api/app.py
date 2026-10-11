@@ -20,6 +20,7 @@ from aro_studio import __version__
 from aro_studio.api.schemas import (
     AssetCreate,
     AssetPatch,
+    AutoProcessBody,
     DesignateBody,
     DuplicateBody,
     ExportBody,
@@ -122,7 +123,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 ):  # job polling is a cheap read; never throttle progress UIs
                     c.limiter.check(client)
                 if request.method in ("POST", "PUT", "PATCH", "DELETE") and any(
-                    x in path for x in ("/generate", "/batch-generate", "/process", "/export", "/sources", "/import")
+                    x in path for x in ("/generate", "/batch-generate", "/auto-process", "/process", "/export", "/sources", "/import")
                 ):
                     c.heavy_limiter.check(client + ":heavy")
             response = await call_next(request)
@@ -666,6 +667,24 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         return c.jobs.submit(
             "processing",
             {"operation": b.operation, "version_id": vid, "params": b.params},
+            project_id=v["project_id"],
+            asset_id=v["asset_id"],
+            priority=b.priority,
+        )
+
+    @app.post("/api/versions/{vid}/auto-process", status_code=202)
+    def auto_process(vid: str, b: AutoProcessBody, c: StudioContext = C):
+        v = c.assets.get_version(vid)
+        if v["stage"] != Stage.RAW.value:
+            raise InvalidInputError(
+                "Automatic preparation must start from a raw mesh version.",
+                recommended_action="Choose the original raw reconstruction in the Versions panel; existing versions are never overwritten.",
+            )
+        params = b.model_dump(exclude={"priority"})
+        params["raw_version_id"] = vid
+        return c.jobs.submit(
+            "auto_process",
+            params,
             project_id=v["project_id"],
             asset_id=v["asset_id"],
             priority=b.priority,

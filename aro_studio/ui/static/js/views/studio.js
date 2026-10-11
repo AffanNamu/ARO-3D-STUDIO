@@ -114,6 +114,51 @@ function srcBody() {
   if (prov) c.append(notice(prov.source === 'ai_reconstruction' ? 'info' : 'warn', h('b', null, `Provenance: ${prov.source.replace(/_/g, ' ')}`), prov.engine_id ? h('div', null, `${prov.engine_id} · ${prov.model_version}`) : null, h('div', { class: 'hint' }, prov.note)));
   c.append(h('div', { class: 'btn-row' }, h('a', { class: 'btn primary', href: `#/generation/${a.asset_id}` }, icon('play'), 'Generate from concept'),
     h('button', { class: 'btn', onclick: importMesh }, icon('upload'), 'Import mesh')));
+  if (S.cur?.stage === 'raw') {
+    const defaultUp = prov?.source === 'ai_reconstruction' && prov?.engine_id === 'triposr' ? '+Z' : '+Y';
+    const upAxis = select(['+Y', '+Z', '-Y', '-Z', '+X', '-X'], defaultUp, { 'aria-label': 'Source up direction' });
+    const forwardAxis = select([['', 'Automatic guess (review)'], ['+Z', 'Forward +Z'], ['-Z', 'Forward -Z'], ['+X', 'Forward +X'], ['-X', 'Forward -X'], ['+Y', 'Forward +Y'], ['-Y', 'Forward -Y']], '', { 'aria-label': 'Source forward direction' });
+    const length = h('input', { type: 'number', min: 0.05, max: 100, step: 0.1, value: isVehicle() ? 6.5 : 1.0, 'aria-label': 'Approximate object length in metres' });
+    const triangles = h('input', { type: 'number', min: 100, max: 25000, step: 1000, value: 24000, 'aria-label': 'Target triangle count' });
+    const resolution = select([['512', '512 px · light'], ['1024', '1024 px · balanced'], ['2048', '2048 px · detailed']], '1024', { 'aria-label': 'Baked texture resolution' });
+    const prepare = h('button', { class: 'btn primary', onclick: async () => {
+      const lengthM = Number(length.value), targetTriangles = Number(triangles.value);
+      if (!Number.isFinite(lengthM) || lengthM <= 0 || !Number.isFinite(targetTriangles) || targetTriangles < 100 || targetTriangles > 25000) {
+        return toast('Check preparation settings', 'Choose a positive object dimension and 100–25,000 target triangles.', 'warn');
+      }
+      prepare.disabled = true; prepare.textContent = 'Queueing preparation…';
+      try {
+        const job = await api.post(`/api/versions/${S.cur.version_id}/auto-process`, {
+          length_m: lengthM, up: upAxis.value, forward: forwardAxis.value || null,
+          target_triangles: targetTriangles, texture_resolution: Number(resolution.value), lod: true,
+        });
+        trackJob(job, {
+          label: 'Automatic mesh preparation',
+          onDone: (done) => {
+            if (done.state === 'COMPLETED' && done.result?.final_version_id) {
+              nav(`#/studio/${S.asset.asset_id}/${done.result.final_version_id}`);
+            } else {
+              const report = done.error?.details?.pipeline;
+              const failed = report?.steps?.find((step) => step.status === 'FAIL');
+              if (failed) toast('Preparation stopped', `${failed.step}: ${failed.detail?.error?.message || 'review the job error details'}`, 'warn');
+              reloadStudio(S.cur?.version_id);
+            }
+          },
+        });
+      } catch (e) {
+        errorToast(e, 'Could not queue preparation');
+        prepare.disabled = false; prepare.textContent = 'Prepare mesh for use';
+      }
+    } }, icon('play'), 'Prepare mesh for use');
+    c.append(h('div', { class: 'card', style: { marginTop: '12px', padding: '12px' } },
+      h('h3', null, 'Automatic mesh preparation'),
+      h('p', { class: 'hint' }, 'Creates new versions while preserving the raw reconstruction. It orients and scales the mesh, cleans geometry, reduces polygons, bakes colour into a texture, creates collision and LODs, then validates.'),
+      h('p', { class: 'hint' }, 'One image cannot reveal every hidden surface or reliably identify the front of an object. Review the 3D views and validation report before using an asset in production.'),
+      h('div', { class: 'row2', style: { marginTop: '8px' } }, field('Source up direction', upAxis), field('Source forward direction', forwardAxis)),
+      h('div', { class: 'row2' }, field('Approximate object length (m)', length), field('Target triangles (max 25,000 for baking)', triangles)),
+      field('Texture resolution', resolution), prepare
+    ));
+  }
   if (a.category === 'heavy_truck') c.append(h('div', { style: { marginTop: '8px' } }, h('button', { class: 'btn', onclick: async () => { try { const v = await api.post(`/api/assets/${a.asset_id}/reference/titan480`); toast('Reference created', 'Procedural ARO TITAN 480 (not AI-generated)', 'ok'); nav(`#/studio/${a.asset_id}/${v.version_id}`); } catch (e) { errorToast(e); } } }, 'Create ARO TITAN 480 reference'),
     h('div', { class: 'hint', style: { marginTop: '4px' } }, 'An original, procedurally authored 6×4 tractor: clearly labelled, never presented as AI output. It lets every stage after reconstruction run for real.')));
   if (gen) c.append(h('div', { style: { marginTop: '10px' } }, h('h3', null, 'Last generation'), kv({ Status: statusChip(gen.status), Engine: `${gen.engine_id}`, Device: gen.device || '—', Inference: gen.execution_time_s != null ? fmt.dur(gen.execution_time_s) : '—', 'Cache': gen.reused_from ? 'reused (no GPU time)' : 'fresh run' })));

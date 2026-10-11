@@ -183,6 +183,83 @@ def gen(c, aid, sha, **kw):
     return r.json()["job_id"]
 
 
+def test_auto_process_endpoint_queues_options_and_returns_pipeline_report(api, monkeypatch):
+    import aro_studio.app_context as app_context_module
+
+    c, ctx = api
+    p = c.post("/api/projects", json={"name": "Auto preparation"}).json()
+    a = c.post(
+        f"/api/projects/{p['project_id']}/assets",
+        json={"name": "Sample prop", "category": "prop", "metadata": {}},
+    ).json()
+    mesh_bytes = trimesh.creation.icosphere(subdivisions=1).export(file_type="glb")
+    imported = c.post(
+        f"/api/assets/{a['asset_id']}/import",
+        files={"file": ("sample.glb", mesh_bytes, "model/gltf-binary")},
+    )
+    assert imported.status_code == 201, imported.text
+    raw_id = imported.json()["version"]["version_id"]
+    captured = {}
+
+    def fake_pipeline(processing, assets, raw_version_id, opts, *, progress=None, check_cancel=None):
+        captured.update({
+            "raw_version_id": raw_version_id,
+            "length_m": opts.length_m,
+            "target_triangles": opts.target_triangles,
+            "texture_resolution": opts.texture_resolution,
+            "lod": opts.lod,
+        })
+        if check_cancel:
+            check_cancel()
+        if progress:
+            progress(0.8, "Test pipeline completed")
+        return {
+            "ok": True,
+            "raw_version_id": raw_version_id,
+            "cleaned_version_id": raw_version_id,
+            "final_version_id": raw_version_id,
+            "validation": {"status": "NEEDS_REVIEW", "overall": 70, "critical_failures": 0, "major_failures": 1},
+            "needs_human": ["Review the result before production use."],
+            "steps": [{"step": "test", "status": "PASS", "seconds": 0.01}],
+        }
+
+    monkeypatch.setattr(app_context_module, "run_ai_pipeline", fake_pipeline)
+    r = c.post(
+        f"/api/versions/{raw_id}/auto-process",
+        json={"length_m": 1.25, "target_triangles": 12000, "texture_resolution": 512, "lod": False},
+    )
+    assert r.status_code == 202, r.text
+    done = wait(c, r.json()["job_id"])
+    assert done["state"] == "COMPLETED" and done["result"]["validation"]["status"] == "NEEDS_REVIEW"
+    assert captured == {
+        "raw_version_id": raw_id,
+        "length_m": 1.25,
+        "target_triangles": 12000,
+        "texture_resolution": 512,
+        "lod": False,
+    }
+
+
+def test_auto_process_rejects_non_raw_version(api):
+    c, ctx = api
+    p = c.post("/api/projects", json={"name": "Auto preparation validation"}).json()
+    a = c.post(
+        f"/api/projects/{p['project_id']}/assets",
+        json={"name": "Sample prop", "category": "prop", "metadata": {}},
+    ).json()
+    mesh_bytes = trimesh.creation.box().export(file_type="glb")
+    imported = c.post(
+        f"/api/assets/{a['asset_id']}/import",
+        files={"file": ("sample.glb", mesh_bytes, "model/gltf-binary")},
+    )
+    assert imported.status_code == 201, imported.text
+    raw = imported.json()["version"]
+    finalized = ctx.processing.run("finalize", raw["version_id"], {"note": "test"})
+    assert finalized.get("version_id")
+    r = c.post(f"/api/versions/{finalized['version_id']}/auto-process", json={})
+    assert r.status_code == 400 and "raw mesh" in r.json()["error"]["message"].lower()
+
+
 def test_batch_generation_queues_named_per_category_assets_and_reports_partial_failures(api, concept_png):
     c, ctx = api
     p = c.post("/api/projects", json={"name": "Batch mixed assets"}).json()

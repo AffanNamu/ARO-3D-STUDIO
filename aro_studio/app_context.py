@@ -8,6 +8,7 @@ from typing import Any
 
 from aro_studio.assets.service import AssetService
 from aro_studio.config import Settings, get_settings
+from aro_studio.core.errors import StudioError
 from aro_studio.db.database import Database
 from aro_studio.engines.manager import ModelManager
 from aro_studio.engines.registry import EngineRegistry
@@ -17,6 +18,7 @@ from aro_studio.generation.service import GenerationService
 from aro_studio.jobs.queue import JobQueue
 from aro_studio.observability.logging import configure_logging
 from aro_studio.observability.metrics import Metrics
+from aro_studio.processing.ai_pipeline import AIPipelineOptions, run_ai_pipeline
 from aro_studio.processing.service import OPERATIONS, ProcessingService
 from aro_studio.projects.service import ProjectService
 from aro_studio.projects.sources import SourceService
@@ -92,6 +94,7 @@ def build_context(
     )
     jobs.register("generation", generation.handle, heavy=True)
     jobs.register("processing", processing.handle, heavy=False)
+    jobs.register("auto_process", _auto_process_handler(processing, assets, s), heavy=True)
     jobs.register("export", _export_handler(exports), heavy=False)
     jobs.register("cleanup", _cleanup_handler(layout, db), heavy=False)
     if start_workers:
@@ -137,6 +140,74 @@ def _record_model(db: Database, engine) -> None:
         "INSERT OR IGNORE INTO model_versions(model_id,version,revision,notes,registered_at) VALUES (?,?,?,?,?)",
         (i.id, i.version, i.revision, lic.notes[:500], time.time()),
     )
+
+
+def _auto_process_handler(processing: ProcessingService, assets: AssetService, settings: Settings):
+    """Build a queued, non-destructive auto-preparation job for raw reconstruction meshes."""
+
+    def run(ctx) -> dict[str, Any]:
+        raw_version_id = ctx.params["raw_version_id"]
+        raw_scene = assets.load_scene(raw_version_id)
+        provenance = raw_scene.manifest.provenance
+        inferred_up = (
+            "+Z"
+            if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr"
+            else "+Y"
+        )
+        opts = AIPipelineOptions(
+            up=ctx.params.get("up") or inferred_up,
+            forward=ctx.params.get("forward"),
+            length_m=float(ctx.params.get("length_m", 1.0)),
+            target_triangles=int(ctx.params.get("target_triangles", 24_000)),
+            texture_resolution=int(ctx.params.get("texture_resolution", 1024)),
+            lod=bool(ctx.params.get("lod", True)),
+            tri_budget=settings.tri_budget_lod0,
+        )
+        ctx.annotate(
+            raw_version_id=raw_version_id,
+            preparation_options={
+                "up": opts.up,
+                "forward": opts.forward,
+                "length_m": opts.length_m,
+                "target_triangles": opts.target_triangles,
+                "texture_resolution": opts.texture_resolution,
+                "lod": opts.lod,
+            },
+        )
+        report = run_ai_pipeline(
+            processing,
+            assets,
+            raw_version_id,
+            opts,
+            progress=ctx.progress,
+            check_cancel=ctx.check,
+        )
+        summary = {
+            "ok": report["ok"],
+            "raw_version_id": report["raw_version_id"],
+            "cleaned_version_id": report["cleaned_version_id"],
+            "final_version_id": report["final_version_id"],
+            "validation": report["validation"],
+            "needs_human": report["needs_human"],
+            "steps": report["steps"],
+        }
+        ctx.annotate(auto_pipeline=summary)
+        if not report["ok"]:
+            failed = next((step for step in report["steps"] if step["status"] == "FAIL"), None)
+            step_name = failed["step"] if failed else "an unknown step"
+            raise StudioError(
+                f"Automatic mesh preparation stopped at {step_name}.",
+                recommended_action=(
+                    "The raw reconstruction is preserved. Review the failed step and its error details, "
+                    "adjust the settings if needed, and retry from the raw version."
+                ),
+                details={"pipeline": report},
+            )
+        status = report.get("validation") or {}
+        ctx.progress(0.99, f"Preparation complete · validation: {status.get('status', 'NEEDS_REVIEW')}")
+        return report
+
+    return run
 
 
 def _export_handler(exports: ExportService):

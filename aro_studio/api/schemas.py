@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ProjectCreate(BaseModel):
@@ -57,6 +57,25 @@ class ProcessBody(BaseModel):
     operation: str
     params: dict[str, Any] = Field(default_factory=dict)
     priority: int = Field(5, ge=1, le=9)
+
+
+class AutoProcessBody(BaseModel):
+    """Settings for a non-destructive prepare/optimise/validate pass on a raw mesh."""
+
+    length_m: float = Field(1.0, gt=0.01, le=100)
+    up: str | None = Field(default=None, pattern=r"^[+-][XYZ]$")
+    forward: str | None = Field(default=None, pattern=r"^[+-][XYZ]$")
+    target_triangles: int = Field(24_000, ge=100, le=25_000)
+    texture_resolution: Literal[512, 1024, 2048] = 1024
+    lod: bool = True
+    priority: int = Field(5, ge=1, le=9)
+
+    @model_validator(mode="after")
+    def axes_must_be_orthogonal(self):
+        effective_up = self.up or "+Z"
+        if self.forward and self.forward[1] == effective_up[1]:
+            raise ValueError("Up and forward directions must use different axes.")
+        return self
 
 
 class ExportBody(BaseModel):
