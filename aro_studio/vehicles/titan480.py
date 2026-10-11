@@ -310,6 +310,25 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
             "headlight",
             P.box([sx * 0.96, 1.64, 2.86], [0.28, 0.18, 0.08]),
         )
+        # Add a dark inner reflector and two slim LED signatures on the forward-facing lens.
+        add(
+            f"Headlight_Inner_Reflector_{s}",
+            R.HEADLIGHT,
+            "aro_black_paint",
+            P.box([sx * 0.96, 1.64, 2.908], [0.238, 0.136, 0.012]),
+        )
+        add(
+            f"Headlight_LED_Upper_{s}",
+            R.HEADLIGHT,
+            "headlight",
+            P.box([sx * 0.96, 1.675, 2.917], [0.198, 0.018, 0.008]),
+        )
+        add(
+            f"Headlight_LED_Lower_{s}",
+            R.HEADLIGHT,
+            "headlight",
+            P.box([sx * 0.96, 1.61, 2.917], [0.198, 0.018, 0.008]),
+        )
         add(
             f"Indicator_{s}",
             R.HEADLIGHT,
@@ -321,6 +340,21 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
             R.BUMPER,
             "aro_gold",
             P.box([sx * 1.04, 0.94, 3.078], [0.045, 0.23, 0.018]),
+        )
+
+    # Lower fog lamps are separate recessed-looking bezels and lenses, not painted decals.
+    for sx, s in ((1, "L"), (-1, "R")):
+        add(
+            f"Fog_Lamp_Bezel_{s}",
+            R.HEADLIGHT,
+            "aro_black_paint",
+            P.cylinder_z([sx * 0.70, 0.81, 3.085], 0.065, 0.018, sections=32),
+        )
+        add(
+            f"Fog_Lamp_{s}",
+            R.HEADLIGHT,
+            "headlight",
+            P.cylinder_z([sx * 0.70, 0.81, 3.101], 0.047, 0.012, sections=32),
         )
 
     for logo_name, logo_mesh in _front_aro_logo_parts(2.89):
