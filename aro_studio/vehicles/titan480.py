@@ -229,9 +229,7 @@ def _side_aro_logo_parts(
     parts.append(
         (
             f"Logo_Door_{side}_09",
-            P.torus_z(
-                [side_x, y, z + 0.125], 0.038, radius, rot=rot, major_sections=24, minor_sections=8
-            ),
+            P.torus_z([side_x, y, z + 0.125], 0.038, radius, rot=rot, major_sections=24, minor_sections=8),
         )
     )
     return parts

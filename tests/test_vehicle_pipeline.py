@@ -102,9 +102,7 @@ def test_collision_separate_and_optimised(full):
 def test_collision_body_approximates_chassis_within_tolerance(full):
     hull = full.collision_meshes["COL_Body"]
     chassis_meshes = [
-        mesh
-        for name, mesh in full.meshes.items()
-        if name == "Chassis_Frame" or name.startswith("Chassis_Crossmember_")
+        mesh for name, mesh in full.meshes.items() if name == "Chassis_Frame" or name.startswith("Chassis_Crossmember_")
     ]
     pts = np.vstack([mesh.vertices for mesh in chassis_meshes])
     _, dist, _ = trimesh.proximity.closest_point(hull, pts)
