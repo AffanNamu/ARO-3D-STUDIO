@@ -18,7 +18,7 @@ import pytest
 
 from aro_studio.core.errors import EngineUnavailableError, ModelError
 from aro_studio.engines import triposr
-from aro_studio.engines.pinning import HubInfo, pin_lock
+from aro_studio.engines.pinning import HubInfo, RealHub, pin_lock
 from aro_studio.engines.registry import license_gate
 from aro_studio.engines.weights import ModelLock, load_lock, resolve_weights, validate_config_classes, verify_file
 
@@ -366,3 +366,44 @@ def test_old_torch_is_refused_because_weights_only_had_a_bypass(fake_stack):
     sys.modules["torch"].__version__ = "2.6.0+cu124"
     assert e.availability("cpu").ok
     assert triposr._version_tuple("2.10.0.dev20250101+cpu") == (2, 10, 0)
+
+
+
+@pytest.mark.parametrize("dictionary_payload", [True, False])
+def test_realhub_model_info_accepts_dict_and_object_sibling_metadata(monkeypatch, dictionary_payload):
+    """The supported Hub client must handle the dict payloads returned by older huggingface_hub versions."""
+    config_lfs = None
+    checkpoint_lfs = {"sha256": sha(CKPT)} if dictionary_payload else types.SimpleNamespace(sha256=sha(CKPT))
+    rows = [
+        {"rfilename": "config.yaml", "lfs": config_lfs, "size": len(CONFIG)},
+        {"rfilename": "model.ckpt", "lfs": checkpoint_lfs, "size": len(CKPT)},
+    ]
+    card = {"license": "mit"} if dictionary_payload else types.SimpleNamespace(license="mit")
+    if not dictionary_payload:
+        rows = [types.SimpleNamespace(**row) for row in rows]
+        rows[0].lfs = None
+
+    model_info = types.SimpleNamespace(sha=REV, siblings=rows, card_data=card)
+
+    class FakeHfApi:
+        def __init__(self, token=None):
+            assert token == "test-token"
+
+        def model_info(self, repo_id, revision=None, files_metadata=False):
+            assert repo_id == "stabilityai/TripoSR"
+            assert revision is None
+            assert files_metadata is True
+            return model_info
+
+    fake_hub_module = types.ModuleType("huggingface_hub")
+    fake_hub_module.HfApi = FakeHfApi
+    monkeypatch.setitem(sys.modules, "huggingface_hub", fake_hub_module)
+
+    actual = RealHub(token="test-token").model_info("stabilityai/TripoSR", None)
+
+    assert actual.sha == REV
+    assert actual.license == "mit"
+    assert actual.files == {
+        "config.yaml": {"sha256": None, "size": len(CONFIG)},
+        "model.ckpt": {"sha256": sha(CKPT), "size": len(CKPT)},
+    }
