@@ -28,6 +28,13 @@ class HubClient(Protocol):
     def download(self, repo_id: str, filename: str, revision: str) -> Path: ...
 
 
+def _field(value: Any, name: str, default: Any = None) -> Any:
+    """Read an API field from both dict payloads (older huggingface_hub) and objects (newer versions)."""
+    if isinstance(value, dict):
+        return value.get(name, default)
+    return getattr(value, name, default)
+
+
 class RealHub:
     """huggingface_hub-backed client (imported lazily so the Studio runs without it)."""
 
@@ -38,12 +45,27 @@ class RealHub:
         from huggingface_hub import HfApi
 
         info = HfApi(token=self.token).model_info(repo_id, revision=revision, files_metadata=True)
-        files = {}
+        files: dict[str, dict[str, Any]] = {}
         for sib in info.siblings or []:
-            lfs = getattr(sib, "lfs", None)
-            files[sib.rfilename] = {"sha256": (lfs.sha256 if lfs else None), "size": getattr(sib, "size", None)}
+            filename = _field(sib, "rfilename")
+            if not isinstance(filename, str) or not filename:
+                raise ModelError(f"Hugging Face returned a sibling without a valid filename for {repo_id}.")
+            lfs = _field(sib, "lfs")
+            # LFS metadata can be either a nested dict or an object. Preserve the raw value;
+            # the pinning step still hashes the downloaded bytes and compares when a SHA is supplied.
+            hub_sha = _field(lfs, "sha256") if lfs is not None else None
+            size = _field(sib, "size")
+            files[filename] = {
+                "sha256": hub_sha if isinstance(hub_sha, str) else None,
+                "size": size if isinstance(size, int) and not isinstance(size, bool) else None,
+            }
         card = getattr(info, "card_data", None)
-        return HubInfo(sha=str(info.sha), license=getattr(card, "license", None) if card else None, files=files)
+        license_tag = _field(card, "license") if card is not None else None
+        return HubInfo(
+            sha=str(info.sha),
+            license=license_tag if isinstance(license_tag, str) else None,
+            files=files,
+        )
 
     def download(self, repo_id: str, filename: str, revision: str) -> Path:
         from huggingface_hub import hf_hub_download
@@ -66,6 +88,8 @@ def pin_lock(
         raise ModelError(f"Requested revision {revision} but the Hub resolved {rev}.")
     files: dict[str, dict[str, Any]] = {}
     for name in w.files:
+        if name not in info.files:
+            raise ModelError(f"{w.repo_id}/{name}: file is not listed at the resolved Hub revision {rev}.")
         path = hub.download(w.repo_id, name, rev)
         digest, size = sha256_file(path), path.stat().st_size
         hub_sha = info.files.get(name, {}).get("sha256")
@@ -74,16 +98,28 @@ def pin_lock(
                 f"{w.repo_id}/{name}: downloaded SHA-256 {digest[:16]}… differs from the Hub-reported {hub_sha[:16]}…; aborting (corrupt or tampered download)."
             )
         hub_size = info.files.get(name, {}).get("size")
-        if hub_size and hub_size != size:
+        if hub_size is not None and hub_size != size:
             raise ModelError(f"{w.repo_id}/{name}: downloaded size {size} differs from the Hub-reported {hub_size}.")
         files[name] = {"sha256": digest, "size": size, "hub_reported_sha256": hub_sha}
     out["weights"].update(revision=rev, pinned_on=today, pinned_by=by)
     out["weights"]["files"] = {k: {"sha256": v["sha256"], "size": v["size"]} for k, v in files.items()}
     for i, a in enumerate(lock.aux_files):
         ainfo = hub.model_info(a.repo_id, a.revision)
+        if a.filename not in ainfo.files:
+            raise ModelError(f"{a.repo_id}/{a.filename}: file is not listed at the resolved Hub revision {ainfo.sha}.")
         apath = hub.download(a.repo_id, a.filename, ainfo.sha)
-        out["aux_files"][i].update(revision=ainfo.sha, sha256=sha256_file(apath), size=apath.stat().st_size)
-    # The Hub's own licence tag at the pinned revision is independent evidence (it is machine-fetched, not typed in).
+        aux_digest, aux_size = sha256_file(apath), apath.stat().st_size
+        hub_aux = ainfo.files.get(a.filename, {})
+        if hub_aux.get("sha256") and hub_aux["sha256"] != aux_digest:
+            raise ModelError(
+                f"{a.repo_id}/{a.filename}: downloaded SHA-256 differs from the Hub-reported checksum; aborting."
+            )
+        if hub_aux.get("size") is not None and hub_aux["size"] != aux_size:
+            raise ModelError(
+                f"{a.repo_id}/{a.filename}: downloaded size {aux_size} differs from the Hub-reported {hub_aux['size']}."
+            )
+        out["aux_files"][i].update(revision=ainfo.sha, sha256=aux_digest, size=aux_size)
+    # The Hub's own licence tag at the pinned revision is independent evidence (machine-fetched, not typed in).
     if info.license:
         out["license"]["evidence"].append(
             {
