@@ -62,7 +62,7 @@ def build_rig(scene: Scene) -> RigSpec:
             parent = sn
         pn = f"Spin_{w.name}"
         nodes.append(RigNode(name=pn, parent=parent, role="wheel_spin", pivot=w.position, axis=(1.0, 0.0, 0.0)))
-        for part in (w.part, w.tire_part):
+        for part in (w.part, w.tire_part, *w.detail_parts):
             if part and part in names:
                 parent_of[part], pivot_of[part] = pn, w.position
     for pv in v.pivots:

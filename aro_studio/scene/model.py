@@ -140,6 +140,7 @@ class WheelDef(_M):
     driven: bool = False
     part: str | None = None  # visual part name
     tire_part: str | None = None
+    detail_parts: list[str] = Field(default_factory=list)  # extra geometry parented to the wheel spin node
 
 
 class AxleDef(_M):

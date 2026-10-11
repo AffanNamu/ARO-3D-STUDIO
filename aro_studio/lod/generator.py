@@ -14,7 +14,7 @@ from aro_studio.scene.model import LodDef, PartDef
 from aro_studio.scene.store import Scene
 
 # Parts driven by animation must stay separate nodes so they can still rotate/steer at every LOD.
-ANIMATED_ROLES = {"wheel", "tire", "door", "mirror", "wiper"}
+ANIMATED_ROLES = {"wheel", "wheel_detail", "tire", "door", "mirror", "wiper"}
 
 
 class LodLevelConfig(BaseModel):

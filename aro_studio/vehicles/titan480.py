@@ -17,11 +17,12 @@ from __future__ import annotations
 import numpy as np
 import trimesh
 
-from aro_studio.materials.library import REFERENCE_MATERIALS
+from aro_studio.materials.library import REFERENCE_MATERIALS, make_material
 from aro_studio.scene.model import (
     AttachmentPoint,
     AxleDef,
     LightDef,
+    MaterialCategory,
     PartDef,
     PivotDef,
     Provenance,
@@ -37,21 +38,46 @@ from aro_studio.vehicles.components import ComponentRole as R
 
 TIRE_R, TIRE_W = 0.52, 0.315
 RIM_R = 0.30
-AXLES = {"Axle_Front": 1.90, "Axle_Rear1": -1.25, "Axle_Rear2": -2.55}  # z of each axle centreline
+# Axle coordinates are tuned to the concept brief's provisional 3.90 m wheelbase.
+# Front axle centre +1.95 m; mean of the tandem rear axles -1.95 m.
+AXLES = {"Axle_Front": 1.95, "Axle_Rear1": -1.30, "Axle_Rear2": -2.60}
 FRONT_X = 1.04
 REAR_INNER_X, REAR_OUTER_X = 0.72, 1.08
 CAB_HALF_W = 1.22
 
+# Titan-specific palette. Keep the generic Studio reference palette unchanged for other asset families.
+TITAN_PAINT = make_material(
+    "aro_pearl_white", MaterialCategory.PAINT,
+    base_color=(0.91, 0.90, 0.86, 1.0), metallic=0.28, roughness=0.25,
+)
+TITAN_GOLD = make_material(
+    "aro_gold", MaterialCategory.METAL,
+    base_color=(0.83, 0.67, 0.27, 1.0), metallic=0.86, roughness=0.25,
+)
+TITAN_BLACK = make_material(
+    "aro_black_paint", MaterialCategory.PAINT,
+    base_color=(0.025, 0.032, 0.042, 1.0), metallic=0.42, roughness=0.30,
+)
+
 
 def _tire(center) -> trimesh.Trimesh:
+    """Tyre with a rounded sidewall and shallow circumferential tread channels."""
     h = TIRE_W / 2
     prof = [
         (RIM_R - 0.02, -h + 0.02),
         (TIRE_R - 0.07, -h),
-        (TIRE_R - 0.02, -h + 0.05),
-        (TIRE_R, -h + 0.12),
-        (TIRE_R, h - 0.12),
-        (TIRE_R - 0.02, h - 0.05),
+        (TIRE_R - 0.03, -0.13),
+        (TIRE_R - 0.012, -0.105),
+        (TIRE_R, -0.08),
+        (TIRE_R, -0.06),
+        (TIRE_R - 0.028, -0.04),
+        (TIRE_R, -0.02),
+        (TIRE_R, 0.02),
+        (TIRE_R - 0.028, 0.04),
+        (TIRE_R, 0.06),
+        (TIRE_R, 0.08),
+        (TIRE_R - 0.012, 0.105),
+        (TIRE_R - 0.03, 0.13),
         (TIRE_R - 0.07, h),
         (RIM_R - 0.02, h - 0.02),
     ]
@@ -67,6 +93,85 @@ def _rim(center, outward: float) -> trimesh.Trimesh:
     return P.merge([m, hub])
 
 
+def _wheel_detail(center, outward: float) -> trimesh.Trimesh:
+    """Gold outer rim ring and ten raised wheel fasteners on the visible side."""
+    rot = trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])
+    ring = P.torus_z(
+        [center[0] + outward * 0.132, center[1], center[2]],
+        0.235,
+        0.012,
+        rot=rot,
+        major_sections=32,
+        minor_sections=8,
+    )
+    bolts = []
+    for i in range(10):
+        angle = 2 * np.pi * i / 10
+        bolt_center = [
+            center[0] + outward * 0.148,
+            center[1] + 0.185 * np.cos(angle),
+            center[2] + 0.185 * np.sin(angle),
+        ]
+        bolts.append(P.cylinder_x(bolt_center, 0.022, 0.035, 8))
+    return P.merge([ring, *bolts])
+
+
+def _fender_arch(center_z: float, side_x: float, radius: float, tube_radius: float) -> trimesh.Trimesh:
+    """Segmented, watertight tube arc around the top half of a wheel opening."""
+    theta = np.linspace(0.0, np.pi, 17)
+    points = [
+        (side_x, TIRE_R + radius * np.sin(angle), center_z + radius * np.cos(angle))
+        for angle in theta
+    ]
+    return P.merge(
+        [P.tube_between(points[i], points[i + 1], tube_radius, sections=8) for i in range(len(points) - 1)]
+    )
+
+
+def _front_aro_logo(z: float) -> trimesh.Trimesh:
+    """Small original ARO monogram as raised strokes; renderer-independent geometry."""
+    r = 0.008
+    strokes = [
+        # A
+        ((-0.235, 2.105, z), (-0.180, 2.245, z)),
+        ((-0.180, 2.245, z), (-0.125, 2.105, z)),
+        ((-0.211, 2.165, z), (-0.149, 2.165, z)),
+        # R
+        ((-0.075, 2.105, z), (-0.075, 2.245, z)),
+        ((-0.075, 2.245, z), (-0.010, 2.245, z)),
+        ((-0.010, 2.245, z), (0.005, 2.222, z)),
+        ((0.005, 2.222, z), (-0.010, 2.185, z)),
+        ((-0.010, 2.185, z), (-0.075, 2.185, z)),
+        ((-0.043, 2.185, z), (0.012, 2.105, z)),
+    ]
+    logo = [P.tube_between(a, b, r, sections=8) for a, b in strokes]
+    logo.append(P.torus_z([0.105, 2.175, z], 0.038, r, major_sections=24, minor_sections=8))
+    return P.merge(logo)
+
+
+def _side_aro_logo(side_x: float, center_y: float, center_z: float) -> trimesh.Trimesh:
+    """Compact side-facing ARO mark on the cab door."""
+    r = 0.007
+    z = center_z
+    y = center_y
+    strokes = [
+        # A
+        ((side_x, y - 0.055, z - 0.135), (side_x, y + 0.055, z - 0.090)),
+        ((side_x, y + 0.055, z - 0.090), (side_x, y - 0.055, z - 0.045)),
+        ((side_x, y - 0.018, z - 0.118), (side_x, y - 0.018, z - 0.062)),
+        # R
+        ((side_x, y - 0.055, z - 0.012), (side_x, y + 0.055, z - 0.012)),
+        ((side_x, y + 0.055, z - 0.012), (side_x, y + 0.055, z + 0.045)),
+        ((side_x, y + 0.055, z + 0.045), (side_x, y - 0.055, z + 0.045)),
+        ((side_x, y - 0.055, z + 0.045), (side_x, y - 0.055, z - 0.012)),
+        ((side_x, y + 0.055, z - 0.012), (side_x, y - 0.055, z + 0.045)),
+    ]
+    logo = [P.tube_between(a, b, r, sections=8) for a, b in strokes]
+    rot = trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])
+    logo.append(P.torus_z([side_x, y, z + 0.125], 0.038, r, rot=rot, major_sections=24, minor_sections=8))
+    return P.merge(logo)
+
+
 def build_titan480(name: str = "ARO TITAN 480") -> Scene:
     parts: list[tuple[str, R, str, trimesh.Trimesh]] = []
 
@@ -80,21 +185,33 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
 
     # --- cab ---------------------------------------------------------------------------------
     profile = [(0.20, 1.15), (2.55, 1.15), (2.63, 2.35), (2.22, 3.55), (0.58, 3.62), (0.20, 3.42)]
-    add("Cab_Shell", R.CABIN, "body_paint", P.extrude_profile_zy(profile, 2 * CAB_HALF_W))
-    add("Roof_Deflector", R.BODY, "body_paint", P.box([0, 3.78, 0.45], [2.1, 0.32, 0.55]))
+    add("Cab_Shell", R.CABIN, "aro_pearl_white", P.extrude_profile_zy(profile, 2 * CAB_HALF_W))
+    add("Roof_Deflector", R.BODY, "aro_pearl_white", P.box([0, 3.78, 0.45], [2.1, 0.32, 0.55]))
+    add("Cab_Roof_Accent", R.BODY, "aro_gold", P.box([0, 3.935, 0.45], [1.84, 0.018, 0.42]))
 
     # --- front end ---------------------------------------------------------------------------
     add("Bumper_Front", R.BUMPER, "plastic", P.box([0, 0.93, 2.78], [2.34, 0.42, 0.30]))
-    add("Grille", R.GRILLE, "plastic", P.box([0, 1.85, 2.66], [1.40, 0.82, 0.07]))
+    add("Cab_Fascia", R.BODY, "aro_black_paint", P.box([0, 1.83, 2.68], [1.96, 1.12, 0.07]))
+    add("Grille", R.GRILLE, "plastic", P.box([0, 1.85, 2.76], [1.40, 0.82, 0.07]))
     add(
         "Grille_Trim",
         R.GRILLE,
-        "chrome",
-        P.merge([P.box([0, 1.55 + 0.14 * i, 2.70], [1.34, 0.025, 0.03]) for i in range(5)]),
+        "aro_gold",
+        P.merge([P.box([0, 1.55 + 0.14 * i, 2.80], [1.34, 0.025, 0.025]) for i in range(5)]),
     )
     for sx, s in ((1, "L"), (-1, "R")):
-        add(f"Headlight_{s}", R.HEADLIGHT, "headlight", P.box([sx * 0.98, 1.62, 2.66], [0.34, 0.20, 0.08]))
-        add(f"Indicator_{s}", R.HEADLIGHT, "indicator", P.box([sx * 0.98, 1.90, 2.66], [0.34, 0.08, 0.07]))
+        add(f"Headlight_Bezel_{s}", R.BODY, "aro_black_paint", P.box([sx * 0.98, 1.62, 2.73], [0.42, 0.28, 0.04]))
+        add(f"Headlight_{s}", R.HEADLIGHT, "headlight", P.box([sx * 0.98, 1.62, 2.77], [0.34, 0.20, 0.08]))
+        add(f"Indicator_{s}", R.HEADLIGHT, "indicator", P.box([sx * 0.98, 1.90, 2.79], [0.34, 0.08, 0.07]))
+        add(f"Bumper_Corner_Accent_{s}", R.BUMPER, "aro_gold", P.box([sx * 1.04, 0.94, 2.946], [0.045, 0.23, 0.025]))
+
+    add("ARO_Grille_Logo", R.GRILLE, "aro_gold", _front_aro_logo(2.835))
+    add("Gold_Bumper_Trim", R.BUMPER, "aro_gold", P.box([0, 0.94, 2.946], [2.16, 0.035, 0.025]))
+    add("Front_Nameplate", R.BODY, "aro_black_paint", P.box([0, 0.79, 2.948], [0.54, 0.12, 0.024]))
+
+    # Five small amber marker lamps across the cab roof edge.
+    for i, x in enumerate((-0.72, -0.36, 0.0, 0.36, 0.72), start=1):
+        add(f"Roof_Marker_{i}", R.HEADLIGHT, "indicator", P.box([x, 3.65, 2.20], [0.085, 0.045, 0.045]))
 
     # windscreen: raked panel offset slightly outside the cab skin
     d = np.array([2.22 - 2.63, 3.55 - 2.35])
@@ -114,12 +231,26 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
 
     # --- doors / door glass / mirrors -------------------------------------------------------
     for sx, s in ((1, "L"), (-1, "R")):
-        add(f"Door_{s}", R.DOOR, "body_paint", P.box([sx * (CAB_HALF_W + 0.025), 2.30, 1.55], [0.05, 1.70, 1.30]))
+        add(f"Door_{s}", R.DOOR, "aro_pearl_white", P.box([sx * (CAB_HALF_W + 0.025), 2.30, 1.55], [0.05, 1.70, 1.30]))
         add(f"Window_Door_{s}", R.WINDOW, "glass", P.box([sx * (CAB_HALF_W + 0.060), 2.95, 1.55], [0.02, 0.65, 1.0]))
         arm = P.tube_between([sx * 1.24, 2.60, 2.18], [sx * 1.62, 2.60, 2.18], 0.018)
         head = P.box([sx * 1.66, 2.62, 2.16], [0.12, 0.46, 0.10])
         add(f"Mirror_{s}", R.MIRROR, "plastic", P.merge([arm, head]))
         add(f"Handle_{s}", R.DOOR, "chrome", P.box([sx * (CAB_HALF_W + 0.065), 2.20, 1.00], [0.03, 0.04, 0.22]))
+
+    # Gold side pinstripes, raised ARO marks and robust access steps.
+    for sx, s in ((1, "L"), (-1, "R")):
+        x = sx * 1.277
+        stripe = [
+            P.tube_between([x, 1.43, 0.28], [x, 1.43, 1.32], 0.016, sections=8),
+            P.tube_between([x, 1.43, 1.32], [x, 1.68, 1.86], 0.016, sections=8),
+            P.tube_between([x, 1.68, 1.86], [x, 1.82, 2.08], 0.016, sections=8),
+        ]
+        add(f"Gold_Pinstripe_{s}", R.BODY, "aro_gold", P.merge(stripe))
+        add(f"Gold_Sill_Trim_{s}", R.BODY, "aro_gold", P.box([sx * 1.275, 1.29, 1.02], [0.024, 0.028, 1.45]))
+        add(f"Door_Logo_{s}", R.DOOR, "aro_gold", _side_aro_logo(sx * 1.292, 2.10, 1.22))
+        add(f"Side_Step_{s}", R.BODY, "aro_black_paint", P.box([sx * 1.08, 0.80, 0.98], [0.34, 0.09, 0.58]))
+        add(f"Side_Step_Grip_{s}", R.BODY, "aro_gold", P.box([sx * 1.22, 0.853, 0.98], [0.035, 0.012, 0.46]))
 
     # --- body ---------------------------------------------------------------------------------
     add(
@@ -131,10 +262,10 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
     for sx, s in ((1, "L"), (-1, "R")):
         add(f"Fuel_Tank_{s}", R.BODY, "aluminium", P.cylinder_z([sx * 0.98, 0.85, -0.55], 0.30, 1.0))
         fenders = [
-            P.box([sx * 0.90, 1.12, -1.90], [0.84, 0.05, 1.7]),
-            P.box([sx * FRONT_X, 1.14, 1.90], [0.46, 0.04, 1.15]),
+            P.box([sx * 0.90, 1.12, (AXLES["Axle_Rear1"] + AXLES["Axle_Rear2"]) / 2], [0.84, 0.05, 1.7]),
+            P.box([sx * FRONT_X, 1.14, AXLES["Axle_Front"]], [0.46, 0.04, 1.15]),
         ]
-        add(f"Fender_{s}", R.BODY, "body_paint", P.merge(fenders))
+        add(f"Fender_{s}", R.BODY, "aro_pearl_white", P.merge(fenders))
         add(f"Mudflap_{s}", R.BODY, "rubber", P.box([sx * 0.90, 0.55, -3.30], [0.55, 0.60, 0.02]))
         add(f"Taillight_{s}", R.TAILLIGHT, "taillight", P.box([sx * 0.88, 0.98, -3.52], [0.16, 0.22, 0.06]))
     add(
@@ -185,8 +316,11 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                 key = ax.replace("Axle_", "").replace("Front", "F").replace("Rear", "R")
                 wn, tn = f"Wheel_{key}_{sfx}{tag}", f"Tire_{key}_{sfx}{tag}"
                 c = [sx * x, TIRE_R, z]
-                add(wn, R.WHEEL, "rim_steel", _rim(c, outward=sx if tag != "I" else -sx))
+                outward = sx if tag != "I" else -sx
+                detail_name = f"Wheel_Detail_{key}_{sfx}{tag}"
+                add(wn, R.WHEEL, "rim_steel", _rim(c, outward=outward))
                 add(tn, R.TIRE, "rubber", _tire(c))
+                add(detail_name, R.WHEEL_DETAIL, "aro_gold", _wheel_detail(c, outward))
                 wheel_defs.append(
                     WheelDef(
                         name=wn,
@@ -199,8 +333,28 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                         driven=not front,
                         part=wn,
                         tire_part=tn,
+                        detail_parts=[detail_name],
                     )
                 )
+
+    # Fender lips follow the actual wheel coordinates, not independent guessed offsets.
+    for ax, center_z in AXLES.items():
+        axle_key = ax.replace("Axle_", "")
+        outer_x = FRONT_X + TIRE_W / 2 if ax == "Axle_Front" else REAR_OUTER_X + TIRE_W / 2
+        for sx, side in ((1, "L"), (-1, "R")):
+            x = sx * (outer_x + 0.04)
+            add(
+                f"Fender_Arch_{axle_key}_{side}",
+                R.BODY,
+                "aro_black_paint",
+                _fender_arch(center_z, x, TIRE_R + 0.12, 0.028),
+            )
+            add(
+                f"Fender_Accent_{axle_key}_{side}",
+                R.BODY,
+                "aro_gold",
+                _fender_arch(center_z, x + sx * 0.022, TIRE_R + 0.135, 0.010),
+            )
 
     # --- vehicle metadata ---------------------------------------------------------------------
     pivots: list[PivotDef] = []
@@ -324,7 +478,11 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         name=name,
         category="heavy_truck",
         parts=[PartDef(name=n, component=r.value, material=m, mesh_file="") for n, r, m, _ in parts],
-        materials=[m.model_copy(deep=True) for m in REFERENCE_MATERIALS],
+        materials=[m.model_copy(deep=True) for m in REFERENCE_MATERIALS] + [
+            TITAN_PAINT.model_copy(deep=True),
+            TITAN_GOLD.model_copy(deep=True),
+            TITAN_BLACK.model_copy(deep=True),
+        ],
         vehicle=vehicle,
         provenance=Provenance(
             source="procedural_reference",

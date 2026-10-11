@@ -19,6 +19,7 @@ class ComponentRole(str, Enum):
     EXHAUST = "exhaust"
     AXLE = "axle"
     WHEEL = "wheel"
+    WHEEL_DETAIL = "wheel_detail"
     TIRE = "tire"
     ATTACHMENT = "attachment"
     WIPER = "wiper"

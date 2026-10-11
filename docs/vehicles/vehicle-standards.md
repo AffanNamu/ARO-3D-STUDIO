@@ -12,7 +12,7 @@ metres · right-handed · **+Y up** · **+Z forward** · **+X = vehicle left** (
 |---|---|
 | Identity | manufacturer, brand, model, category, body type, drive configuration (`6x4` = 6 wheel *positions* on 3 axles, 4 driven), asset version |
 | Geometry (component roles) | chassis, cabin, body, bumper, grille, door, window, mirror, headlight, taillight, exhaust, axle, wheel, tire, attachment, wiper, interior |
-| Running gear | axles (position, track, steering, driven, suspension travel), wheels (position, radius, width, axle, steering, driven, part + tyre part) |
+| Running gear | axles (position, track, steering, driven, suspension travel), wheels (position, radius, width, axle, steering, driven, rim + tyre + optional wheel-detail parts) |
 | Physics preparation | collision (separate from visuals), wheel positions, centre of mass, suspension points, steering points, attachment points |
 | Articulation | pivots with axis + limits: doors, mirrors, wipers, steering wheel; lights (kind, position, direction) |
 | Materials | paint, glass, rubber, chrome, metal, plastic, lights, interior |
