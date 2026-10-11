@@ -48,7 +48,7 @@ def configure_vehicle(scene: Scene, spec: dict[str, Any] | None, component_map: 
         for w in veh.wheels:
             if w.axle not in axle_names:
                 raise InvalidInputError(f"Wheel '{w.name}' references unknown axle '{w.axle}'.")
-            for ref in (w.part, w.tire_part):
+            for ref in (w.part, w.tire_part, *w.detail_parts):
                 if ref and ref not in names:
                     raise InvalidInputError(f"Wheel '{w.name}' references unknown part '{ref}'.")
         for pv in veh.pivots:

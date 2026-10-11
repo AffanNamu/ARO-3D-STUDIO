@@ -406,7 +406,7 @@ def l006(c: Ctx):
     for lod in man.lods:
         have = {p.name for p in lod.parts}
         anim_missing += [
-            f"LOD{lod.level}:{p.name}" for p in man.parts if p.component in ("wheel", "tire") and p.name not in have
+            f"LOD{lod.level}:{p.name}" for p in man.parts if p.component in ("wheel", "wheel_detail", "tire") and p.name not in have
         ]
     if not man.lods:
         return S, "no LODs"
@@ -555,7 +555,12 @@ def v004(c: Ctx):
         bad = [
             w.name
             for w in v.wheels
-            if w.axle not in ax or (w.part and w.part not in parts) or (w.tire_part and w.tire_part not in parts)
+            if (
+                w.axle not in ax
+                or (w.part and w.part not in parts)
+                or (w.tire_part and w.tire_part not in parts)
+                or any(detail not in parts for detail in w.detail_parts)
+            )
         ]
         return (
             (P, "all wheels reference an axle and existing parts")

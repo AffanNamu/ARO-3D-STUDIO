@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from aro_studio.animation.rig import build_rig
+from aro_studio.geometry.inspect import inspect_mesh
 from aro_studio.lod.generator import generate_lods
 from aro_studio.vehicles.titan480 import AXLES, TIRE_R, build_titan480
 
@@ -30,8 +31,8 @@ def test_titan_hero_palette_and_reference_details_are_present():
         "Roof_Marker_5",
         "Gold_Pinstripe_L",
         "Gold_Pinstripe_R",
-        "Door_Logo_L",
-        "Door_Logo_R",
+        "Logo_Door_L",
+        "Logo_Door_R",
         "Side_Step_L",
         "Side_Step_R",
         "Fender_Arch_Front_L",
@@ -49,6 +50,13 @@ def test_titan_hero_palette_and_reference_details_are_present():
     assert len(scene.manifest.vehicle.components["wheel"]) == 10
     assert len(scene.manifest.vehicle.components["wheel_detail"]) == 10
     assert all(len(w.detail_parts) == 1 for w in scene.manifest.vehicle.wheels)
+
+    nonmanifold = {}
+    for name, mesh in scene.meshes.items():
+        report = inspect_mesh(mesh, check_intersections=False)
+        if report.nonmanifold_edges:
+            nonmanifold[name] = report.nonmanifold_edges
+    assert not nonmanifold, nonmanifold
 
 
 def test_titan_axle_layout_matches_provisional_3900_mm_wheelbase():

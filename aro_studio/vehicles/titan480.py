@@ -117,15 +117,50 @@ def _wheel_detail(center, outward: float) -> trimesh.Trimesh:
 
 
 def _fender_arch(center_z: float, side_x: float, radius: float, tube_radius: float) -> trimesh.Trimesh:
-    """Segmented, watertight tube arc around the top half of a wheel opening."""
-    theta = np.linspace(0.0, np.pi, 17)
-    points = [
-        (side_x, TIRE_R + radius * np.sin(angle), center_z + radius * np.cos(angle))
-        for angle in theta
-    ]
-    return P.merge(
-        [P.tube_between(points[i], points[i + 1], tube_radius, sections=8) for i in range(len(points) - 1)]
+    """Create a closed tube sweep with shared vertices and capped endpoints."""
+    path_steps, ring_steps = 25, 12
+    theta = np.linspace(0.0, np.pi, path_steps)
+    phi = np.arange(ring_steps) * (2 * np.pi / ring_steps)
+    vertices = []
+    faces = []
+
+    for angle in theta:
+        center = np.array([side_x, TIRE_R + radius * np.sin(angle), center_z + radius * np.cos(angle)])
+        normal = np.array([0.0, np.sin(angle), np.cos(angle)])
+        for around in phi:
+            offset = tube_radius * np.array(
+                [np.cos(around), np.sin(around) * normal[1], np.sin(around) * normal[2]]
+            )
+            vertices.append(center + offset)
+
+    for step in range(path_steps - 1):
+        for around in range(ring_steps):
+            nxt = (around + 1) % ring_steps
+            a = step * ring_steps + around
+            b = (step + 1) * ring_steps + around
+            c = (step + 1) * ring_steps + nxt
+            d = step * ring_steps + nxt
+            faces.extend(((a, b, c), (a, c, d)))
+
+    start_center = len(vertices)
+    vertices.append([side_x, TIRE_R, center_z + radius])
+    end_center = len(vertices)
+    vertices.append([side_x, TIRE_R, center_z - radius])
+    end_start = (path_steps - 1) * ring_steps
+    for around in range(ring_steps):
+        nxt = (around + 1) % ring_steps
+        faces.append((start_center, around, nxt))
+        faces.append((end_center, end_start + nxt, end_start + around))
+
+    mesh = trimesh.Trimesh(
+        vertices=np.asarray(vertices),
+        faces=np.asarray(faces),
+        process=False,
     )
+    mesh.fix_normals()
+    if mesh.volume < 0:
+        mesh.invert()
+    return mesh
 
 
 def _front_aro_logo(z: float) -> trimesh.Trimesh:
@@ -180,8 +215,15 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
 
     # --- chassis ---------------------------------------------------------------------------
     rails = [P.box([sx * 0.46, 0.88, -0.45], [0.11, 0.30, 6.1]) for sx in (-1, 1)]
-    cross = [P.box([0, 0.86, z], [0.92, 0.12, 0.14]) for z in (2.45, 1.4, 0.2, -1.0, -2.0, -3.2)]
-    add("Chassis_Frame", R.CHASSIS, "chassis_steel", P.merge(rails + cross))
+    crossmember_z = (2.45, 1.4, 0.2, -1.0, -2.0, -3.2)
+    add("Chassis_Frame", R.CHASSIS, "chassis_steel", P.merge(rails))
+    for index, z in enumerate(crossmember_z, start=1):
+        add(
+            f"Chassis_Crossmember_{index:02d}",
+            R.CHASSIS,
+            "chassis_steel",
+            P.box([0, 0.86, z], [0.92, 0.12, 0.14]),
+        )
 
     # --- cab ---------------------------------------------------------------------------------
     profile = [(0.20, 1.15), (2.55, 1.15), (2.63, 2.35), (2.22, 3.55), (0.58, 3.62), (0.20, 3.42)]
@@ -248,7 +290,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
         ]
         add(f"Gold_Pinstripe_{s}", R.BODY, "aro_gold", P.merge(stripe))
         add(f"Gold_Sill_Trim_{s}", R.BODY, "aro_gold", P.box([sx * 1.275, 1.29, 1.02], [0.024, 0.028, 1.45]))
-        add(f"Door_Logo_{s}", R.DOOR, "aro_gold", _side_aro_logo(sx * 1.292, 2.10, 1.22))
+        add(f"Logo_Door_{s}", R.DOOR, "aro_gold", _side_aro_logo(sx * 1.292, 2.10, 1.22))
         add(f"Side_Step_{s}", R.BODY, "aro_black_paint", P.box([sx * 1.08, 0.80, 0.98], [0.34, 0.09, 0.58]))
         add(f"Side_Step_Grip_{s}", R.BODY, "aro_gold", P.box([sx * 1.22, 0.853, 0.98], [0.035, 0.012, 0.46]))
 
@@ -368,7 +410,7 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
                 axis=(0, 1, 0),
                 limits_deg=(-70.0, 0.0) if sx > 0 else (0.0, 70.0),
                 part=f"Door_{s}",
-                children=[f"Window_Door_{s}", f"Handle_{s}"],
+                children=[f"Window_Door_{s}", f"Handle_{s}", f"Logo_Door_{s}"],
             )
         )
         pivots.append(
