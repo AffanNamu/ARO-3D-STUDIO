@@ -253,10 +253,16 @@ def read_smoke_evidence(path: Path) -> Evidence:
         problems.append("the invalid-file probe did not pass")
     if problems:
         return Evidence(FAIL, "evidence rejected: PASS claimed but " + "; ".join(problems)[:400], str(path), facts)
+    reviewed = [i for i in items if (i.get("human_review") or {}).get("status") == "REVIEWED"]
+    facts["human_reviewed_items"] = len(reviewed)
+    review_note = (
+        f"visual quality REVIEWED by a person for {len(reviewed)}/{len(items)} items"
+        if reviewed
+        else "visual quality is PENDING_HUMAN_REVIEW (a person must inspect the renders)"
+    )
     return Evidence(
         PASS,
-        f"{len(items)} different images went through the real engine and the Studio path; visual quality is "
-        f"{facts['visual_quality'] or 'PENDING_HUMAN_REVIEW'} (a person must inspect the renders)",
+        f"{len(items)} different images went through the real engine and the Studio path; {review_note}",
         str(path),
         facts,
     )

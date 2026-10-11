@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import io
 import json
+import shutil
 import sys
 import tempfile
 import time
@@ -39,6 +40,31 @@ TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "RESOURCE_LIMIT", "MO
 
 def sha256(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
+
+
+def git_head() -> str | None:
+    import subprocess
+
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, timeout=10, check=False
+        )  # noqa: S603, S607
+        return r.stdout.strip() or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def image_facts(path: Path) -> dict:
+    from PIL import Image
+
+    with Image.open(path) as im:
+        return {
+            "width": im.width,
+            "height": im.height,
+            "mode": im.mode,
+            "format": im.format,
+            "has_alpha": "A" in im.getbands(),
+        }
 
 
 def wait_job(client, jid: str, timeout: float) -> dict:
@@ -117,6 +143,7 @@ def main() -> int:
 
     from aro_studio.api.app import create_app
     from aro_studio.app_context import build_context
+    from aro_studio.assets.taxonomy import get_category
     from aro_studio.config import Settings
     from aro_studio.verification.hardware import VramPoller, environment
 
@@ -128,6 +155,7 @@ def main() -> int:
         "recorded_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mode": "test_double" if a.double else "real_engine",
         "environment": environment(),
+        "studio_commit": git_head(),
         "status": {"real_inference": "BLOCKED"},
         "blockers": [],
         "coverage_problems": coverage_problems(items),
@@ -233,9 +261,13 @@ def main() -> int:
             rec: dict[str, Any] = {
                 "name": specs[idx]["name"],
                 "category": it["category"],
+                "category_group": get_category(it["category"]).group,
                 "input_file": it["abs_path"].name,
                 "input_sha256": sha256(it["abs_path"].read_bytes()),
+                "input_size_bytes": it["abs_path"].stat().st_size,
+                "input_image": image_facts(it["abs_path"]),
                 "input_source_note": it.get("source", "(not recorded)"),
+                "input_preserved_as": f"inputs/{idx + 1:02d}-{it['abs_path'].name}",
                 "batch_status": bi["status"],
                 "human_review": {
                     "status": "PENDING_HUMAN_REVIEW",
@@ -245,13 +277,21 @@ def main() -> int:
                     "orientation_up_front": None,
                 },
             }
+            (out / "inputs").mkdir(exist_ok=True)
+            shutil.copy2(it["abs_path"], out / rec["input_preserved_as"])  # the original bytes, untouched
             ev["items"].append(rec)
             if bi["status"] != "QUEUED":
                 rec["result"] = "FAIL"
                 rec["error"] = bi.get("error")
                 continue
             job = wait_job(client, bi["job"]["job_id"], a.timeout_s)
-            rec["generation_job"] = {"job_id": job.get("job_id"), "state": job["state"], "error": job.get("error")}
+            rec["generation_job"] = {
+                "job_id": job.get("job_id"),
+                "state": job["state"],
+                "error": job.get("error"),
+                "job_seconds": (job.get("resources") or {}).get("seconds"),
+                "preflight": ((job.get("resources") or {}).get("annotations") or {}).get("resources_preflight"),
+            }
             res = job.get("result") or {}
             if job["state"] != "COMPLETED" or not res.get("model_ran"):
                 rec["result"] = "FAIL"
@@ -293,6 +333,19 @@ def main() -> int:
                 prov.input_image_sha256 == bi["source"]["sha256"]
             )
             rec["real_inference"]["source_image_served"] = stored.status_code == 200
+            if gen.get("output_path") and (ctx.layout.root / gen["output_path"]).is_file():
+                (out / "raw").mkdir(exist_ok=True)
+                raw_copy = out / "raw" / f"{idx + 1:02d}-{Path(rec['input_file']).stem}-raw.glb"
+                shutil.copy2(ctx.layout.root / gen["output_path"], raw_copy)
+                rec["raw_mesh_file"] = (
+                    f"raw/{raw_copy.name}"  # large: kept out of git by .gitignore, packaged separately
+                )
+                rec["real_inference"]["raw_copy_sha256"] = sha256(raw_copy.read_bytes())
+            rec["real_inference"]["input_bytes_equal_stored_source"] = rec["input_sha256"] == bi["source"]["sha256"]
+            rec["generation_report"] = {
+                k: (raw_scene.reports.get("generation") or {}).get(k)
+                for k in ("settings", "preprocess_steps", "engine_details", "execution_time_s", "model_load_time_s")
+            }
             rec["raw_sanity"] = res.get("mesh")
             rec["raw_manifest_sha256_before_prep"] = raw_ver["manifest_sha256"]
             rec["raw_views"] = six_views(raw_scene, out / "views", f"{idx + 1:02d}-raw")

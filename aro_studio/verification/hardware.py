@@ -69,4 +69,27 @@ def environment() -> dict:
     except Exception as e:  # noqa: BLE001
         env["tsr_importable"] = False
         env["tsr_error"] = f"{type(e).__name__}: {e}"
+    from importlib import metadata
+
+    pk: dict[str, str | None] = {}
+    for name in (
+        "torch",
+        "torchvision",
+        "transformers",
+        "omegaconf",
+        "einops",
+        "huggingface-hub",
+        "numpy",
+        "trimesh",
+        "pillow",
+        "rembg",
+        "onnxruntime",
+        "torchmcubes",
+        "xatlas",
+    ):
+        try:
+            pk[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            pk[name] = None
+    env["packages"] = pk
     return env

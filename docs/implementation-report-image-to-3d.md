@@ -1,7 +1,8 @@
 # Implementation report — general-purpose image-to-3D milestone
 
-Code state verified: `b1b6a8a` on `claude/zen-johnson-je3dzk` — **CI run 44: all 7 jobs green** (lint/format/types/security,
-Python 3.10 / 3.11 / 3.12 tests, browser e2e, Docker build, reference-asset acceptance). This report is committed afterwards.
+Code verified at `b1b6a8a` — **CI run 44: all 7 jobs green**; the report-only commit `10c1c3f` — **CI run 45: green**
+(lint/format/types/security, Python 3.10 / 3.11 / 3.12 tests, browser e2e, Docker build, reference-asset acceptance).
+The evidence-completion commit that follows is listed in the changelog below with its own CI result.
 
 ## Verdict
 
@@ -43,12 +44,39 @@ Python 3.10 / 3.11 / 3.12 tests, browser e2e, Docker build, reference-asset acce
 | Skipped (5) | `tests/test_triposr_real.py` — need `ARO_RUN_MODEL_TESTS=1` and the model. **A skip is not a pass** |
 | Not run | Unity 6 import (no editor); any real model inference |
 
-## Real inference evidence
+## Verification matrix — what is established, and by what
 
-None. The lock was completed from a Colab run (`587a0b6`), and that run exposed a recorder bug (`2192c6c`), but no inference output
-was committed. Exact next step: run `notebooks/aro_real_inference_colab.ipynb` (free T4) with a vehicle photo you may use plus two
-TripoSR example objects, look at the renders, fill in `human_review`, and commit `docs/acceptance/evidence/ai/smoke/`. Until
-then the acceptance report keeps components 3 and 4 at BLOCKED.
+| Claim | Implemented & unit-tested | Browser e2e | **Actual AI inference** | **Generic prep + export of real AI output** | State |
+|---|---|---|---|---|---|
+| Image upload, content validation, invalid-file rejection | ✅ | ✅ (batch screen) | n/a | n/a | verified |
+| Batch: independent jobs/assets, per-image name+category, partial failure | ✅ (API) | ✅ (test-double engine, labelled in the UI) | ❌ not run | ❌ | verified for plumbing only |
+| TripoSR adapter, licence gate, weight SHA-256 verification, safe load, class allow-list | ✅ (stand-ins that record call order) | n/a | ❌ **never executed on real weights in committed evidence** | n/a | **unverified on real hardware** |
+| Model lock (revision `5b521936…`, checksums) | ✅ | n/a | recorded from a Colab run (`587a0b6`); not re-fetched by the author | n/a | identity pin only |
+| Real inference through the Studio, ≥ 3 different images | harness + tests (`--double`, BLOCKED path) | n/a | ❌ **OUTSTANDING** | ❌ | **blocked: no GPU / no Hugging Face in the agent environment** |
+| Automatic preparation: raw immutable, steps reported, texture failure honest | ✅ synthetic mesh | n/a | n/a | ❌ not yet on real output | synthetic only |
+| Verified GLB export reopened | ✅ (procedural + synthetic) | n/a | n/a | ❌ not yet on real output | procedural only |
+| Unity 6 import | script syntax-checked only | n/a | n/a | n/a | **never executed** |
+| Human visual review of real outputs | script + schema (refuses empty/unknown) | n/a | ❌ nothing to review yet | ❌ | pending |
+
+## Real inference: status and the exact outstanding step
+
+**No real inference has been executed or committed.** The agent environment (re-probed for this milestone) has no GPU and cannot
+reach `huggingface.co`, `cdn-lfs`, GitHub git/codeload or PyTorch wheels (only PyPI, npm and `raw.githubusercontent.com`), so
+neither the weights nor the TripoSR source can be fetched here. I therefore prepared the run for you to execute; **this milestone is
+not complete until you do.**
+
+Prepared (and verified here): `notebooks/aro_real_inference_colab.ipynb` — 12 ordered cells with expected output and a failure
+bundle; commit-pinned TripoSR clone with a checkout assertion; the Studio's own availability report + `verify_triposr_weights.py`
+**before** any generation; no licence override, no test double (a unit test fails if either appears); test images documented and
+SHA-256-pinned (TripoSR `examples/` chair, teapot, robot — fetched and inspected from the pinned commit) plus your own vehicle
+photo with a mandatory source statement. The harness now preserves input images byte-for-byte, records dimensions/hashes/source,
+job ids, model revision, device and package versions, copies each raw artefact (kept out of git) and its hash, records preparation
+steps and the re-opened export per item, and `fill_human_review.py` / `package_smoke_evidence.py` finish the evidence.
+A dry run of the whole flow with the real example images and the test double passed; the real mode correctly ended BLOCKED
+here with the exact missing-dependency reasons.
+
+Outstanding: run the notebook (≈ 10–25 min on a T4), look at the renders, record the review, send back
+`smoke-evidence-repo.zip`. I will then commit it under `docs/acceptance/evidence/ai/smoke/` and update the matrix above.
 
 ## Known limitations
 

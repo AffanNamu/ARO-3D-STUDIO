@@ -44,6 +44,13 @@ def test_double_mode_proves_wiring_but_never_claims_inference(tmp_path):
         assert it["result"] == "PASS" and it["raw_immutable"] and it["real_inference"]["finite"]
         assert it["human_review"]["status"] == "PENDING_HUMAN_REVIEW"  # quality is never auto-judged
         assert it["export"]["sha256_matches_record"] and it["preparation"]["steps"]
+        # inputs and raw artefacts are preserved byte-for-byte, with their provenance recorded
+        assert (tmp_path / "out" / it["input_preserved_as"]).read_bytes() == (tmp_path / it["input_file"]).read_bytes()
+        assert it["input_image"]["width"] == 320 and it["category_group"] in ("vehicles", "environment", "objects")
+        raw = tmp_path / "out" / it["raw_mesh_file"]
+        assert raw.is_file() and it["real_inference"]["raw_copy_sha256"] == it["real_inference"]["output_sha256"]
+        assert it["real_inference"]["input_bytes_equal_stored_source"] is True
+    assert ev["studio_commit"] and ev["environment"]["packages"]["numpy"]
 
 
 def test_real_mode_reports_blocked_when_the_engine_cannot_run(tmp_path):
@@ -73,3 +80,93 @@ def test_coverage_rules_require_three_images_with_vehicle_and_non_vehicle(tmp_pa
     Image.new("RGB", (8, 8), (9, 9, 9)).save(tmp_path / "y.png")
     probs = " ".join(smoke.coverage_problems(two_vehicles))
     assert "at least 3" in probs and "no non-vehicle" in probs
+
+
+def test_package_splits_repo_safe_files_from_raw_meshes(tmp_path):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import zipfile
+
+    import package_smoke_evidence as pk
+
+    src = tmp_path / "smoke"
+    (src / "raw").mkdir(parents=True)
+    (src / "inputs").mkdir()
+    (src / "smoke-evidence.json").write_text("{}")
+    (src / "inputs" / "01-a.png").write_bytes(b"png")
+    (src / "raw" / "01-a-raw.glb").write_bytes(b"x" * 100)
+    (src / "01-prepared.glb").write_bytes(b"y" * (pk.MAX_REPO_FILE + 1))
+    r = pk.package(src, tmp_path / "out")
+    assert sorted(zipfile.ZipFile(r["repo_zip"]).namelist()) == ["inputs/01-a.png", "smoke-evidence.json"]
+    assert zipfile.ZipFile(r["raw_zip"]).namelist() == ["raw/01-a-raw.glb"]
+    assert r["too_large_for_git"] and r["too_large_for_git"][0][0] == "01-prepared.glb"
+
+
+def _real_evidence():
+    return {
+        "mode": "real_engine",
+        "status": {"real_inference": "PASS", "visual_quality": "PENDING_HUMAN_REVIEW"},
+        "items": [
+            {
+                "name": "Chair",
+                "real_inference": {"model_ran": True},
+                "human_review": {"status": "PENDING_HUMAN_REVIEW"},
+            },
+            {"name": "Crash", "real_inference": {}, "human_review": {"status": "PENDING_HUMAN_REVIEW"}},
+        ],
+    }
+
+
+def test_human_review_is_only_accepted_when_complete_and_for_real_outputs():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import fill_human_review as fh
+
+    good = {
+        "recognisable": "partially",
+        "visual_defects": "back legs fused",
+        "category_limitations": "thin parts",
+        "orientation_up_front": "+Z up, front unknown",
+    }
+    ev = _real_evidence()
+    fh.apply_reviews(ev, {"Chair": good}, "Reviewer", "2026-10-12")
+    assert (
+        ev["items"][0]["human_review"]["status"] == "REVIEWED"
+        and ev["items"][0]["human_review"]["reviewed_by"] == "Reviewer"
+    )
+    assert ev["status"]["visual_quality"] == "REVIEWED"  # the only item that really ran is reviewed
+    for bad, why in (
+        ({"Chair": {**good, "visual_defects": " "}}, "missing"),
+        ({"Chair": {**good, "recognisable": "maybe"}}, "recognisable"),
+        ({"Crash": good}, "no real output"),
+        ({"Nope": good}, "unknown"),
+    ):
+        with pytest.raises(SystemExit) as e:
+            fh.apply_reviews(_real_evidence(), bad, "Reviewer")
+        assert why in str(e.value).lower() or why in str(e.value)
+    with pytest.raises(SystemExit):
+        fh.apply_reviews({**_real_evidence(), "mode": "test_double"}, {"Chair": good}, "Reviewer")
+    with pytest.raises(SystemExit):
+        fh.apply_reviews(_real_evidence(), {"Chair": good}, " ")
+
+
+def test_colab_notebook_is_runnable_in_order_and_cannot_fake_inference():
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    assert nb["nbformat"] == 4 and len({c["id"] for c in nb["cells"]}) == len(nb["cells"])
+    code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
+    assert all(not c.get("outputs") for c in nb["cells"] if c["cell_type"] == "code"), (
+        "commit the notebook without outputs"
+    )
+    # runs the real harness in real mode; no test double, no licence override, no bypass of weight verification
+    assert "real_inference_smoke.py" in code and "--double" not in code
+    assert "ARO_VERIFIED_MODEL_LICENSES" not in code and "verify_triposr_weights.py" in code
+    assert "availability ok: True" in code and "TSR_COMMIT" in code
+    for script in (
+        "real_inference_smoke.py",
+        "fill_human_review.py",
+        "package_smoke_evidence.py",
+        "verify_triposr_weights.py",
+    ):
+        assert script in code and (ROOT / "scripts" / script).is_file()
+    # the images are documented and pinned; the vehicle needs a stated source
+    assert "VEHICLE_SOURCE.strip()" in code and code.count("sha256") >= 3
+    pinned = json.loads((ROOT / "aro_studio/engines/locks/triposr.json").read_text())["code"]["commit"]
+    assert pinned and "TSR_COMMIT = lock['code']['commit']" in code

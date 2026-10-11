@@ -14,3 +14,6 @@ build/
 dist/
 /output/
 /models_cache/
+
+# real-inference smoke test: raw TripoSR meshes are large; keep them out of git (hashes are in smoke-evidence.json)
+docs/acceptance/evidence/ai/smoke/raw/
