@@ -94,6 +94,7 @@ def test_wheel_details_follow_the_wheel_rig_and_survive_all_lods():
         names = {part.name for part in lod_level.parts}
         assert all(detail in names for wheel in scene.manifest.vehicle.wheels for detail in wheel.detail_parts)
 
+
 def test_windshield_is_offset_along_the_actual_cab_plane_normal():
     scene = build_titan480()
     glass = scene.meshes["Window_Windshield"]
