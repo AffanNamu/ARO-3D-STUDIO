@@ -101,6 +101,27 @@ def environment() -> dict:
     return env
 
 
+def summarize_pipeline_steps(steps: list) -> list[dict]:
+    """Normalize pipeline step records without assuming a specific field name across report versions.
+
+    The current pipeline emits StepRecord dictionaries with a "step" field. Older reports may use "name".
+    Preserve the stable evidence schema ("name") and include failure detail when available.
+    """
+    summary = []
+    for item in steps:
+        if not isinstance(item, dict):
+            continue
+        row = {
+            "name": item.get("name", item.get("step", "unknown")),
+            "status": item.get("status"),
+            "seconds": item.get("seconds"),
+        }
+        if item.get("status") == "FAIL" and item.get("detail") is not None:
+            row["detail"] = item["detail"]
+        summary.append(row)
+    return summary
+
+
 def six_views(scene, out: Path) -> list[str]:
     from aro_studio.utils.render import render_asset_scene
 
@@ -292,9 +313,7 @@ def main() -> int:
             opts.forward = a.forward
         rep = run_ai_pipeline(ctx.processing, ctx.assets, raw_id, opts)
         ev["pipeline"] = {k: rep[k] for k in ("ok", "source_axes", "needs_human", "final_version_id", "options")}
-        ev["pipeline"]["steps"] = [
-            {k: s[k] for k in ("name", "status", "seconds")} for s in rep["steps"] if isinstance(s, dict)
-        ]
+        ev["pipeline"]["steps"] = summarize_pipeline_steps(rep["steps"])
         ev["pipeline"]["validation"] = (
             {k: rep["validation"][k] for k in ("status", "overall", "critical_failures", "major_failures")}
             if rep.get("validation")
