@@ -56,22 +56,39 @@ def weights_dir(tmp_path):
     return d
 
 
-# ---- the committed lock ------------------------------------------------------------------------------------
-def test_committed_lock_records_licence_evidence_but_is_honestly_incomplete():
+# ---- lock fixtures and the committed lock --------------------------------------------------------------------------
+def incomplete_lock() -> ModelLock:
+    """Deliberately remove integrity pins to test that the security gate remains closed."""
+    d = load_lock("triposr").model_dump(by_alias=True, mode="json")
+    d["weights"].update(revision=None, pinned_on=None, pinned_by=None)
+    for file_lock in d["weights"]["files"].values():
+        file_lock.update(sha256=None, size=None)
+    for aux in d["aux_files"]:
+        aux.update(revision=None, sha256=None, size=None)
+    return ModelLock.model_validate(d)
+
+
+def test_committed_lock_records_licence_evidence_and_complete_pin():
     lock = load_lock("triposr")
     assert lock.license.spdx == "MIT" and lock.code["commit"] == "107cefdc244c39106fa830359024f6a2f1c78871"
     ev = lock.license.evidence
     assert any(e.independently_fetched and "LICENSE" in e.source and e.file_sha256 for e in ev)
     assert any(e.independently_fetched and "README" in e.source for e in ev)
-    owner = [e for e in ev if "huggingface.co" in e.source][0]
-    assert owner.independently_fetched is False and "could NOT fetch" in owner.verified_by  # never overstated
-    # no revision/checksum may be invented: they stay null until scripts/pin_triposr_weights.py runs with Hub access
-    assert lock.weights.revision is None and all(f.sha256 is None for f in lock.weights.files.values())
-    assert not lock.complete() and any("revision" in m for m in lock.missing())
+    owner = [e for e in ev if "huggingface.co" in e.source and not e.independently_fetched][0]
+    assert "could NOT fetch" in owner.verified_by  # owner statement remains clearly identified
+    assert lock.complete() and lock.missing() == []
+    assert lock.weights.revision is not None and len(lock.weights.revision) == 40
+    assert lock.weights.pinned_on and lock.weights.pinned_by
+    for f in lock.weights.files.values():
+        assert f.sha256 is not None and len(f.sha256) == 64 and f.size and f.size > 0
+    for aux in lock.aux_files:
+        assert aux.revision is not None and len(aux.revision) == 40
+        assert aux.sha256 is not None and len(aux.sha256) == 64 and aux.size and aux.size > 0
+    assert "intentionally null until" not in lock.note
 
 
 def test_engine_stays_gated_and_blocked_while_lock_incomplete():
-    e = triposr.TripoSREngine()
+    e = triposr.TripoSREngine(lock=incomplete_lock())
     assert (
         e.info.license.status == "claimed"
         and "UNPINNED" in e.info.version
@@ -90,7 +107,7 @@ def test_engine_stays_gated_and_blocked_while_lock_incomplete():
 
 
 def test_even_with_deployer_attestation_unpinned_weights_cannot_load():
-    e = triposr.TripoSREngine()
+    e = triposr.TripoSREngine(lock=incomplete_lock())
     license_gate(e, {"triposr"})  # the licence attestation alone passes the licence gate...
     with pytest.raises(EngineUnavailableError):  # ...but the integrity gate is independent and still closed
         e.load("cpu")
@@ -159,7 +176,7 @@ def test_resolve_refuses_other_repositories_and_incomplete_lock(weights_dir):
     with pytest.raises(ModelError, match="Refusing to load weights"):
         resolve_weights(complete_lock(), "evil/TripoSR-pro")
     with pytest.raises(ModelError, match="incomplete") as ei:
-        resolve_weights(load_lock("triposr"), str(weights_dir))
+        resolve_weights(incomplete_lock(), str(weights_dir))
     assert ei.value.details["missing"]
 
 
