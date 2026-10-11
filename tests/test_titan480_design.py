@@ -93,3 +93,20 @@ def test_wheel_details_follow_the_wheel_rig_and_survive_all_lods():
     for lod_level in scene.manifest.lods:
         names = {part.name for part in lod_level.parts}
         assert all(detail in names for wheel in scene.manifest.vehicle.wheels for detail in wheel.detail_parts)
+
+def test_windshield_is_offset_along_the_actual_cab_plane_normal():
+    scene = build_titan480()
+    glass = scene.meshes["Window_Windshield"]
+
+    delta_z = 2.22 - 2.63
+    delta_y = 3.55 - 2.35
+    length = np.hypot(delta_z, delta_y)
+    outward_normal = np.array([0.0, -delta_z, delta_y]) / length
+    plane_midpoint = np.array([0.0, (2.35 + 3.55) / 2, (2.63 + 2.22) / 2])
+
+    assert np.allclose(
+        glass.centroid,
+        plane_midpoint + outward_normal * 0.03,
+        atol=1e-6,
+    )
+

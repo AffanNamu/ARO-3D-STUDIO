@@ -290,7 +290,9 @@ def build_titan480(name: str = "ARO TITAN 480") -> Scene:
     ang = float(np.arctan2(d[0], d[1]))  # lean from vertical toward -Z
     glass = trimesh.creation.box(extents=[2.2, length * 0.84, 0.03])
     glass.apply_transform(trimesh.transformations.rotation_matrix(ang, [1, 0, 0]))
-    nrm = np.array([0.0, d[1], -d[0]]) / length  # (x, y, z) outward normal
+    # d is ordered (delta_z, delta_y), so the perpendicular in world (y, z)
+    # is (delta_y, -delta_z); map that back to (x, y, z) coordinates.
+    nrm = np.array([0.0, -d[0], d[1]]) / length
     mid = np.array([0.0, (2.35 + 3.55) / 2, (2.63 + 2.22) / 2])
     glass.apply_translation(mid + nrm * 0.03)
     add("Window_Windshield", R.WINDOW, "glass", glass)
