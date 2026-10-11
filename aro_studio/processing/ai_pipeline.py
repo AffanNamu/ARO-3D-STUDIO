@@ -8,8 +8,8 @@ the vehicle is the front, wheel/axle positions). Nothing here fabricates a vehic
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np

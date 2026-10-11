@@ -117,7 +117,16 @@ function srcBody() {
   if (S.cur?.stage === 'raw') {
     const defaultUp = prov?.source === 'ai_reconstruction' && prov?.engine_id === 'triposr' ? '+Z' : '+Y';
     const upAxis = select(['+Y', '+Z', '-Y', '-Z', '+X', '-X'], defaultUp, { 'aria-label': 'Source up direction' });
-    const forwardAxis = select([['', 'Automatic guess (review)'], ['+Z', 'Forward +Z'], ['-Z', 'Forward -Z'], ['+X', 'Forward +X'], ['-X', 'Forward -X'], ['+Y', 'Forward +Y'], ['-Y', 'Forward -Y']], '', { 'aria-label': 'Source forward direction' });
+    const allForwardOptions = [['', 'Automatic guess (review)'], ['+Z', 'Forward +Z'], ['-Z', 'Forward -Z'], ['+X', 'Forward +X'], ['-X', 'Forward -X'], ['+Y', 'Forward +Y'], ['-Y', 'Forward -Y']];
+    const forwardAxis = select(allForwardOptions, '', { 'aria-label': 'Source forward direction' });
+    const refreshForwardOptions = () => {
+      const previous = forwardAxis.value;
+      const options = allForwardOptions.filter(([value]) => !value || value[1] !== upAxis.value[1]);
+      forwardAxis.replaceChildren(...options.map(([value, label]) => h('option', { value, selected: value === previous }, label)));
+      if (previous && previous[1] === upAxis.value[1]) forwardAxis.value = '';
+    };
+    upAxis.onchange = refreshForwardOptions;
+    refreshForwardOptions();
     const length = h('input', { type: 'number', min: 0.05, max: 100, step: 0.1, value: isVehicle() ? 6.5 : 1.0, 'aria-label': 'Approximate object length in metres' });
     const triangles = h('input', { type: 'number', min: 100, max: 25000, step: 1000, value: 24000, 'aria-label': 'Target triangle count' });
     const resolution = select([['512', '512 px · light'], ['1024', '1024 px · balanced'], ['2048', '2048 px · detailed']], '1024', { 'aria-label': 'Baked texture resolution' });

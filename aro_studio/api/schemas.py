@@ -72,8 +72,7 @@ class AutoProcessBody(BaseModel):
 
     @model_validator(mode="after")
     def axes_must_be_orthogonal(self):
-        effective_up = self.up or "+Z"
-        if self.forward and self.forward[1] == effective_up[1]:
+        if self.up and self.forward and self.forward[1] == self.up[1]:
             raise ValueError("Up and forward directions must use different axes.")
         return self
 

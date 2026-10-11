@@ -680,6 +680,19 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                 "Automatic preparation must start from a raw mesh version.",
                 recommended_action="Choose the original raw reconstruction in the Versions panel; existing versions are never overwritten.",
             )
+        if b.forward and not b.up:
+            raw_scene = c.assets.load_scene(vid)
+            provenance = raw_scene.manifest.provenance
+            inferred_up = (
+                "+Z"
+                if provenance.source == "ai_reconstruction" and provenance.engine_id == "triposr"
+                else "+Y"
+            )
+            if b.forward[1] == inferred_up[1]:
+                raise InvalidInputError(
+                    "The selected forward direction conflicts with this mesh's default up axis.",
+                    recommended_action="Choose a forward direction on a different axis, or explicitly set both up and forward directions.",
+                )
         params = b.model_dump(exclude={"priority"})
         params["raw_version_id"] = vid
         return c.jobs.submit(
