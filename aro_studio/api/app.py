@@ -277,6 +277,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         preset: str | None = Form(None),
         settings_json: str = Form("{}"),
         preprocess_json: str = Form("{}"),
+        items_json: str = Form("[]"),
         use_cache: bool = Form(True),
         force: bool = Form(False),
         priority: int = Form(5, ge=1, le=9),
@@ -295,12 +296,18 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         if project["status"] != "active":
             raise InvalidInputError("Images can only be queued in an active project.")
 
-        category_def = taxonomy.require_creatable(category)
         try:
             settings_value = json.loads(settings_json)
             preprocess_value = json.loads(preprocess_json)
+            item_specs = json.loads(items_json)
             if not isinstance(settings_value, dict) or not isinstance(preprocess_value, dict):
                 raise ValueError("Settings must be JSON objects.")
+            if not isinstance(item_specs, list) or (item_specs and len(item_specs) != len(files)):
+                raise ValueError("Per-image settings must be a list matching the uploaded files.")
+            if not item_specs:
+                item_specs = [{} for _ in files]
+            if any(not isinstance(spec, dict) for spec in item_specs):
+                raise ValueError("Each per-image setting must be an object.")
             # Validate preprocessing before accepting work, so malformed options do not create doomed jobs.
             preprocess_value = PreprocessOptions(**preprocess_value).as_settings()
         except (ValueError, TypeError) as e:
@@ -315,6 +322,9 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
             original_name = sanitize_filename(upload.filename or f"image-{index}.png")
             asset = None
             try:
+                spec = item_specs[index - 1]
+                item_category = spec.get("category", category)
+                category_def = taxonomy.require_creatable(item_category)
                 data = await read_limited(upload, c.settings.max_upload_mb * 1_000_000)
                 source = await asyncio.to_thread(
                     c.sources.add_image,
@@ -324,11 +334,15 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                     category_group=category_def.group,
                 )
                 stem = Path(original_name).stem
-                asset_name = " ".join(stem.replace("_", " ").replace("-", " ").split()) or f"Image {index}"
+                default_name = " ".join(stem.replace("_", " ").replace("-", " ").split()) or f"Image {index}"
+                requested_name = spec.get("name", default_name)
+                if not isinstance(requested_name, str):
+                    raise InvalidInputError("Asset name must be text.")
+                asset_name = " ".join(requested_name.split())
                 asset = c.assets.create_asset(
                     pid,
                     asset_name[:120],
-                    category,
+                    item_category,
                     {
                         "source_filename": original_name,
                         "source_sha256": source["sha256"],

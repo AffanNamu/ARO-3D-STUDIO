@@ -47,15 +47,22 @@ export async function mount(root, [assetId]) {
     batchSummary.textContent = batch.items.length
       ? `${batch.items.length} image(s) selected · ${queued} queued/completed · ${failed} failed`
       : 'Choose multiple images of different objects.';
-    batchList.replaceChildren(...(batch.items.length ? batch.items.map((item, index) => h('div', { class: 'card', style: { padding: '10px' } },
-      h('div', { class: 'btn-row', style: { justifyContent: 'space-between' } },
-        h('b', null, item.file.name),
-        h('span', { class: item.status === 'FAILED' || item.status === 'MODEL_ERROR' ? 'chip err' : item.status === 'COMPLETED' ? 'chip ok' : 'chip' }, item.status)),
-      h('div', { class: 'hint' }, fmt.bytes(item.file.size)),
-      item.error ? h('div', { class: 'hint', style: { color: 'var(--danger, #ff7474)' } }, item.error) : null,
-      item.asset ? h('a', { class: 'btn sm', href: `#/studio/${item.asset.asset_id}` }, 'Open asset') : null,
-      !batch.busy && item.status === 'Ready' ? h('button', { class: 'btn sm', style: { marginTop: '6px' }, onclick: () => { batch.items.splice(index, 1); drawBatch(); update(); } }, 'Remove') : null
-    )) : [empty('No images selected yet.')]));
+    batchList.replaceChildren(...(batch.items.length ? batch.items.map((item, index) => {
+      const editable = item.status === 'Ready' && !batch.busy;
+      const nameInput = h('input', { value: item.name, maxlength: 120, disabled: !editable, 'aria-label': `Asset name for ${item.file.name}`, onchange: (e) => { item.name = e.target.value; } });
+      const categoryInput = select(categories, item.category, { 'aria-label': `Category for ${item.file.name}`, disabled: !editable });
+      categoryInput.onchange = () => { item.category = categoryInput.value; };
+      return h('div', { class: 'card', style: { padding: '10px' } },
+        h('div', { class: 'btn-row', style: { justifyContent: 'space-between' } },
+          h('b', null, item.file.name),
+          h('span', { class: item.status === 'FAILED' || item.status === 'MODEL_ERROR' ? 'chip err' : item.status === 'COMPLETED' ? 'chip ok' : 'chip' }, item.status)),
+        h('div', { class: 'hint' }, fmt.bytes(item.file.size)),
+        h('div', { class: 'row2', style: { marginTop: '8px' } }, field('Asset name', nameInput), field('Asset category', categoryInput)),
+        item.error ? h('div', { class: 'hint', style: { color: 'var(--danger, #ff7474)' } }, item.error) : null,
+        item.asset ? h('a', { class: 'btn sm', href: `#/studio/${item.asset.asset_id}` }, 'Open asset') : null,
+        editable ? h('button', { class: 'btn sm', style: { marginTop: '6px' }, onclick: () => { batch.items.splice(index, 1); drawBatch(); update(); } }, 'Remove') : null
+      );
+    }) : [empty('No images selected yet.')]));
   };
   const update = () => {
     go.disabled = !(st.project && st.asset && st.sha && eng?.runnable);
@@ -73,11 +80,15 @@ export async function mount(root, [assetId]) {
       trackJob(job, { label: 'Generation', onDone: (j) => { drawHist(); if (j.state === 'COMPLETED') toast('Raw asset saved', 'Open it in the 3D Studio to inspect and process.', 'ok'); } }); drawHist();
     } catch (e) { errorToast(e); }
   };
+  batchCategory.onchange = () => {
+    batch.items.filter((item) => item.status === 'Ready').forEach((item) => { item.category = batchCategory.value; });
+    drawBatch();
+  };
   batchInput.onchange = () => {
     const picked = Array.from(batchInput.files || []);
     batchInput.value = '';
     if (picked.length > 10) toast('Batch limited to 10 images', 'Choose up to 10 images per run.', 'warn');
-    batch.items = picked.slice(0, 10).map((file) => ({ file, status: 'Ready' }));
+    batch.items = picked.slice(0, 10).map((file) => ({ file, name: file.name.replace(/\\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'New asset', category: batchCategory.value, status: 'Ready' }));
     drawBatch();
     update();
   };
@@ -93,6 +104,7 @@ export async function mount(root, [assetId]) {
       const form = new FormData();
       ready.forEach((item) => form.append('files', item.file, item.file.name));
       form.append('category', batchCategory.value);
+      form.append('items_json', JSON.stringify(ready.map((item) => ({ name: item.name, category: item.category }))));
       form.append('engine_id', eng.info.id);
       form.append('preset', presetSel.value);
       const settings = {};
@@ -167,9 +179,9 @@ export async function mount(root, [assetId]) {
     h('div', { class: 'btn-row', style: { justifyContent: 'space-between' } },
       h('h3', null, 'Batch image-to-3D'),
       h('span', { class: 'chip' }, 'Up to 10 images')),
-    h('p', { class: 'hint' }, 'Select several images of different objects. Each image creates its own asset and AI generation job; this does not combine multiple views of one object.'),
+    h('p', { class: 'hint' }, 'Select images of different objects. Name and classify each asset separately; each accepted image creates its own AI generation job. Multiple views of one object are not fused.'),
     h('div', { class: 'row2', style: { alignItems: 'end', marginTop: '10px' } },
-      field('Category for every image', batchCategory),
+      field('Default category for new images', batchCategory),
       h('div', { class: 'btn-row' }, batchInput,
         h('button', { class: 'btn', onclick: () => batchInput.click() }, 'Choose images'))),
     h('div', { class: 'btn-row', style: { justifyContent: 'space-between', marginTop: '10px' } },

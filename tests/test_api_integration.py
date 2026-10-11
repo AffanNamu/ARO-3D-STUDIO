@@ -183,18 +183,24 @@ def gen(c, aid, sha, **kw):
     return r.json()["job_id"]
 
 
-def test_batch_generation_queues_one_asset_per_valid_image_and_reports_partial_failures(api, concept_png):
+def test_batch_generation_queues_named_per_category_assets_and_reports_partial_failures(api, concept_png):
     c, ctx = api
-    p = c.post("/api/projects", json={"name": "Batch props"}).json()
+    p = c.post("/api/projects", json={"name": "Batch mixed assets"}).json()
     pid = p["project_id"]
     r = c.post(
         f"/api/projects/{pid}/batch-generate",
         files=[
             ("files", ("first-object.png", concept_png, "image/png")),
+            ("files", ("second-object.png", concept_png, "image/png")),
             ("files", ("invalid-object.png", b"not an image", "image/png")),
         ],
         data={
-            "category": "prop",
+            "category": "other",
+            "items_json": json.dumps([
+                {"name": "First Prop", "category": "prop"},
+                {"name": "Small Building", "category": "building"},
+                {"name": "Invalid Image", "category": "prop"},
+            ]),
             "engine_id": "plumbing_test_double",
             "preset": "LOW_RESOURCE",
             "settings_json": "{}",
@@ -207,17 +213,20 @@ def test_batch_generation_queues_one_asset_per_valid_image_and_reports_partial_f
     )
     assert r.status_code == 202, r.text
     payload = r.json()
-    assert payload["total"] == 2 and payload["queued"] == 1 and payload["failed"] == 1
-    valid, invalid = payload["items"]
-    assert valid["index"] == 0 and valid["status"] == "QUEUED"
-    assert valid["asset"]["name"] == "first object" and valid["asset"]["category"] == "prop"
-    assert invalid["index"] == 1 and invalid["status"] == "FAILED" and invalid["error"]["message"]
-    asset = c.get(f"/api/assets/{valid['asset']['asset_id']}").json()
-    assert asset["metadata"]["ingestion_mode"] == "batch_image_to_3d"
-    assert asset["metadata"]["batch_id"] == payload["batch_id"]
-    finished = wait(c, valid["job"]["job_id"])
-    assert finished["state"] == "COMPLETED" and finished["result"]["model_ran"] is True
-    assert c.get(f"/api/assets/{valid['asset']['asset_id']}").json()["versions"]
+    assert payload["total"] == 3 and payload["queued"] == 2 and payload["failed"] == 1
+    first, second, invalid = payload["items"]
+    assert first["index"] == 0 and first["status"] == "QUEUED"
+    assert first["asset"]["name"] == "First Prop" and first["asset"]["category"] == "prop"
+    assert second["index"] == 1 and second["status"] == "QUEUED"
+    assert second["asset"]["name"] == "Small Building" and second["asset"]["category"] == "building"
+    assert invalid["index"] == 2 and invalid["status"] == "FAILED" and invalid["error"]["message"]
+    first_asset = c.get(f"/api/assets/{first['asset']['asset_id']}").json()
+    assert first_asset["metadata"]["ingestion_mode"] == "batch_image_to_3d"
+    assert first_asset["metadata"]["batch_id"] == payload["batch_id"]
+    for item in (first, second):
+        finished = wait(c, item["job"]["job_id"])
+        assert finished["state"] == "COMPLETED" and finished["result"]["model_ran"] is True
+        assert c.get(f"/api/assets/{item['asset']['asset_id']}").json()["versions"]
 
 
 def test_generation_records_everything_and_preserves_raw(api, concept_png):
