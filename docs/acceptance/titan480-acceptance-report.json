@@ -283,11 +283,11 @@
     "studio": "0.1.0",
     "resources": {
       "cpu_count": 4,
-      "cpu_percent": 31.2,
+      "cpu_percent": 20.0,
       "ram_total_mb": 16093,
-      "ram_available_mb": 15261,
+      "ram_available_mb": 15480,
       "disk_total_mb": 258019,
-      "disk_free_mb": 22803,
+      "disk_free_mb": 22634,
       "process_rss_mb": 126,
       "gpu": {
         "available": false,
@@ -359,13 +359,13 @@
         }
       },
       "blocking_reasons": [],
-      "validation_id": "val_cdf04aaa98134cf3aa74"
+      "validation_id": "val_59c6694155964004a5e9"
     },
     "warnings": [
-      "G010 No self-intersections: 1298 intersecting triangle pairs"
+      "G010 No self-intersections: 166 intersecting triangle pairs"
     ],
-    "export_dir": "/tmp/aro_acceptance_birmi86b/projects/prj_3203762367714a40a95b/exports/exp_2bab7be3ed4c47debe71",
-    "final_version": "ver_7d325296e64644788138",
+    "export_dir": "/tmp/aro_acceptance_65pc2itv/projects/prj_a2c7dc34cf3942a7b122/exports/exp_3b2831cca7cf4e6bbd4e",
+    "final_version": "ver_5b36aec82c6740699a8b",
     "khronos": {
       "ran": true,
       "validator_version": "2.0.0-dev.3.10",
@@ -375,14 +375,14 @@
       "ok": true,
       "messages": []
     },
-    "glb_path": "/tmp/aro_acceptance_birmi86b/projects/prj_3203762367714a40a95b/exports/exp_630b83aa61f44d35b56b/ARO-TITAN-480-v0.7.glb"
+    "glb_path": "/tmp/aro_acceptance_65pc2itv/projects/prj_a2c7dc34cf3942a7b122/exports/exp_57b15fe1b533429789c0/ARO-TITAN-480-v0.7.glb"
   },
   "stages": [
     {
       "n": 1,
       "stage": "Create ARO TITAN 480 project",
       "status": "PASS",
-      "detail": "project prj_3203762367714a40a95b, asset ast_d03aed246c454fed8530",
+      "detail": "project prj_a2c7dc34cf3942a7b122, asset ast_7a6f8daf59ee4728a59c",
       "seconds": 0.0
     },
     {
@@ -390,8 +390,8 @@
       "stage": "Upload concept image",
       "status": "PARTIAL",
       "detail": "image is a software render of the procedural reference model, not an artist's concept image; stored by content hash",
-      "seconds": 0.7,
-      "sha256": "91f82e04063e5b1969c5d6851ec0ce41584eb8c4e210d3e7385f6cf8857dc03d"
+      "seconds": 1.07,
+      "sha256": "7e83979302e224e690cb8e4c3884d15cd0c0346f4273aec231008066445eef50"
     },
     {
       "n": 3,
@@ -411,10 +411,9 @@
       "n": 5,
       "stage": "Load the image-to-3D model",
       "status": "BLOCKED",
-      "detail": "TripoSR cannot load here: Supply-chain lock incomplete: weights revision of stabilityai/TripoSR pinned to a 40-hex commit; SHA-256 + size of stabilityai/TripoSR/config.yaml; SHA-256 + size of stabilityai/TripoSR/model.ckpt; revision + SHA-256 + size of auxiliary file facebook/dino-vitb16/config.json.; The 'tsr' package (TripoSR source) is not importable.; Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes.; weights licence 'claimed' not yet verified (set ARO_VERIFIED_MODEL_LICENSES=triposr). To activate: python scripts/pin_triposr_weights.py   (needs Hugging Face access) \u2192 review the diff of engines/locks/triposr.json \u2192 commit | git clone https://github.com/VAST-AI-Research/TripoSR && git -C TripoSR checkout 107cefdc244c39106fa830359024f6a2f1c78871 && add it to PYTHONPATH (the Dockerfile does this). | pip install -r requirements-triposr.txt  (torch must match the host CUDA version)",
+      "detail": "TripoSR cannot load here: The 'tsr' package (TripoSR source) is not importable.; Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes.. To activate: git clone https://github.com/VAST-AI-Research/TripoSR && git -C TripoSR checkout 107cefdc244c39106fa830359024f6a2f1c78871 && add it to PYTHONPATH (the Dockerfile does this). | pip install -r requirements-triposr.txt  (torch must match the host CUDA version)",
       "seconds": 0.0,
       "reasons": [
-        "Supply-chain lock incomplete: weights revision of stabilityai/TripoSR pinned to a 40-hex commit; SHA-256 + size of stabilityai/TripoSR/config.yaml; SHA-256 + size of stabilityai/TripoSR/model.ckpt; revision + SHA-256 + size of auxiliary file facebook/dino-vitb16/config.json.",
         "The 'tsr' package (TripoSR source) is not importable.",
         "Missing Python packages: torch, omegaconf, einops, transformers, huggingface_hub, torchmcubes."
       ]
@@ -430,29 +429,29 @@
       "n": 7,
       "stage": "Save raw output",
       "status": "PARTIAL",
-      "detail": "no AI output exists; the procedural reference was saved as the raw version ver_38214aac5f154777a34f so the remaining stages can run on a real, structured vehicle",
-      "seconds": 0.09
+      "detail": "no AI output exists; the procedural reference was saved as the raw version ver_f75f607049504fa2b277 so the remaining stages can run on a real, structured vehicle",
+      "seconds": 0.31
     },
     {
       "n": 8,
       "stage": "Process the geometry",
       "status": "PASS",
-      "detail": "standard cleanup: 15,736 \u2192 15,736 faces; steps ['remove_invalid', 'merge_vertices', 'remove_degenerate', 'remove_duplicate_faces', 'remove_small_components', 'fix_normals']",
-      "seconds": 2.26
+      "detail": "standard cleanup: 42,140 \u2192 42,140 faces; steps ['remove_invalid', 'merge_vertices', 'remove_degenerate', 'remove_duplicate_faces', 'remove_small_components', 'fix_normals']",
+      "seconds": 5.52
     },
     {
       "n": 9,
       "stage": "Repair valid geometry problems",
       "status": "PARTIAL",
-      "detail": "defects found before repair: {'duplicate_vertices': 1}; after: holes=0, non-manifold=0. Repair operations (merge, fill holes, normals, fragments) are unit-tested on damaged meshes",
+      "detail": "defects found before repair: {'duplicate_vertices': 62, 'nonmanifold_edges': 28}; after: holes=0, non-manifold=28. Repair operations (merge, fill holes, normals, fragments) are unit-tested on damaged meshes",
       "seconds": 0.0
     },
     {
       "n": 10,
       "stage": "Process materials",
       "status": "PASS",
-      "detail": "12 PBR materials (paint, glass, rubber, chrome, plastic, lights, interior\u2026)",
-      "seconds": 0.1
+      "detail": "15 PBR materials (paint, glass, rubber, chrome, plastic, lights, interior\u2026)",
+      "seconds": 0.27
     },
     {
       "n": 11,
@@ -465,33 +464,33 @@
       "n": 12,
       "stage": "Configure vehicle metadata",
       "status": "PASS",
-      "detail": "ARO Motors TITAN 480 \u00b7 heavy_truck \u00b7 6x4; components: ['attachment', 'axle', 'body', 'bumper', 'cabin', 'chassis', 'door', 'exhaust', 'grille', 'headlight', 'interior', 'mirror', 'taillight', 'tire', 'wheel', 'window', 'wiper']; 7 pivots, 6 lights, 4 attachment points, CoM (0.0, 1.1, -0.6)",
+      "detail": "ARO Motors TITAN 480 \u00b7 heavy_truck \u00b7 6x4; components: ['attachment', 'axle', 'body', 'bumper', 'cabin', 'chassis', 'door', 'exhaust', 'grille', 'headlight', 'interior', 'mirror', 'taillight', 'tire', 'wheel', 'wheel_detail', 'window', 'wiper']; 7 pivots, 6 lights, 4 attachment points, CoM (0.0, 1.1, -0.6)",
       "seconds": 0.0
     },
     {
       "n": 13,
       "stage": "Configure wheels and axles",
       "status": "PASS",
-      "detail": "3 axles, 10 wheels (steered: 2, driven: 8), wheelbase 3.80 m \u2014 taken from the reference spec, not auto-detected",
+      "detail": "3 axles, 10 wheels (steered: 2, driven: 8), wheelbase 3.90 m \u2014 taken from the reference spec, not auto-detected",
       "seconds": 0.0
     },
     {
       "n": 14,
       "stage": "Generate/prepare collision geometry",
       "status": "PASS",
-      "detail": "2 colliders (COL_Body:96, COL_Cabin:68); rig of 33 nodes",
-      "seconds": 0.1,
+      "detail": "2 colliders (COL_Body:252, COL_Cabin:142); rig of 33 nodes",
+      "seconds": 0.27,
       "fidelity": {
         "COL_Body": {
-          "exact_triangles": 96,
-          "max_corner_gap_m": 0.0,
-          "reduced_triangles": 96,
+          "exact_triangles": 328,
+          "max_corner_gap_m": 0.0011,
+          "reduced_triangles": 252,
           "volume_ratio": 1.0
         },
         "COL_Cabin": {
-          "exact_triangles": 68,
+          "exact_triangles": 142,
           "max_corner_gap_m": 0.0,
-          "reduced_triangles": 68,
+          "reduced_triangles": 142,
           "volume_ratio": 1.0
         }
       }
@@ -500,43 +499,43 @@
       "n": 15,
       "stage": "Generate LODs",
       "status": "PASS",
-      "detail": "triangles: LOD0 15,736 \u2192 LOD1 8,922 \u2192 LOD2 4,664 \u2192 LOD3 2,356",
-      "seconds": 0.31
+      "detail": "triangles: LOD0 42,140 \u2192 LOD1 23,758 \u2192 LOD2 12,720 \u2192 LOD3 6,434",
+      "seconds": 0.72
     },
     {
       "n": 16,
       "stage": "Validate the entire asset",
       "status": "PASS",
       "detail": "PRODUCTION_READY \u00b7 overall 99.7% \u00b7 critical 0 \u00b7 major 0 \u00b7 geometry 98.5%, materials 100.0%, lod 100.0%, collision 100.0%, vehicle 100.0%, unity 100.0%",
-      "seconds": 2.31
+      "seconds": 5.42
     },
     {
       "n": 17,
       "stage": "Display in the 3D viewer",
       "status": "PASS",
       "detail": "Playwright/Chromium e2e: loaded the asset in the three.js viewer, exercised views, wireframe, shading, grid, bounds, collision, rig, LOD switching, lighting, stats",
-      "seconds": 54.36
+      "seconds": 77.5
     },
     {
       "n": 18,
       "stage": "Save the project version",
       "status": "PASS",
-      "detail": "7 immutable versions: v0.1:reference.titan480, v0.2:geometry, v0.3:materials, v0.4:rig, v0.5:collision, v0.6:lod, v0.7:finalize; CURRENT PRODUCTION VERSION = ver_7d325296e64644788138",
-      "seconds": 2.48
+      "detail": "7 immutable versions: v0.1:reference.titan480, v0.2:geometry, v0.3:materials, v0.4:rig, v0.5:collision, v0.6:lod, v0.7:finalize; CURRENT PRODUCTION VERSION = ver_5b36aec82c6740699a8b",
+      "seconds": 5.48
     },
     {
       "n": 19,
       "stage": "Export GLB",
       "status": "PASS",
-      "detail": "1.12 MB, sha256 5ab462e66e087903\u2026, triangles per LOD {'LOD0': 15736, 'LOD1': 8922, 'LOD2': 4664, 'LOD3': 2356}; Khronos validator: 0 errors / 0 warnings (v2.0.0-dev.3.10)",
-      "seconds": 1.01
+      "detail": "3.26 MB, sha256 49657311eb608700\u2026, triangles per LOD {'LOD0': 42140, 'LOD1': 23758, 'LOD2': 12720, 'LOD3': 6434}; Khronos validator: 0 errors / 0 warnings (v2.0.0-dev.3.10)",
+      "seconds": 2.36
     },
     {
       "n": 20,
       "stage": "Generate Unity-ready output",
       "status": "PASS",
-      "detail": "Unity package 1.14 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; also glTF COMPLETED, OBJ COMPLETED",
-      "seconds": 2.44
+      "detail": "Unity package 3.74 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; also glTF COMPLETED, OBJ COMPLETED",
+      "seconds": 6.65
     },
     {
       "n": 21,

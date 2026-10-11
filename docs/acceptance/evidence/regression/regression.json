@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "when": "2026-10-10T19:15:50Z",
-  "git_commit": "105ffd799e21f2f99873614894163eb33013845b",
+  "when": "2026-10-11T16:12:59Z",
+  "git_commit": "416383ab22a72e1ef11fbef795bb3b83c0ebae93",
   "dirty_tree": true,
   "python": "3.13.16",
   "steps": [
@@ -24,18 +24,18 @@
       "command": "/tmp/claude-0/venv/bin/python -m ruff format --check .",
       "log": "docs/acceptance/evidence/regression/ruff-format-check.log",
       "tail": [
-        "167 files already formatted"
+        "179 files already formatted"
       ]
     },
     {
       "name": "mypy",
       "status": "PASS",
       "exit_code": 0,
-      "seconds": 0.4,
+      "seconds": 0.3,
       "command": "/tmp/claude-0/venv/bin/python -m mypy aro_studio app.py",
       "log": "docs/acceptance/evidence/regression/mypy.log",
       "tail": [
-        "Success: no issues found in 104 source files"
+        "Success: no issues found in 105 source files"
       ]
     },
     {
@@ -58,7 +58,7 @@
       "name": "pip-audit (requirements.txt)",
       "status": "PASS",
       "exit_code": 0,
-      "seconds": 6.4,
+      "seconds": 8.4,
       "command": "/tmp/claude-0/venv/bin/python -m pip_audit -r requirements.txt",
       "log": "docs/acceptance/evidence/regression/pip-audit-requirements-txt.log",
       "tail": [
@@ -80,23 +80,23 @@
       "name": "pytest (unit + integration + security + performance)",
       "status": "PASS",
       "exit_code": 0,
-      "seconds": 218.6,
+      "seconds": 521.4,
       "command": "/tmp/claude-0/venv/bin/python -m pytest --ignore=tests/e2e -q -p no:cacheprovider --junitxml=/home/user/ARO-3D-STUDIO/docs/acceptance/evidence/regression/pytest-unit.xml -rs",
       "log": "docs/acceptance/evidence/regression/pytest-unit-integration-security-performance.log",
       "tail": [
-        "=========================== short test summary info ============================",
-        "SKIPPED [1] tests/test_triposr_real.py:58: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
-        "SKIPPED [1] tests/test_triposr_real.py:64: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
-        "SKIPPED [1] tests/test_triposr_real.py:78: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
-        "SKIPPED [1] tests/test_triposr_real.py:109: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
-        "245 passed, 4 skipped, 5 warnings in 217.01s (0:03:37)"
+        "SKIPPED [1] tests/test_triposr_real.py:59: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
+        "SKIPPED [1] tests/test_triposr_real.py:65: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
+        "SKIPPED [1] tests/test_triposr_real.py:79: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
+        "SKIPPED [1] tests/test_triposr_real.py:111: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
+        "SKIPPED [1] tests/test_triposr_real.py:132: set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights",
+        "265 passed, 5 skipped, 5 warnings in 519.96s (0:08:39)"
       ],
       "counts": {
-        "tests": 249,
+        "tests": 270,
         "failures": 0,
         "errors": 0,
-        "skipped": 4,
-        "passed": 245,
+        "skipped": 5,
+        "passed": 265,
         "skipped_tests": [
           {
             "test": "tests.test_triposr_real::test_model_loads_and_reports_load_time",
@@ -113,6 +113,10 @@
           {
             "test": "tests.test_triposr_real::test_tiny_vram_budget_is_a_resource_limit_not_a_crash",
             "reason": "set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights"
+          },
+          {
+            "test": "tests.test_triposr_real::test_studio_path_with_representative_images_via_smoke_manifest",
+            "reason": "set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights"
           }
         ]
       },
@@ -122,19 +126,19 @@
       "name": "pytest browser e2e (Playwright)",
       "status": "PASS",
       "exit_code": 0,
-      "seconds": 62.1,
+      "seconds": 77.0,
       "command": "/tmp/claude-0/venv/bin/python -m pytest tests/e2e -q --junitxml=/home/user/ARO-3D-STUDIO/docs/acceptance/evidence/regression/pytest-e2e.xml -rs",
       "log": "docs/acceptance/evidence/regression/pytest-browser-e2e-playwright.log",
       "tail": [
-        ".                                                                        [100%]",
-        "1 passed in 60.69s (0:01:00)"
+        "..                                                                       [100%]",
+        "2 passed in 75.62s (0:01:15)"
       ],
       "counts": {
-        "tests": 1,
+        "tests": 2,
         "failures": 0,
         "errors": 0,
         "skipped": 0,
-        "passed": 1,
+        "passed": 2,
         "skipped_tests": []
       }
     },
@@ -142,31 +146,31 @@
       "name": "acceptance run (TITAN 480, 22 stages)",
       "status": "PASS",
       "exit_code": 0,
-      "seconds": 68.7,
+      "seconds": 108.1,
       "command": "/tmp/claude-0/venv/bin/python scripts/run_acceptance.py --with-browser",
       "log": "docs/acceptance/evidence/regression/acceptance-run-titan-480-22-stages.log",
       "tail": [
+        "[20] PASS     Generate Unity-ready output                   Unity package 3.74 MB with Models/ LOD/ Collision/ Materials/ Textures/ Metadata/ Editor/ Scripts/ README.md; ",
         "[21] PASS     Validate export integrity                     21 package checks + 13 GLB checks re-read from disk (checksums, accessors, hierarchy, LOD counts, collision no",
         "[22] BLOCKED  Test import compatibility with Unity 6        Unity 6 import has not been run: no unity-verification.json. Run Unity in batch mode with ARO.Studio.Editor.Ar",
-        "[11] BLOCKED  Process textures where supported              not reached (an earlier stage did not complete)",
         "",
         "NOT COMPLETE \u2014 production readiness is not claimed",
-        "report: /home/user/ARO-3D-STUDIO/docs/acceptance/titan480-acceptance-report.md  (data kept in /tmp/aro_acceptance_6qlzdjue)"
+        "report: /home/user/ARO-3D-STUDIO/docs/acceptance/titan480-acceptance-report.md  (data kept in /tmp/aro_acceptance_65pc2itv)"
       ],
       "stage_counts": {
         "PASS": 15,
-        "PARTIAL": 3,
-        "BLOCKED": 4,
+        "PARTIAL": 4,
+        "BLOCKED": 3,
         "FAIL": 0
       }
     }
   ],
   "totals": {
-    "tests": 250,
-    "passed": 246,
+    "tests": 272,
+    "passed": 267,
     "failed": 0,
     "errors": 0,
-    "skipped": 4
+    "skipped": 5
   },
   "skipped_tests": [
     {
@@ -183,6 +187,10 @@
     },
     {
       "test": "tests.test_triposr_real::test_tiny_vram_budget_is_a_resource_limit_not_a_crash",
+      "reason": "set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights"
+    },
+    {
+      "test": "tests.test_triposr_real::test_studio_path_with_representative_images_via_smoke_manifest",
       "reason": "set ARO_RUN_MODEL_TESTS=1 on a host with torch, tsr and the TripoSR weights"
     }
   ]
