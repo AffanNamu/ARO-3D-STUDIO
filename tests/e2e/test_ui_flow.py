@@ -7,6 +7,7 @@ it uses the ARO TITAN 480 procedural reference for everything after reconstructi
 from __future__ import annotations
 
 import glob
+import io
 import os
 import re
 import socket
@@ -17,6 +18,7 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 pw = pytest.importorskip("playwright.sync_api")
 ROOT = Path(__file__).resolve().parents[2]
@@ -151,6 +153,10 @@ def test_complete_pipeline_through_the_ui(page, server, tmp_path):
     wait_version(pg, "v0.1")
     assert "NOT an AI reconstruction" in pg.inner_text(".right")
     assert "Procedural Reference" in pg.inner_text(".right")
+    # The generic one-click preparation action must be available on a raw asset.
+    open_step(pg, "Source / Inspect")
+    assert pg.locator("button:has-text('Prepare mesh for use')").count() == 1
+    assert "Automatic mesh preparation" in pg.inner_text(".step.open .body")
     stats = pg.inner_text("#vstats")
     assert "15,736" in stats and "3.44 × 4.00 × 6.50" in stats
     pg.screenshot(path=str(shots / "studio_reference.png"))
@@ -243,6 +249,33 @@ def test_complete_pipeline_through_the_ui(page, server, tmp_path):
     pg.wait_for_selector("text=Blocked models")
     body = pg.inner_text("main")
     assert "nvidia-lyra-2.0" in body and "claimed" in body
+
+    # Batch workflow: upload multiple object images, configure each asset independently.
+    # This CPU-only test intentionally confirms generation remains disabled without a runnable AI engine.
+    pg.goto(f"{server}/#/generation")
+    pg.wait_for_selector("h1:has-text('Generation')")
+    pg.select_option("select[aria-label='Project']", label="ARO TITAN 480")
+    image = Image.new("RGB", (96, 96), (190, 190, 190))
+    image_bytes = io.BytesIO()
+    image.save(image_bytes, format="PNG")
+    data = image_bytes.getvalue()
+    pg.locator("input[aria-label='Choose multiple images']").set_input_files([
+        {"name": "first-object.png", "mimeType": "image/png", "buffer": data},
+        {"name": "second-building.png", "mimeType": "image/png", "buffer": data},
+    ])
+    pg.wait_for_selector("input[aria-label='Asset name for first-object.png']")
+    pg.wait_for_selector("input[aria-label='Asset name for second-building.png']")
+    pg.fill("input[aria-label='Asset name for first-object.png']", "First Prop")
+    pg.select_option("select[aria-label='Category for first-object.png']", "prop")
+    pg.fill("input[aria-label='Asset name for second-building.png']", "Small Building")
+    pg.select_option("select[aria-label='Category for second-building.png']", "building")
+    assert pg.locator("input[aria-label='Asset name for first-object.png']").input_value() == "First Prop"
+    assert pg.locator("select[aria-label='Category for first-object.png']").input_value() == "prop"
+    assert pg.locator("input[aria-label='Asset name for second-building.png']").input_value() == "Small Building"
+    assert pg.locator("select[aria-label='Category for second-building.png']").input_value() == "building"
+    assert pg.locator("button:has-text('Generate selected images')").is_disabled()
+    assert "cannot run in this environment" in pg.inner_text(".notice.warn")
+    pg.screenshot(path=str(shots / "generation_batch.png"))
 
     real = [e for e in pg.errors if "GPU stall" not in e and "GL Driver" not in e]  # type: ignore[attr-defined]
     assert not real, real
