@@ -48,6 +48,7 @@ states what output to expect and what to send back if it fails. In short:
 | 9 | shows raw vs prepared renders per image | you look at them |
 | 10 | **you record your review** (script refuses empty or unknown entries) | `visual_quality: REVIEWED` |
 | 11 | packages evidence | two zips downloaded |
+| 11b | *optional*: push the repo-safe evidence to a separate `evidence/smoke-<time>` branch using a fine-grained token kept in Colab Secrets (never in a cell) | `pushed N file(s) to branch evidence/smoke-…` |
 | 12 | failure bundle (any failure) | `aro-logs.zip` |
 
 Test images (documented): `chair.png` (furniture), `teapot.png` (household object), `robot.png` (equipment/consumer product), all from

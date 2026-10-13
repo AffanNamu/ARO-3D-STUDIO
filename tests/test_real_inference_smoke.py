@@ -168,5 +168,76 @@ def test_colab_notebook_is_runnable_in_order_and_cannot_fake_inference():
         assert script in code and (ROOT / "scripts" / script).is_file()
     # the images are documented and pinned; the vehicle needs a stated source
     assert "VEHICLE_SOURCE.strip()" in code and code.count("sha256") >= 3
+    # optional push cell: token only from Colab Secrets, separate evidence branch, never a literal token
+    assert "userdata.get('GITHUB_TOKEN')" in code and "push_smoke_evidence.py" in code
+    assert "ghp_" not in code and "github_pat_" not in code and "x-access-token" not in code
     pinned = json.loads((ROOT / "aro_studio/engines/locks/triposr.json").read_text())["code"]["commit"]
     assert pinned and "TSR_COMMIT = lock['code']['commit']" in code
+
+
+def _git(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def _evidence_repo(tmp_path, mode="real_engine"):
+    remote = tmp_path / "remote.git"
+    _git(tmp_path, "init", "-q", "--bare", str(remote))
+    work = tmp_path / "work"
+    _git(tmp_path, "clone", "-q", str(remote), str(work))
+    _git(work, "config", "user.email", "t@example.invalid")
+    _git(work, "config", "user.name", "t")
+    (work / "README.md").write_text("x")
+    _git(work, "add", "-A")
+    _git(work, "commit", "-q", "-m", "init")
+    _git(work, "branch", "-M", "claude/work")
+    d = work / "docs/acceptance/evidence/ai/smoke"
+    (d / "raw").mkdir(parents=True)
+    (d / "smoke-evidence.json").write_text(
+        json.dumps({"mode": mode, "status": {"real_inference": "PASS"}, "studio_commit": "abc"})
+    )
+    (d / "raw" / "01-raw.glb").write_bytes(b"raw")
+    (work / "secret-note.txt").write_text("must not be pushed")
+    return remote, work
+
+
+def _push(work, *args, token="dummy-token"):
+    env = (
+        {**__import__("os").environ, "GITHUB_TOKEN": token}
+        if token
+        else {k: v for k, v in __import__("os").environ.items() if k != "GITHUB_TOKEN"}
+    )
+    return subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "push_smoke_evidence.py"), "--repo", str(work), *args],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+def test_push_goes_to_a_separate_branch_with_only_the_evidence_folder(tmp_path):
+    remote, work = _evidence_repo(tmp_path)
+    r = _push(work, "--branch", "evidence/smoke-test")
+    assert r.returncode == 0, r.stdout + r.stderr
+    files = _git(remote, "ls-tree", "-r", "--name-only", "evidence/smoke-test").splitlines()
+    assert "docs/acceptance/evidence/ai/smoke/smoke-evidence.json" in files
+    assert "secret-note.txt" not in files and "README.md" in files  # history carries the base; nothing extra was added
+    assert not [f for f in files if "/raw/" in f]  # raw meshes are never committed (also .gitignored in the real repo)
+    assert "dummy-token" not in r.stdout + r.stderr
+
+
+def test_push_refuses_unsafe_requests(tmp_path):
+    remote, work = _evidence_repo(tmp_path)
+    for branch in ("claude/zen-johnson-je3dzk", "main", "claude/work"):
+        r = _push(work, "--branch", branch)
+        assert r.returncode != 0 and "refusing to push" in (r.stdout + r.stderr)
+    assert _push(work, "--branch", "evidence/x", token="").returncode != 0  # no token, no push
+    (work / "docs/acceptance/evidence/ai/smoke/big.glb").write_bytes(b"x" * 8_000_001)
+    r = _push(work, "--branch", "evidence/x")
+    assert r.returncode != 0 and "larger than 8 MB" in (r.stdout + r.stderr)
+    assert not _git(remote, "branch", "--list", "evidence/x")
+
+
+def test_push_refuses_test_double_evidence(tmp_path):
+    _, work = _evidence_repo(tmp_path, mode="test_double")
+    r = _push(work, "--branch", "evidence/x")
+    assert r.returncode != 0 and "not from the real engine" in (r.stdout + r.stderr)
