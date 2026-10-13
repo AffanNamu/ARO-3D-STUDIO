@@ -285,3 +285,36 @@ def test_notebook_stage_report_refuses_to_complete_inference_stages_for_a_test_d
     assert (
         "REUSED, not rebuilt" in code and "FOCUSED_TRUCK_ONLY" in code and "Luxury ARO 480 Heavy-Duty Truck.png" in code
     )
+
+
+def test_tsr_source_state_records_a_patched_checkout(tmp_path, monkeypatch):
+    from aro_studio.verification.hardware import tsr_source_state
+
+    pkg = tmp_path / "TripoSR" / "tsr"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("X = 1\n")
+    _git(tmp_path / "TripoSR", "init", "-q")
+    _git(tmp_path / "TripoSR", "config", "user.email", "t@example.invalid")
+    _git(tmp_path / "TripoSR", "config", "user.name", "t")
+    _git(tmp_path / "TripoSR", "add", "-A")
+    _git(tmp_path / "TripoSR", "commit", "-q", "-m", "pinned")
+    monkeypatch.syspath_prepend(str(tmp_path / "TripoSR"))
+    sys.modules.pop("tsr", None)
+    clean = tsr_source_state()
+    assert clean["identical_to_head"] is True and clean["modified_files"] == [] and clean["diff_sha256"] is None
+    (pkg / "__init__.py").write_text("X = 2  # local compatibility patch\n")
+    patched = tsr_source_state()
+    assert (
+        patched["identical_to_head"] is False
+        and patched["modified_files"] == ["tsr/__init__.py"]
+        and len(patched["diff_sha256"]) == 64
+    )
+    sys.modules.pop("tsr", None)
+
+
+def test_notebook_updates_an_existing_clone_and_preserves_local_tripoSR_modifications():
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
+    assert "checkout -q -B $STUDIO_REF origin/$STUDIO_REF" in code  # an old /content/aro is not left on a stale commit
+    assert "git -C /content/TripoSR status --porcelain" in code and "local modifications kept" in code
+    assert "reset --hard" not in code and "git clean" not in code  # never discards the user's compatibility work

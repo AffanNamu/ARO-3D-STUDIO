@@ -39,6 +39,33 @@ class VramPoller(threading.Thread):
         self._stop.set()
 
 
+def tsr_source_state() -> dict | None:
+    """Where the imported ``tsr`` package lives and whether it is byte-identical to its git HEAD (a patched copy is recorded, not hidden)."""
+    import hashlib
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.find_spec("tsr")
+    if spec is None or not spec.origin:
+        return None
+    root = Path(spec.origin).resolve().parents[1]
+    head = sh(["git", "-C", str(root), "rev-parse", "HEAD"])
+    if head is None:
+        return {"path": str(root), "git": False}
+    status = sh(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"]) or ""
+    diff = sh(["git", "-C", str(root), "diff"]) or ""
+    return {
+        "path": str(root),
+        "git": True,
+        "head": head,
+        "modified_files": [
+            ln.strip().split(None, 1)[1] for ln in status.splitlines() if ln.strip()
+        ],  # sh() strips the first line's leading space
+        "diff_sha256": hashlib.sha256(diff.encode()).hexdigest() if status else None,
+        "identical_to_head": not status,
+    }
+
+
 def environment() -> dict:
     env: dict = {
         "platform": platform.platform(),
@@ -92,6 +119,7 @@ def environment() -> dict:
         except metadata.PackageNotFoundError:
             pk[name] = None
     env["packages"] = pk
+    env["tsr_source"] = tsr_source_state()
     # background-removal weights (rembg) are downloaded on first use and are NOT pinned: record exactly what was used
     import hashlib
     from pathlib import Path
