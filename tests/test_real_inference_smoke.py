@@ -241,3 +241,47 @@ def test_push_refuses_test_double_evidence(tmp_path):
     _, work = _evidence_repo(tmp_path, mode="test_double")
     r = _push(work, "--branch", "evidence/x")
     assert r.returncode != 0 and "not from the real engine" in (r.stdout + r.stderr)
+
+
+def test_single_image_focused_run_is_allowed_but_never_counts_as_the_full_proof(tmp_path):
+    m = _manifest(tmp_path, [("truck", "heavy_truck", (200, 40, 40))])
+    # without the flag a single image is a coverage problem (BLOCKED in real mode)
+    r = subprocess.run(
+        [sys.executable, str(SCRIPT), "--manifest", str(m), "--out", str(tmp_path / "o1")],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        timeout=600,
+    )
+    assert r.returncode == 3
+    # with the flag (double mode here) the wiring still works for one image, and coverage stays recorded
+    r = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--manifest",
+            str(m),
+            "--out",
+            str(tmp_path / "o2"),
+            "--double",
+            "--allow-partial-coverage",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        timeout=600,
+    )
+    assert r.returncode == 0, r.stdout[-800:] + r.stderr[-800:]
+    ev = json.loads((tmp_path / "o2" / "smoke-evidence.json").read_text())
+    assert ev["coverage_problems"] and ev["items"][0]["export"]["reopened_vertices_finite"] is True
+    assert str(ev["status"]["real_inference"]).startswith("NOT_RUN")
+
+
+def test_notebook_stage_report_refuses_to_complete_inference_stages_for_a_test_double():
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
+    assert "REAL = ev['mode'] == 'real_engine' and eng.get('id') == 'triposr'" in code
+    assert "stage(3, 'real inference', REAL and" in code and "stage(2, 'model/weights/licence', REAL and" in code
+    assert (
+        "REUSED, not rebuilt" in code and "FOCUSED_TRUCK_ONLY" in code and "Luxury ARO 480 Heavy-Duty Truck.png" in code
+    )

@@ -92,4 +92,16 @@ def environment() -> dict:
         except metadata.PackageNotFoundError:
             pk[name] = None
     env["packages"] = pk
+    # background-removal weights (rembg) are downloaded on first use and are NOT pinned: record exactly what was used
+    import hashlib
+    from pathlib import Path
+
+    models = {}
+    for f in sorted((Path.home() / ".u2net").glob("*.onnx")) if (Path.home() / ".u2net").is_dir() else []:
+        h = hashlib.sha256()
+        with open(f, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        models[f.name] = {"sha256": h.hexdigest(), "size_bytes": f.stat().st_size}
+    env["rembg_models"] = models
     return env

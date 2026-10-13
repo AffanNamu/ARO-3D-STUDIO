@@ -137,6 +137,12 @@ def main() -> int:
         "--double", action="store_true", help="wiring self-test with the plumbing TEST DOUBLE; not AI evidence"
     )
     ap.add_argument("--no-negative-probe", action="store_true")
+    ap.add_argument(
+        "--allow-partial-coverage",
+        action="store_true",
+        help="run with fewer than 3 images / without a vehicle+non-vehicle mix (e.g. one focused image). Never reports PASS: "
+        "the status stays PARTIAL because the coverage requirement is not met",
+    )
     a = ap.parse_args()
 
     from fastapi.testclient import TestClient
@@ -212,7 +218,7 @@ def main() -> int:
                 + " | ".join(eng["availability"].get("activation", []))
             )
             return finish(3)
-        if ev["coverage_problems"] and not a.double:
+        if ev["coverage_problems"] and not a.double and not a.allow_partial_coverage:
             ev["blockers"].append("coverage: " + "; ".join(ev["coverage_problems"]))
             ev["status"]["real_inference"] = "BLOCKED"
             return finish(3)
@@ -413,6 +419,18 @@ def main() -> int:
 
                 reopened = trimesh.load(io.BytesIO(data), file_type="glb", force="scene")
                 tris = sum(len(g.faces) for g in reopened.geometry.values() if hasattr(g, "faces"))
+                import numpy as np
+
+                finite_all = all(
+                    bool(np.isfinite(np.asarray(g.vertices)).all())
+                    for g in reopened.geometry.values()
+                    if hasattr(g, "vertices")
+                )
+                lod0 = [
+                    g
+                    for n, g in reopened.geometry.items()
+                    if hasattr(g, "faces") and "_LOD" not in n or n.endswith("_LOD0")
+                ]
                 kh = meta["report"].get("khronos", {})
                 (out / f"{idx + 1:02d}-prepared.glb").write_bytes(data)
                 rec["export"].update(
@@ -424,6 +442,13 @@ def main() -> int:
                         "sha256_matches_record": sha256(data) == meta["sha256"],
                         "internal_verification_ok": meta["report"]["verification"]["ok"],
                         "reopened_triangles_all_lods": int(tris),
+                        "reopened_geometry_count": len(reopened.geometry),
+                        "reopened_vertices_finite": finite_all,
+                        "reopened_lod0_extents_m": [
+                            round(float(x), 4) for x in (reopened.bounds[1] - reopened.bounds[0])
+                        ]
+                        if len(lod0)
+                        else None,
                         "khronos": kh,
                     }
                 )
@@ -432,6 +457,8 @@ def main() -> int:
                 and rec["export"].get("sha256_matches_record")
                 and rec["export"].get("internal_verification_ok")
                 and not (rec["export"].get("khronos") or {}).get("errors")
+                and rec["export"].get("reopened_vertices_finite") is True
+                and rec["export"].get("reopened_triangles_all_lods", 0) > 0
                 and rec["raw_immutable"]
                 and rec["viewer_preview"]["status"] == 200
             )
@@ -454,6 +481,11 @@ def main() -> int:
             return finish(0 if all_pass else 1)
         if ev["coverage_problems"]:
             ev["status"]["real_inference"] = "PARTIAL"
+            ev["status"]["scope"] = (
+                "focused run: coverage requirement NOT met (needs >= 3 images incl. vehicle + non-vehicle)"
+            )
+            ev["blockers"].append("coverage: " + "; ".join(ev["coverage_problems"]))
+            return finish(0 if all_pass and ran else 1)
         elif all_pass and len(ran) == len(items) and ev.get("negative_probe", {}).get("result", "PASS") == "PASS":
             ev["status"]["real_inference"] = "PASS"
         elif ran:
