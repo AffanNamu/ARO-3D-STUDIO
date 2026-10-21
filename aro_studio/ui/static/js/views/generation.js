@@ -3,6 +3,7 @@ import { confirmDialog, empty, errorToast, field, fmt, h, kv, nav, notice, selec
 import { isTerminal, trackJob } from '../jobs.js';
 import { authImage, categoryOptions, createAssetDialog, createProjectDialog, uploadImage } from './common.js';
 import { batchPanel } from './batch.js';
+import { convertPanel } from './convert.js';
 
 let timer;
 const PRESET_HELP = { LOW_RESOURCE: 'Smaller marching-cubes grid and chunk size: lower VRAM/RAM, lower detail.', BALANCED: 'TripoSR defaults (256³ grid): the only configuration with a published VRAM figure.', HIGH_QUALITY: 'Finer 320³ grid: more detail and more VRAM/time. Not benchmarked here.' };
@@ -23,6 +24,7 @@ export async function mount(root, [assetId]) {
   const go = h('button', { class: 'btn primary', disabled: true }, 'Queue generation');
   const histBox = h('div');
   let batchUi = null;
+  let convertUi = null;
 
   const loadAssets = async () => {
     const r = st.project ? await api.get(`/api/assets?project_id=${st.project}`) : { items: [] };
@@ -66,6 +68,7 @@ export async function mount(root, [assetId]) {
     }))) : empty('No generation jobs yet.'));
   };
 
+  convertUi = convertPanel({ categories, getEngine: () => eng, getLimits: () => system.limits, presets: eng?.presets });
   batchUi = batchPanel({
     categories, getProject: () => st.project, getEngine: () => eng, getLimits: () => system.limits,
     getSettings: () => {
@@ -77,6 +80,7 @@ export async function mount(root, [assetId]) {
   root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Generation'), h('p', { class: 'sub' }, 'Single-image 3D reconstruction as a queued job. The model runs for real or the job fails — there is never placeholder geometry.'))));
   if (eng && !eng.runnable) root.append(notice('warn', h('b', null, `${eng.info.name} cannot run in this environment, so generation is disabled.`), h('ul', null, ...eng.availability.reasons.map((r) => h('li', null, r)), !eng.license_verified_by_deployer ? h('li', null, `Weights licence not yet verified by the deployer (ARO_VERIFIED_MODEL_LICENSES=${eng.info.id}).`) : null), eng.availability.activation.length ? h('div', { class: 'hint' }, 'Activate: ' + eng.availability.activation.join(' · ')) : null,
     h('div', { style: { marginTop: '6px' } }, 'You can still import a mesh generated elsewhere or use the TITAN 480 reference in the ', h('a', { href: '#/studio' }, '3D Studio'), '.')));
+  root.append(convertUi.el);
   root.append(h('div', { class: 'grid c2', style: { gridTemplateColumns: '1.2fr 1fr' } },
     h('div', { class: 'card' }, h('h3', null, '1 · Target'), h('div', { class: 'row2' }, field('Project', projSel), field('Asset', assetSel)),
       h('div', { class: 'btn-row' }, h('button', { class: 'btn sm', onclick: async () => { const p = await createProjectDialog(); if (p) { location.reload(); } } }, 'New project'), h('button', { class: 'btn sm', onclick: async () => { if (!st.project) return toast('Choose a project first', '', 'warn'); const a = await createAssetDialog(st.project); if (a) { st.asset = a.asset_id; await loadAssets(); } } }, 'New asset')),

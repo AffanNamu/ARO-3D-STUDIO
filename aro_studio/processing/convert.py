@@ -145,6 +145,9 @@ def convert_handler(generation: Handler, prepare: Handler, export: Handler) -> H
         by["export"].update(exports=exports)
         return {
             "asset_id": ctx.asset_id,
+            "engine": ctx.annotations.get(
+                "model"
+            ),  # {id, name, version, licence...} of the engine that ran (or whose result was reused)
             "model_ran": bool(gen.get("model_ran")),
             "reused_from": gen.get("reused_from"),
             "device": gen.get("device"),

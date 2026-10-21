@@ -163,3 +163,58 @@ def test_batch_screen_preview_edit_partial_failure_and_open_asset(server, page):
 
     real = [e for e in pg.errors if "GPU stall" not in e and "GL Driver" not in e]  # type: ignore[attr-defined]
     assert not real, real
+
+
+def test_one_click_convert_runs_every_step_and_offers_a_real_glb(server, page):
+    pg = page
+    shots = Path(os.environ["ARO_E2E_SHOTS"]) if os.environ.get("ARO_E2E_SHOTS") else None
+    pg.goto(f"{server}/#/generation")
+    pg.wait_for_selector("#convert-panel")
+    assert "convert an image to 3d" in pg.inner_text("#convert-panel").lower()  # headings are CSS-uppercased
+    assert pg.locator("#convert-panel button:has-text('Convert to 3D')").is_disabled()
+    assert "Choose an image first" in pg.inner_text(".convert-reason")
+
+    # a file that passes the browser's checks but is rejected by the server: nothing is created, the reason is shown
+    pg.locator("input[aria-label='Choose an image to convert']").set_input_files(
+        {"name": "bad-content.png", "mimeType": "image/png", "buffer": _gif()}
+    )
+    pg.wait_for_selector("#convert-panel .convert-picked img")
+    pg.click("#convert-panel button:has-text('Convert to 3D')")
+    pg.wait_for_selector("#convert-panel .notice.err")
+    assert "not a PNG, JPEG or WebP" in pg.inner_text("#convert-panel .notice.err")
+    pg.click("#convert-panel button:has-text('Try again')")
+
+    # a good image: all steps complete, then Download GLB gives a binary glTF
+    pg.locator("input[aria-label='Choose an image to convert']").set_input_files(
+        {"name": "wooden-chair.png", "mimeType": "image/png", "buffer": _png(200, 150, (120, 80, 40))}
+    )
+    pg.wait_for_selector("#convert-panel .convert-picked img")
+    pg.fill("#convert-panel input[aria-label='Asset name']", "Wooden Chair")
+    pg.select_option("#convert-panel select[aria-label='Asset category']", "furniture")
+    pg.fill("#convert-panel input[aria-label='Real length in metres']", "0.9")
+    pg.click("#convert-panel button:has-text('Convert to 3D')")
+    pg.wait_for_selector("#convert-panel .convert-step[data-step='reconstruct']")
+    pg.wait_for_selector("#convert-panel button:has-text('Download GLB')", timeout=120_000)
+    states = {
+        s: pg.get_attribute(f"#convert-panel .convert-step[data-step='{s}']", "data-state")
+        for s in ("check", "reconstruct", "prepare", "export")
+    }
+    assert set(states.values()) == {"done"}, states
+    assert "Your 3D model is ready" in pg.inner_text("#convert-panel")
+    assert "size" in pg.inner_text("#convert-panel")  # the supplied length was used
+    with pg.expect_download() as dl:
+        pg.click("#convert-panel button:has-text('Download GLB')")
+    path = dl.value.path()
+    assert dl.value.suggested_filename == "wooden-chair.glb" and Path(path).read_bytes()[:4] == b"glTF"
+    if shots:
+        pg.screenshot(path=str(shots / "convert_done.png"), full_page=True)
+    pg.click("#convert-panel a:has-text('Open in 3D Studio')")
+    pg.wait_for_selector(".studio, #vstats, h1", timeout=30_000)
+    assert "/studio/" in pg.url
+
+    real = [e for e in pg.errors if "GPU stall" not in e and "GL Driver" not in e]  # type: ignore[attr-defined]
+    expected = (
+        "status of 400",
+        "not a PNG, JPEG or WebP",
+    )  # the one deliberately rejected upload above, logged by the error toast
+    assert not [e for e in real if not any(x in e for x in expected)], real

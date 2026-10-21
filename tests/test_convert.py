@@ -46,6 +46,9 @@ def test_one_click_runs_all_stages_and_returns_a_downloadable_glb(api):
     assert [s["status"] for s in res["stages"]] == ["COMPLETED", "COMPLETED", "COMPLETED"]
     assert [s["stage"] for s in res["stages"]] == ["reconstruct", "prepare", "export"]
     assert res["model_ran"] is True and res["raw_version_id"] != res["final_version_id"]
+    assert (
+        res["engine"]["id"] == "plumbing_test_double" and "NOT AI" in res["engine"]["name"]
+    )  # the result says which engine ran
     assert not any("real-world size" in n for n in res["needs_human"])  # the length was supplied
     assert res["final_extents_m"] and max(res["final_extents_m"]) == pytest.approx(0.9, rel=1e-2)
 

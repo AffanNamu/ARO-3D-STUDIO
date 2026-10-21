@@ -154,3 +154,16 @@ main:focus, main:focus-visible { outline: none; }
 .batch-summary { font-size: 13px; color: var(--text-2); }
 @media (max-width: 640px) { .batch-item { grid-template-columns: 1fr; } .batch-thumb { width: 100%; height: 160px; } .batch-file { max-width: 100%; } }
 .dropzone svg { width: 26px; height: 26px; margin-bottom: 6px; }
+
+/* ---- one-click convert panel ---- */
+.convert-card { border-color: rgba(255,106,26,.35); }
+.convert-picked { display: flex; gap: 14px; align-items: center; margin-top: 10px; }
+.convert-picked img { width: 120px; height: 90px; object-fit: contain; background: #0b0f14; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.convert-reason { min-height: 1.2em; margin-top: 6px; }
+.convert-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 6px; padding: 0; }
+.convert-step { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--text-3); font-size: 13px; }
+.convert-step .mark { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-2); font-size: 12px; flex: none; }
+.convert-step.running { color: var(--text); border-color: rgba(92,184,255,.5); } .convert-step.running .mark { border-color: var(--info); color: var(--info); }
+.convert-step.done { color: var(--text-2); border-color: rgba(61,220,151,.4); } .convert-step.done .mark { background: rgba(61,220,151,.15); border-color: var(--ok); color: var(--ok); }
+.convert-step.failed { color: var(--text); border-color: rgba(255,92,108,.55); } .convert-step.failed .mark { background: rgba(255,92,108,.15); border-color: var(--err); color: var(--err); }
+@media (max-width: 760px) { .convert-steps { grid-template-columns: repeat(2, 1fr); } .convert-picked { flex-direction: column; align-items: flex-start; } }

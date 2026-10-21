@@ -49,6 +49,7 @@ The evidence-completion commit that follows is listed in the changelog below wit
 | Claim | Implemented & unit-tested | Browser e2e | **Actual AI inference** | **Generic prep + export of real AI output** | State |
 |---|---|---|---|---|---|
 | Image upload, content validation, invalid-file rejection | ✅ | ✅ (batch screen) | n/a | n/a | verified |
+| **One-click Convert to 3D** (`/api/convert`, `processing/convert.py`): reconstruct → prepare → export in one job, per-step status, fail-fast without creating anything, earlier results kept on a later failure | ✅ (15 tests, test double) | ✅ (full flow + rejected file + real GLB download) | ❌ not run | ❌ | verified for orchestration only |
 | Batch: independent jobs/assets, per-image name+category, partial failure | ✅ (API) | ✅ (test-double engine, labelled in the UI) | ❌ not run | ❌ | verified for plumbing only |
 | TripoSR adapter, licence gate, weight SHA-256 verification, safe load, class allow-list | ✅ (stand-ins that record call order) | n/a | ❌ **never executed on real weights in committed evidence** | n/a | **unverified on real hardware** |
 | Model lock (revision `5b521936…`, checksums) | ✅ | n/a | recorded from a Colab run (`587a0b6`); not re-fetched by the author | n/a | identity pin only |
