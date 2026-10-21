@@ -35,6 +35,7 @@ from aro_studio.assets import taxonomy
 from aro_studio.assets.importer import import_mesh_bytes
 from aro_studio.core.enums import JobState, Stage
 from aro_studio.core.errors import (
+    EngineUnavailableError,
     InvalidInputError,
     NotFoundError,
     RateLimitedError,
@@ -128,6 +129,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                     for x in (
                         "/generate",
                         "/batch-generate",
+                        "/convert",
                         "/auto-process",
                         "/process",
                         "/export",
@@ -418,6 +420,126 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         queued = sum(item["status"] == "QUEUED" for item in items)
         failed = len(items) - queued
         return {"batch_id": batch_id, "total": len(items), "queued": queued, "failed": failed, "items": items}
+
+    # -- one-click image -> 3D -------------------------------------------------------------------------------
+    QUICK_PROJECT = "Quick conversions"
+
+    @app.post("/api/convert", status_code=202)
+    async def convert_to_3d(
+        file: UploadFile = File(...),
+        name: str | None = Form(None),
+        category: str = Form("other"),
+        project_id: str | None = Form(None),
+        engine_id: str | None = Form(None),
+        preset: str | None = Form(None),
+        settings_json: str = Form("{}"),
+        preprocess_json: str = Form("{}"),
+        length_m: float | None = Form(None, gt=0.01, le=100),
+        up: str | None = Form(None, pattern=r"^[+-][XYZ]$"),
+        forward: str | None = Form(None, pattern=r"^[+-][XYZ]$"),
+        target_triangles: int = Form(24_000, ge=100, le=25_000),
+        texture_resolution: int = Form(1024),
+        lod: bool = Form(True),
+        formats: str = Form("glb"),
+        use_cache: bool = Form(True),
+        force: bool = Form(False),
+        priority: int = Form(5, ge=1, le=9),
+        max_retries: int = Form(0, ge=0, le=3),
+        c: StudioContext = C,
+    ):
+        """Upload ONE image and queue reconstruct -> prepare -> export as a single job.
+
+        The real engine must be able to run: otherwise this answers immediately with the exact reasons and creates nothing
+        (no asset, no placeholder). Everything after the upload is the existing generation / preparation / export code.
+        """
+        if up and forward and up[1] == forward[1]:
+            raise InvalidInputError("Up and forward directions must use different axes.")
+        if texture_resolution not in (512, 1024, 2048):
+            raise InvalidInputError("texture_resolution must be 512, 1024 or 2048.")
+        fmts = [f for f in (x.strip() for x in formats.split(",")) if f]
+        if not fmts or len(fmts) > 4 or any(f not in ("glb", "gltf", "obj", "unity") for f in fmts):
+            raise InvalidInputError("formats must be a comma-separated list of glb, gltf, obj, unity.")
+        category_def = taxonomy.require_creatable(category)
+        try:
+            settings_value = json.loads(settings_json)
+            preprocess_value = json.loads(preprocess_json)
+            if not isinstance(settings_value, dict) or not isinstance(preprocess_value, dict):
+                raise ValueError("Settings must be JSON objects.")
+            preprocess_value = PreprocessOptions(**preprocess_value).as_settings()
+        except (ValueError, TypeError) as e:
+            raise InvalidInputError(
+                "Settings are invalid JSON objects or contain unsupported preprocessing options.",
+                recommended_action="Review the generation and preprocessing settings, then try again.",
+            ) from e
+
+        # fail fast and honestly: no job, no asset if the engine cannot run here
+        want = engine_id or c.settings.default_engine
+        status = next((e for e in c.generation.engine_status() if e["info"]["id"] == want), None)
+        if status is None:
+            raise InvalidInputError(f"Unknown engine '{want}'.", recommended_action="See GET /api/engines.")
+        if not status["runnable"]:
+            reasons = status["availability"]["reasons"] or [f"licence status '{status['info']['license']['status']}'"]
+            raise EngineUnavailableError(
+                f"{status['info']['name']} cannot run in this environment: " + " ".join(reasons),
+                recommended_action=" | ".join(status["availability"]["activation"])
+                or "See docs/models/model-requirements.md.",
+                details=status,
+            )
+
+        if project_id:
+            project = c.projects.get(project_id)
+            if project["status"] != "active":
+                raise InvalidInputError("Images can only be converted in an active project.")
+        else:
+            existing = [p for p in c.projects.list(status="active") if p["name"] == QUICK_PROJECT]
+            project = (
+                existing[0]
+                if existing
+                else c.projects.create(QUICK_PROJECT, "Created automatically for one-click conversions.")
+            )
+        pid = project["project_id"]
+
+        original_name = sanitize_filename(file.filename or "image.png")
+        data = await read_limited(file, c.settings.max_upload_mb * 1_000_000)
+        source = await asyncio.to_thread(
+            c.sources.add_image, pid, file.filename or "image.png", data, category_group=category_def.group
+        )  # content validation happens here; a bad file stops the request before any asset exists
+        stem = " ".join(Path(original_name).stem.replace("_", " ").replace("-", " ").split()) or "Image"
+        asset_name = " ".join((name or stem).split())[:120]
+        asset = c.assets.create_asset(
+            pid,
+            asset_name,
+            category,
+            {"source_filename": original_name, "source_sha256": source["sha256"], "ingestion_mode": "convert_to_3d"},
+        )
+        params: dict[str, Any] = {
+            "project_id": pid,
+            "asset_id": asset["asset_id"],
+            "image_sha256": source["sha256"],
+            "engine_id": engine_id or None,
+            "preset": preset or None,
+            "settings": settings_value,
+            "preprocess": preprocess_value,
+            "use_cache": use_cache,
+            "force": force,
+            "target_triangles": target_triangles,
+            "texture_resolution": texture_resolution,
+            "lod": lod,
+            "formats": fmts,
+            "length_supplied": length_m is not None,  # otherwise the size is a flagged placeholder
+        }
+        for key, value in (("length_m", length_m), ("up", up), ("forward", forward)):
+            if value is not None:
+                params[key] = value
+        job = c.jobs.submit(
+            "convert", params, project_id=pid, asset_id=asset["asset_id"], priority=priority, max_retries=max_retries
+        )
+        return {
+            "job": job,
+            "project": {"project_id": pid, "name": project["name"]},
+            "asset": {"asset_id": asset["asset_id"], "name": asset["name"], "category": asset["category"]},
+            "source": {"sha256": source["sha256"], "width": source["width"], "height": source["height"]},
+        }
 
     @app.get("/api/projects/{pid}/sources/{sha}/image")
     def source_image(pid: str, sha: str, c: StudioContext = C):

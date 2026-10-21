@@ -19,6 +19,7 @@ from aro_studio.jobs.queue import JobQueue
 from aro_studio.observability.logging import configure_logging
 from aro_studio.observability.metrics import Metrics
 from aro_studio.processing.ai_pipeline import AIPipelineOptions, default_up_axis, run_ai_pipeline
+from aro_studio.processing.convert import convert_handler
 from aro_studio.processing.service import OPERATIONS, ProcessingService
 from aro_studio.projects.service import ProjectService
 from aro_studio.projects.sources import SourceService
@@ -96,6 +97,12 @@ def build_context(
     jobs.register("processing", processing.handle, heavy=False)
     jobs.register("auto_process", _auto_process_handler(processing, assets, s), heavy=True)
     jobs.register("export", _export_handler(exports), heavy=False)
+    jobs.register(
+        "convert",
+        convert_handler(generation.handle, _auto_process_handler(processing, assets, s), _export_handler(exports)),
+        heavy=True,
+        timeout_s=3 * s.job_timeout_s,  # three stages share one budget
+    )
     jobs.register("cleanup", _cleanup_handler(layout, db), heavy=False)
     if start_workers:
         jobs.start()
