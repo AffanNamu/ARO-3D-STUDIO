@@ -22,19 +22,30 @@ function buildNav() {
   nav.append(h('div', { class: 'sep' }), h('div', { class: 'foot' }, 'Production asset pipeline for African Online Roads. Free-tier, open-source stack.'));
 }
 
+let routeTicket = 0;
+
 async function route() {
   const [, key = 'dashboard', ...rest] = location.hash.replace(/^#/, '').split('/');
   const def = ROUTES.find((r) => r[0] === key) || ROUTES[0];
   document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === def[0]));
   const view = $('#view');
+  const ticket = ++routeTicket;   // views mount asynchronously: only the newest navigation may own the page
   current?.unmount?.();
+  current = null;
   clear(view); view.className = def[0] === 'studio' ? 'flush' : '';
+  // each navigation renders into its OWN host: a slower, superseded mount can only fill a detached node (never a second copy of a panel)
+  const host = h('div', { style: { display: 'contents' } });
+  view.append(host);
+  let mod = null;
   try {
-    const mod = await def[2]();
+    mod = await def[2]();
+    if (ticket !== routeTicket) return;
     current = mod;
-    await mod.mount(view, rest.map(decodeURIComponent));
+    await mod.mount(host, rest.map(decodeURIComponent));
+    if (ticket !== routeTicket) { mod.unmount?.(); return; }   // superseded while mounting: stop its timers
   } catch (e) {
-    view.append(h('div', { class: 'notice err' }, h('b', null, 'This view failed to load.'), h('div', null, e.message || String(e)), e.action ? h('div', null, `→ ${e.action}`) : null));
+    if (ticket !== routeTicket) { mod?.unmount?.(); return; }
+    host.append(h('div', { class: 'notice err' }, h('b', null, 'This view failed to load.'), h('div', null, e.message || String(e)), e.action ? h('div', null, `→ ${e.action}`) : null));
     console.error(e);
   }
   view.focus({ preventScroll: true });

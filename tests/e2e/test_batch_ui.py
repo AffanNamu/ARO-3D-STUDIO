@@ -218,3 +218,22 @@ def test_one_click_convert_runs_every_step_and_offers_a_real_glb(server, page):
         "not a PNG, JPEG or WebP",
     )  # the one deliberately rejected upload above, logged by the error toast
     assert not [e for e in real if not any(x in e for x in expected)], real
+
+
+def test_overlapping_navigations_never_leave_two_copies_of_a_view(server, page):
+    """Regression: route() mounts asynchronously; a second navigation used to let BOTH mounts append into #view
+    (two #convert-panel cards, which also broke a strict locator in CI)."""
+    pg = page
+    pg.goto(f"{server}/#/generation")
+    pg.wait_for_selector("#convert-panel")
+    pg.evaluate(
+        """() => {
+            for (const h of ['#/dashboard', '#/generation', '#/projects', '#/generation', '#/generation']) {
+                location.hash = h; window.dispatchEvent(new HashChangeEvent('hashchange'));
+            }
+        }"""
+    )
+    pg.wait_for_selector("#convert-panel")
+    pg.wait_for_timeout(2500)  # let every superseded mount finish
+    assert pg.locator("#convert-panel").count() == 1
+    assert pg.locator("#view h1").count() <= 3 and pg.locator("#view .convert-card").count() == 1
