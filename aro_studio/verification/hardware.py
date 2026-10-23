@@ -66,6 +66,31 @@ def tsr_source_state() -> dict | None:
     }
 
 
+def torchmcubes_build() -> dict | None:
+    """torchmcubes is built from an unpinned git branch on the host: record exactly which commit and whether it has CUDA kernels."""
+    import json
+    from importlib import metadata
+
+    try:
+        dist = metadata.distribution("torchmcubes")
+    except metadata.PackageNotFoundError:
+        return None
+    info: dict = {"version": dist.version}
+    try:
+        direct = json.loads(dist.read_text("direct_url.json") or "{}")
+        info["url"] = direct.get("url")
+        info["commit"] = (direct.get("vcs_info") or {}).get("commit_id")
+    except (OSError, ValueError):
+        pass
+    try:
+        import torchmcubes
+
+        info["cuda_kernels"] = bool(getattr(torchmcubes, "HAS_CUDA", False))
+    except Exception as e:  # noqa: BLE001
+        info["import_error"] = f"{type(e).__name__}: {e}"[:200]
+    return info
+
+
 def environment() -> dict:
     env: dict = {
         "platform": platform.platform(),
@@ -120,6 +145,7 @@ def environment() -> dict:
             pk[name] = None
     env["packages"] = pk
     env["tsr_source"] = tsr_source_state()
+    env["torchmcubes_build"] = torchmcubes_build()
     # background-removal weights (rembg) are downloaded on first use and are NOT pinned: record exactly what was used
     import hashlib
     from pathlib import Path

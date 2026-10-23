@@ -318,3 +318,34 @@ def test_notebook_updates_an_existing_clone_and_preserves_local_tripoSR_modifica
     assert "checkout -q -B $STUDIO_REF origin/$STUDIO_REF" in code  # an old /content/aro is not left on a stale commit
     assert "git -C /content/TripoSR status --porcelain" in code and "local modifications kept" in code
     assert "reset --hard" not in code and "git clean" not in code  # never discards the user's compatibility work
+
+
+def test_notebook_builds_torchmcubes_the_documented_way_and_saves_uploads_where_it_reads_them():
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
+    # torchmcubes main refuses isolated builds (its metadata step needs torch): build tools first, then --no-build-isolation
+    assert "'--no-build-isolation'" in code and "scikit-build-core" in code and "cmake>=3.24" in code
+    assert "retrying CPU-only" in code and "pip-torchmcubes.log" in code
+    # import checks happen in a fresh process (a pip-upgraded numpy must not cause false failures in the stale kernel)
+    assert "subprocess.run([sys.executable, '-c', f'import {mod}']" in code
+    # early compatibility check of the very new preinstalled transformers with TripoSR's DINO tokenizer, before the 1.7 GB download
+    assert "VIT_COMPAT_OK" in code and "interpolate_pos_encoding=True" in code and "TSR_IMPORT_OK" in code
+    # files.upload() writes into the CURRENT directory (/content/aro): the notebook must write the bytes to /content itself
+    assert "fh.write(up[name])" in code and "VEHICLE_FILE = '/content/' + os.path.basename(name)" in code
+
+
+def test_torchmcubes_build_provenance_is_recorded_when_present(monkeypatch):
+    from aro_studio.verification import hardware
+
+    class FakeDist:
+        version = "0.1.0"
+
+        @staticmethod
+        def read_text(name):
+            return json.dumps(
+                {"url": "https://github.com/tatsy/torchmcubes.git", "vcs_info": {"vcs": "git", "commit_id": "abc123"}}
+            )
+
+    monkeypatch.setattr("importlib.metadata.distribution", lambda name: FakeDist())
+    info = hardware.torchmcubes_build()
+    assert info["commit"] == "abc123" and info["url"].endswith("torchmcubes.git") and info["version"] == "0.1.0"
