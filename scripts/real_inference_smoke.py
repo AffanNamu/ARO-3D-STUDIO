@@ -181,6 +181,11 @@ def main() -> int:
         return finish(1)
 
     def finish(code: int) -> int:
+        if not a.double:  # models are downloaded during the run: record what is on disk NOW, not at start
+            try:
+                ev["environment"]["rembg_models"] = environment().get("rembg_models")
+            except Exception:  # noqa: BLE001 - informational
+                pass
         (out / "smoke-evidence.json").write_text(json.dumps(ev, indent=2, default=str) + "\n")
         write_report(ev, out / "smoke-report.md")
         print(json.dumps({"mode": ev["mode"], "status": ev["status"], "blockers": ev["blockers"]}, indent=2))

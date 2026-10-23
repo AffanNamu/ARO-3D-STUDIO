@@ -419,3 +419,14 @@ def test_unfinished_run_marker_is_reported_as_a_failure_by_the_reader(tmp_path):
     f.write_text(json.dumps({"mode": "real_engine", "status": {"real_inference": "RUNNING"}, "items": []}))
     r = read_smoke_evidence(f)
     assert r.status == "FAIL" and "never finished" in r.detail
+
+
+def test_notebook_checks_checkpoint_parameter_names_and_falls_back_to_transformers_4():
+    """Colab failure: transformers 5.x renamed the ViT modules -> 'Missing key(s) in state_dict' while loading the real weights."""
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
+    assert "encoder.layer.0.attention.attention.query.weight" in code and "VIT_KEYS_OK" in code
+    assert "VIT_KEYS_MISMATCH" in code and "transformers==4.46.3" in code and "tokenizers==0.20.3" in code
+    # the loader must never be loosened to hide such a mismatch
+    engine = (ROOT / "aro_studio" / "engines" / "triposr.py").read_text()
+    assert "strict=False" not in engine

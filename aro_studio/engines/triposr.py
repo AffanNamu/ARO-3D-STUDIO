@@ -106,6 +106,30 @@ def _version_tuple(v: str) -> tuple[int, ...]:
     return tuple(nums + [0] * (3 - len(nums)))
 
 
+# The published checkpoint stores the DINO image tokenizer with the classic ViT parameter names. transformers 5 renamed those modules
+# (encoder.layer.N.attention.attention.query -> layers.N.attention.q_proj, ...), so `load_state_dict` fails with hundreds of
+# missing/unexpected keys. The loader must keep refusing such a mismatch (no key renaming, no strict=False); we detect it up front.
+CHECKPOINT_VIT_KEY = "encoder.layer.0.attention.attention.query.weight"
+
+
+def vit_layout_problem() -> str | None:
+    """None when the installed ``transformers`` names ViT parameters the way the TripoSR checkpoint does; otherwise why not."""
+    try:
+        import transformers
+        from transformers import ViTConfig, ViTModel
+    except Exception:  # noqa: BLE001 - a missing/broken package is reported by the package checks
+        return None
+    cfg = ViTConfig(
+        hidden_size=32, num_hidden_layers=1, num_attention_heads=2, intermediate_size=64, image_size=224, patch_size=16
+    )
+    if CHECKPOINT_VIT_KEY in ViTModel(cfg).state_dict():
+        return None
+    return (
+        f"transformers {getattr(transformers, '__version__', '?')} names ViT parameters differently from the TripoSR checkpoint "
+        f"(expected '{CHECKPOINT_VIT_KEY}'); loading the weights would fail with missing/unexpected keys."
+    )
+
+
 _PRESETS: dict[str, dict[str, Any]] = {
     "LOW_RESOURCE": {"mc_resolution": 160, "chunk_size": 2048, "foreground_ratio": 0.85, "mc_threshold": 25.0},
     "BALANCED": {"mc_resolution": 256, "chunk_size": 8192, "foreground_ratio": 0.85, "mc_threshold": 25.0},
@@ -163,6 +187,12 @@ class TripoSREngine(ImageTo3DEngine):
                     warnings.append("Running on CPU: reconstruction will be very slow and needs several GB of RAM.")
             except Exception as e:  # noqa: BLE001
                 reasons.append(f"torch failed to import: {type(e).__name__}: {e}")
+            problem = vit_layout_problem()
+            if problem:
+                reasons.append(problem)
+                activation.append(
+                    "pip install 'transformers>=4.35,<5' (4.46.3 + tokenizers 0.20.3 have Python 3.13 wheels; TripoSR pins 4.35.0)"
+                )
         p = Path(self.model_path)
         if p.is_dir():
             for f in ("config.yaml", "model.ckpt"):

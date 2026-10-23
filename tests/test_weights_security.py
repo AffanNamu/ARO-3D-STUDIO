@@ -423,3 +423,47 @@ def test_realhub_model_info_accepts_dict_and_object_sibling_metadata(monkeypatch
         "config.yaml": {"sha256": None, "size": len(CONFIG)},
         "model.ckpt": {"sha256": sha(CKPT), "size": len(CKPT)},
     }
+
+
+def _fake_transformers(monkeypatch, keys):
+    """A stand-in `transformers` whose ViTModel exposes the given parameter names (no real model is built)."""
+    mod = types.ModuleType("transformers")
+    mod.__version__ = "9.9.9"
+
+    class ViTConfig:
+        def __init__(self, **kw):
+            pass
+
+    class ViTModel:
+        def __init__(self, cfg):
+            pass
+
+        def state_dict(self):
+            return dict.fromkeys(keys)
+
+    mod.ViTConfig, mod.ViTModel = ViTConfig, ViTModel
+    monkeypatch.setitem(sys.modules, "transformers", mod)
+
+
+def test_vit_layout_check_accepts_the_classic_names_the_checkpoint_uses(monkeypatch):
+    _fake_transformers(monkeypatch, ["encoder.layer.0.attention.attention.query.weight"])
+    assert triposr.vit_layout_problem() is None
+
+
+def test_vit_layout_check_rejects_transformers_5_style_names_before_any_download(monkeypatch):
+    """Colab run: transformers 5.x named ViT parameters layers.N.attention.q_proj -> 'Missing key(s) in state_dict' for the real weights."""
+    _fake_transformers(monkeypatch, ["layers.0.attention.q_proj.weight"])
+    problem = triposr.vit_layout_problem()
+    assert problem and "9.9.9" in problem and "encoder.layer.0.attention.attention.query.weight" in problem
+
+
+def test_engine_reports_the_naming_mismatch_as_an_availability_blocker(monkeypatch, tmp_path):
+    _fake_transformers(monkeypatch, ["layers.0.attention.q_proj.weight"])
+    torch_mod = types.ModuleType("torch")
+    torch_mod.__version__ = "2.11.0"
+    torch_mod.cuda = types.SimpleNamespace(is_available=lambda: False)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    monkeypatch.setattr(triposr.importlib.util, "find_spec", lambda name: object())
+    av = triposr.TripoSREngine(lock=complete_lock()).availability("cpu")
+    assert not av.ok and any("names ViT parameters differently" in r for r in av.reasons)
+    assert any("transformers" in a and "<5" in a for a in av.activation)
