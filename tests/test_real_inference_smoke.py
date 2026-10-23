@@ -324,8 +324,11 @@ def test_notebook_builds_torchmcubes_the_documented_way_and_saves_uploads_where_
     nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
     code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
     # torchmcubes main refuses isolated builds (its metadata step needs torch): build tools first, then --no-build-isolation
-    assert "'--no-build-isolation'" in code and "scikit-build-core" in code and "cmake>=3.24" in code
-    assert "retrying CPU-only" in code and "pip-torchmcubes.log" in code
+    assert (
+        "'--no-build-isolation'" in code and "scikit-build-core" in code and "CUDACXX" in code and "cmake>=3.24" in code
+    )
+    assert "CPU-ONLY first" in code and "TRY_CUDA_KERNELS" in code and "pip-torchmcubes.log" in code
+    assert "still working" in code and "do NOT interrupt" in code  # output is streamed live, never hidden
     # import checks happen in a fresh process (a pip-upgraded numpy must not cause false failures in the stale kernel)
     assert "subprocess.run([sys.executable, '-c', f'import {mod}']" in code
     # early compatibility check of the very new preinstalled transformers with TripoSR's DINO tokenizer, before the 1.7 GB download
@@ -349,3 +352,20 @@ def test_torchmcubes_build_provenance_is_recorded_when_present(monkeypatch):
     monkeypatch.setattr("importlib.metadata.distribution", lambda name: FakeDist())
     info = hardware.torchmcubes_build()
     assert info["commit"] == "abc123" and info["url"].endswith("torchmcubes.git") and info["version"] == "0.1.0"
+
+
+def test_notebook_stream_helper_streams_reports_exit_codes_and_ends(tmp_path):
+    """The notebook's own live-output helper (cell 3) is executed here: it must end when the command ends, keep a log, and report failure."""
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    src = next(
+        "".join(c["source"])
+        for c in nb["cells"]
+        if c["cell_type"] == "code" and "def stream(cmd" in "".join(c["source"])
+    )
+    helper = src[src.index("import threading, queue, time") : src.index("BUILD = [")]
+    ns: dict = {"os": __import__("os"), "sys": sys, "subprocess": subprocess, "LOG": str(tmp_path / "build.log")}
+    exec(compile(helper, "notebook-stream", "exec"), ns)  # noqa: S102 - our own notebook source
+    assert ns["stream"]([sys.executable, "-c", "print('hello'); print('world')"]) is True
+    assert ns["stream"]([sys.executable, "-c", "import sys; print('boom'); sys.exit(3)"]) is False
+    log = (tmp_path / "build.log").read_text()
+    assert "hello" in log and "boom" in log and "-> exit 3" in log
