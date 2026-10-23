@@ -225,6 +225,13 @@ def read_smoke_evidence(path: Path) -> Evidence:
         "visual_quality": (data.get("status") or {}).get("visual_quality"),
         "gpu": (data.get("environment") or {}).get("cuda"),
     }
+    if claimed == "RUNNING":
+        return Evidence(
+            FAIL,
+            "the smoke run never finished (it crashed, was interrupted, or the runtime disconnected): see its log",
+            str(path),
+            facts,
+        )
     if claimed in (BLOCKED, FAIL, PARTIAL):
         return Evidence(
             claimed, f"smoke test reported {claimed}: {'; '.join(data.get('blockers', []))[:300]}", str(path), facts

@@ -151,11 +151,12 @@ def environment() -> dict:
     from pathlib import Path
 
     models = {}
-    for f in sorted((Path.home() / ".u2net").glob("*.onnx")) if (Path.home() / ".u2net").is_dir() else []:
-        h = hashlib.sha256()
-        with open(f, "rb") as fh:
-            for chunk in iter(lambda: fh.read(1 << 20), b""):
-                h.update(chunk)
-        models[f.name] = {"sha256": h.hexdigest(), "size_bytes": f.stat().st_size}
+    for root in (Path.home() / ".u2net", Path.home() / ".rembg"):
+        for f in sorted(root.rglob("*.onnx")) if root.is_dir() else []:
+            h = hashlib.sha256()
+            with open(f, "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    h.update(chunk)
+            models[str(f.relative_to(Path.home()))] = {"sha256": h.hexdigest(), "size_bytes": f.stat().st_size}
     env["rembg_models"] = models
     return env

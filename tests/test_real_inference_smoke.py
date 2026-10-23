@@ -369,3 +369,53 @@ def test_notebook_stream_helper_streams_reports_exit_codes_and_ends(tmp_path):
     assert ns["stream"]([sys.executable, "-c", "import sys; print('boom'); sys.exit(3)"]) is False
     log = (tmp_path / "build.log").read_text()
     assert "hello" in log and "boom" in log and "-> exit 3" in log
+
+
+def _run_main_in_process(monkeypatch, tmp_path, argv):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import real_inference_smoke as smoke
+
+    monkeypatch.setattr(sys, "argv", ["real_inference_smoke.py", *argv])
+    return smoke.main()
+
+
+def test_a_crash_before_or_during_the_run_still_leaves_an_evidence_file(tmp_path, monkeypatch):
+    """The Colab failure mode: cell 8 found NO evidence. Any crash must now be recorded as FAIL with its traceback."""
+    m = _manifest(
+        tmp_path, [("a", "heavy_truck", (200, 40, 40)), ("b", "furniture", (40, 80, 200)), ("c", "prop", (40, 200, 80))]
+    )
+    # (1) crash while starting the Studio
+    import aro_studio.api.app as api_app
+
+    monkeypatch.setattr(api_app, "create_app", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom at startup")))
+    out1 = tmp_path / "o1"
+    assert _run_main_in_process(monkeypatch, tmp_path, ["--manifest", str(m), "--out", str(out1), "--double"]) == 1
+    ev1 = json.loads((out1 / "smoke-evidence.json").read_text())
+    assert (
+        ev1["status"]["real_inference"] == "FAIL"
+        and "boom at startup" in ev1["crash"]
+        and "while starting the Studio" in ev1["blockers"][0]
+    )
+    monkeypatch.undo()
+    # (2) crash in the middle of the run
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setattr(TestClient, "post", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom mid-run")))
+    out2 = tmp_path / "o2"
+    assert _run_main_in_process(monkeypatch, tmp_path, ["--manifest", str(m), "--out", str(out2), "--double"]) == 1
+    ev2 = json.loads((out2 / "smoke-evidence.json").read_text())
+    assert (
+        ev2["status"]["real_inference"] == "FAIL"
+        and "boom mid-run" in ev2["crash"]
+        and "during the run" in ev2["blockers"][-1]
+    )
+    assert (out2 / "smoke-report.md").is_file()
+
+
+def test_unfinished_run_marker_is_reported_as_a_failure_by_the_reader(tmp_path):
+    from aro_studio.verification.evidence import read_smoke_evidence
+
+    f = tmp_path / "e.json"
+    f.write_text(json.dumps({"mode": "real_engine", "status": {"real_inference": "RUNNING"}, "items": []}))
+    r = read_smoke_evidence(f)
+    assert r.status == "FAIL" and "never finished" in r.detail

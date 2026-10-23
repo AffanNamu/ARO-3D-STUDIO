@@ -2,13 +2,38 @@
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 
 import numpy as np
 from PIL import Image, ImageFilter
 from scipy import ndimage
 
-from aro_studio.core.errors import EngineUnavailableError
+from aro_studio.core.errors import EngineUnavailableError, InvalidInputError
+
+# The rembg PACKAGE is MIT, but each background-removal MODEL it downloads has its own licence and rembg changes its default over
+# time (2.0.86 defaults to BRIA RMBG-2.0, a ~1 GB model). We therefore NEVER rely on rembg's default: the model is chosen here.
+# Allow-list (licences as recalled from the upstream repositories - confirm before relying on them commercially):
+#   u2net, u2netp   U^2-Net, Apache-2.0        isnet-general-use   DIS / IS-Net, Apache-2.0
+REMBG_ALLOWED_MODELS = ("u2net", "u2netp", "isnet-general-use")
+REMBG_DEFAULT_MODEL = "u2net"
+# Blocked until a person has read the licence for that exact artefact (BRIA RMBG is published for NON-commercial use, as far as we know).
+REMBG_BLOCKED_PREFIXES = ("bria",)
+
+
+def rembg_model_name() -> str:
+    name = os.environ.get("ARO_REMBG_MODEL", REMBG_DEFAULT_MODEL).strip()
+    if name.lower().startswith(REMBG_BLOCKED_PREFIXES):
+        raise InvalidInputError(
+            f"Background-removal model '{name}' is blocked: it is published under a non-commercial licence (unverified here).",
+            recommended_action=f"Use one of {list(REMBG_ALLOWED_MODELS)} (ARO_REMBG_MODEL), or have the licence read and verified first.",
+        )
+    if name not in REMBG_ALLOWED_MODELS:
+        raise InvalidInputError(
+            f"Background-removal model '{name}' is not on the allow-list.",
+            recommended_action=f"Use one of {list(REMBG_ALLOWED_MODELS)}; adding a model needs its licence read and recorded.",
+        )
+    return name
 
 
 class BackgroundRemover(ABC):
@@ -86,13 +111,14 @@ class BorderColorMatte(BackgroundRemover):
 
 
 class RembgRemover(BackgroundRemover):
-    """Neural matting via the MIT-licensed ``rembg`` package (U^2-Net family). Optional dependency."""
+    """Neural matting via the MIT-licensed ``rembg`` package with an EXPLICITLY chosen model (see REMBG_ALLOWED_MODELS)."""
 
     id = "rembg"
-    name = "rembg (U²-Net)"
+    name = "rembg (explicit model)"
 
     def __init__(self) -> None:
         self._session = None
+        self.model_name: str | None = None
 
     def available(self) -> tuple[bool, str]:
         try:
@@ -109,8 +135,10 @@ class RembgRemover(BackgroundRemover):
             )
         import rembg
 
-        if self._session is None:
-            self._session = rembg.new_session()
+        model = rembg_model_name()  # raises for blocked / unknown models BEFORE anything is downloaded
+        if self._session is None or self.model_name != model:
+            self._session = rembg.new_session(model)
+            self.model_name = model
         return rembg.remove(image.convert("RGBA"), session=self._session).convert("RGBA")
 
 

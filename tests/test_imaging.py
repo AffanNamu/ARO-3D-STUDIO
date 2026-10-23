@@ -6,7 +6,14 @@ from PIL import Image, ImageDraw
 
 from aro_studio.core.errors import InvalidInputError
 from aro_studio.imaging.analysis import analyze
-from aro_studio.imaging.matting import BorderColorMatte, RembgRemover, background_stats
+from aro_studio.imaging.matting import (
+    REMBG_ALLOWED_MODELS,
+    REMBG_DEFAULT_MODEL,
+    BorderColorMatte,
+    RembgRemover,
+    background_stats,
+    rembg_model_name,
+)
 from aro_studio.imaging.preprocess import PreprocessOptions, preprocess
 from aro_studio.imaging.validate import load_image
 
@@ -119,6 +126,45 @@ def test_rembg_reports_unavailable_without_pretending():
         assert "rembg" in why
         with pytest.raises(Exception, match="rembg"):
             RembgRemover().remove(Image.new("RGB", (64, 64)))
+
+
+def test_rembg_model_is_chosen_explicitly_never_the_package_default(monkeypatch):
+    monkeypatch.delenv("ARO_REMBG_MODEL", raising=False)
+    assert rembg_model_name() == REMBG_DEFAULT_MODEL == "u2net"
+    for ok in REMBG_ALLOWED_MODELS:
+        monkeypatch.setenv("ARO_REMBG_MODEL", ok)
+        assert rembg_model_name() == ok
+
+
+@pytest.mark.parametrize("name", ["bria-rmbg", "BRIA-RMBG-2.0", "briaai", "silueta", "", "u2net_human_seg"])
+def test_rembg_blocked_and_unknown_models_are_refused_before_any_download(monkeypatch, name):
+    monkeypatch.setenv("ARO_REMBG_MODEL", name)
+    with pytest.raises(InvalidInputError):
+        rembg_model_name()
+
+
+def test_rembg_remover_passes_the_pinned_model_to_rembg_and_records_it(monkeypatch):
+    import sys
+    import types
+
+    seen: list[str | None] = []
+    fake = types.ModuleType("rembg")
+
+    def new_session(model=None, *a, **k):
+        seen.append(model)
+        return object()
+
+    fake.new_session = new_session  # type: ignore[attr-defined]
+    fake.remove = lambda im, session=None: im  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "rembg", fake)
+    monkeypatch.delenv("ARO_REMBG_MODEL", raising=False)
+    r = RembgRemover()
+    r.remove(Image.new("RGB", (64, 64)))
+    assert seen == ["u2net"] and r.model_name == "u2net"
+    monkeypatch.setenv("ARO_REMBG_MODEL", "bria-rmbg")
+    with pytest.raises(InvalidInputError):
+        RembgRemover().remove(Image.new("RGB", (64, 64)))
+    assert seen == ["u2net"]  # the blocked model never reached rembg
 
 
 def test_analysis_does_not_invent_category(concept_png):

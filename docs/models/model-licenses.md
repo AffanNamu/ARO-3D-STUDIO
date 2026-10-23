@@ -55,7 +55,8 @@ How the Studio enforces this: `engines/registry.py::license_gate` (explicit lice
 | einops | MIT | claimed |
 | torchmcubes | MIT per its repository (not read here) | **unverified** |
 | rembg (code) | MIT (publisher) | claimed |
-| U²-Net weights used by rembg | Apache-2.0 per the U²-Net repository (not read here) | **unverified**; rembg is optional and off by default |
+| U²-Net weights used by rembg (`u2net`, `u2netp`, `isnet-general-use`) | Apache-2.0 per the upstream repositories (recalled, not read here) | **unverified**; the Studio allow-lists only these (`ARO_REMBG_MODEL`, default `u2net`) and records the downloaded file's SHA-256 |
+| BRIA RMBG-2.0 (rembg 2.0.x default) | believed non-commercial | **BLOCKED** in `aro_studio/imaging/matting.py`; rembg's package default is never used |
 | xatlas (UV unwrap) | MIT; Python wheel declares MIT (read from installed metadata) | verified (metadata) |
 
 Runtime Python dependencies of the Studio itself are audited from installed metadata in [../dependency-licenses.md](../dependency-licenses.md).

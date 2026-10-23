@@ -168,6 +168,18 @@ def main() -> int:
         "items": [],
     }
 
+    def crashed(where: str) -> int:
+        import traceback
+
+        tb = traceback.format_exc()
+        ev["status"] = {"real_inference": "FAIL"}
+        ev["crash"] = tb[-6000:]
+        ev["blockers"].append(
+            f"the smoke script crashed {where}: {tb.strip().splitlines()[-1][:300]} (full traceback in the 'crash' field)"
+        )
+        print(tb, file=sys.stderr)
+        return finish(1)
+
     def finish(code: int) -> int:
         (out / "smoke-evidence.json").write_text(json.dumps(ev, indent=2, default=str) + "\n")
         write_report(ev, out / "smoke-report.md")
@@ -175,24 +187,30 @@ def main() -> int:
         print("evidence:", out / "smoke-evidence.json")
         return code
 
+    # marker on disk until the run ends: if the process is killed or the runtime disconnects, this stays and the reader reports FAIL
+    marker = {**ev, "status": {"real_inference": "RUNNING"}}
+    (out / "smoke-evidence.json").write_text(json.dumps(marker, indent=2, default=str) + "\n")
     work = Path(tempfile.mkdtemp(prefix="aro_smoke_"))
-    if a.double:
-        from tests.support import PlumbingEngine
+    try:
+        if a.double:
+            from tests.support import PlumbingEngine
 
-        s = Settings(
-            data_dir=work / "data",
-            verified_model_licenses="plumbing_test_double",
-            default_engine="plumbing_test_double",
-        )
-        ctx = build_context(s, engines=[PlumbingEngine()])
-        engine_id = "plumbing_test_double"
-    else:
-        s = Settings(
-            data_dir=work / "data", device=a.device, default_engine="triposr"
-        )  # licence comes from the lock only
-        ctx = build_context(s)
-        engine_id = "triposr"
-    client = TestClient(create_app(ctx))
+            s = Settings(
+                data_dir=work / "data",
+                verified_model_licenses="plumbing_test_double",
+                default_engine="plumbing_test_double",
+            )
+            ctx = build_context(s, engines=[PlumbingEngine()])
+            engine_id = "plumbing_test_double"
+        else:
+            s = Settings(
+                data_dir=work / "data", device=a.device, default_engine="triposr"
+            )  # licence comes from the lock only
+            ctx = build_context(s)
+            engine_id = "triposr"
+        client = TestClient(create_app(ctx))
+    except Exception:
+        return crashed("while starting the Studio (before any image was processed)")
     poller = VramPoller()
     try:
         # ---- gates ---------------------------------------------------------------------------------------------
@@ -495,6 +513,8 @@ def main() -> int:
         ev["status"]["visual_quality"] = "PENDING_HUMAN_REVIEW"
         ev["status"]["production_ready"] = "NOT_CLAIMED"
         return finish(0 if ev["status"]["real_inference"] == "PASS" else 1)
+    except Exception:
+        return crashed("during the run")
     finally:
         poller.stop()
         ctx.close()

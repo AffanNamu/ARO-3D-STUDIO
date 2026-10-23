@@ -91,8 +91,9 @@ def preprocess(image: Image.Image, opts: PreprocessOptions | None = None) -> Pre
                 )
                 mode = "none"
     if mode not in ("none",):
-        rgba = get_remover(mode).remove(rgba)
-        steps.append({"step": "background_removal", "method": mode})
+        remover = get_remover(mode)
+        rgba = remover.remove(rgba)
+        steps.append({"step": "background_removal", "method": mode, "model": getattr(remover, "model_name", None)})
     else:
         steps.append({"step": "background_removal", "method": "none" if not has_cutout else "existing_alpha"})
 
