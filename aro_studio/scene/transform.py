@@ -116,6 +116,31 @@ def transform_scene(scene: Scene, matrix: np.ndarray) -> Scene:
     return out
 
 
+def stretch_scene(scene: Scene, factors: tuple[float, float, float]) -> Scene:
+    """Non-uniform scale along the scene's X/Y/Z. Only for a bare reconstruction: colliders, vehicle metadata and rigs are all expressed
+    in metres/axes and would silently become wrong, so they must not exist yet."""
+    f = np.asarray(factors, dtype=float)
+    if not np.isfinite(f).all() or (f <= 0).any():
+        raise InvalidInputError("Stretch factors must be positive.")
+    man = scene.manifest
+    if man.colliders or man.vehicle or man.rig:
+        raise InvalidInputError(
+            "Cannot stretch a scene that already has colliders, vehicle metadata or a rig.",
+            recommended_action="Fit the real dimensions before generating collision or vehicle data.",
+        )
+    out = scene.copy()
+    matrix = np.diag([*f, 1.0])
+    for m in [*out.meshes.values(), *(m for d in out.lod_meshes.values() for m in d.values())]:
+        m.apply_transform(matrix)
+    for part in out.manifest.parts:
+        part.pivot = _p3(matrix, part.pivot)
+    for lod in out.manifest.lods:
+        for lod_part in lod.parts:
+            lod_part.pivot = _p3(matrix, lod_part.pivot)
+    out.refresh_counts()
+    return out
+
+
 def scene_bounds(scene: Scene) -> np.ndarray:
     ms = [m for m in scene.meshes.values() if len(m.vertices)]
     if not ms:

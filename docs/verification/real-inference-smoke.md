@@ -85,3 +85,18 @@ containing tokens (the notebook needs none).
 
 TripoSR README: ≈ 6 GB VRAM at the default 256³ marching-cubes grid; `LOW_RESOURCE` (160³) is smaller; first load downloads
 ≈ 1.7 GB. Measured VRAM/latency on a T4 for each preset: **not recorded yet**.
+
+## Running it in Colab: what changed after the first real runs
+
+* **The notebook defaults to the full run** (`FOCUSED_TRUCK_ONLY = False`): your vehicle image + the pinned TripoSR `chair`, `teapot`
+  and `robot` examples (SHA-256 checked against the pinned commit). Only that run can reach PASS. A single image is always PARTIAL.
+* **A new run archives the whole previous run** (JSON, report, inputs, views, GLB, raw meshes) to `<out>-previous/<timestamp>` before it
+  starts, so the packaged directory only ever contains one run. An earlier run that never finished is kept as `…-unfinished`.
+* **`package_smoke_evidence.py` refuses an unfinished run** (a `RUNNING` marker, a crash, a disconnect) instead of zipping it.
+* **Every exported GLB is audited per node** (`aro_studio/verification/glb_audit.py`): all LODs and the collision mesh are re-opened
+  from the downloaded bytes. A PASS requires `export.lod_collision_audit.ok` for every item.
+* **Evidence renders are smooth-shaded** (what a viewer shows for the exported vertex normals); `views_shading` records it.
+* **Stack that worked on Colab (Python 3.13):** torch 2.11+cu130, `transformers==4.46.3`, `tokenizers==0.20.3`, `huggingface-hub<1`.
+  `transformers` 5.x fails with "Missing key(s) in state_dict" (renamed ViT modules); the notebook detects it and installs 4.46.3.
+* **Re-prepare without a GPU:** `python scripts/reprepare_raw_mesh.py --raw raw/01-….glb --name … --category … --out out/ [--length-m … --width-m … --height-m …] --baseline`
+  re-runs preparation → validation → export → audit → six views on a preserved raw mesh (never modified). It is not inference.

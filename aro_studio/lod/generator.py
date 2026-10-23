@@ -111,9 +111,13 @@ def generate_lods(scene: Scene, config: LodConfig | None = None, *, is_vehicle: 
             m = scene.meshes[p.name]
             target = max(lv.min_faces_per_part, int(len(m.faces) * lv.ratio))
             if len(m.faces) > target:
-                dm, rep = ops.decimate(m, target_faces=target)
+                # a staged ladder pinches the surface less than one big step; what is still pinched is repaired (judged on the
+                # position-welded topology, so UV seams and texture coordinates are untouched)
+                dm, rep = ops.decimate(m, target_faces=target, stages=4)
                 if rep.faces_after >= len(m.faces):
                     dm = m.copy()
+                else:
+                    dm, _ = ops.remove_non_manifold(dm)
             else:
                 dm = m.copy()
             if lv.merge_static_by_material and p.component not in ANIMATED_ROLES:

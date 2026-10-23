@@ -63,6 +63,16 @@ class AutoProcessBody(BaseModel):
     """Settings for a non-destructive prepare/optimise/validate pass on a raw mesh."""
 
     length_m: float = Field(1.0, gt=0.01, le=100)
+    width_m: float | None = Field(
+        default=None, gt=0.01, le=100, description="Real width, only if known (stretches the model)"
+    )
+    height_m: float | None = Field(
+        default=None, gt=0.01, le=100, description="Real height, only if known (stretches the model)"
+    )
+    smooth_iterations: int = Field(
+        40, ge=0, le=100, description="Taubin smoothing of the full-resolution mesh; 0 = off"
+    )
+    auto_align_yaw: bool = True
     up: str | None = Field(default=None, pattern=r"^[+-][XYZ]$")
     forward: str | None = Field(default=None, pattern=r"^[+-][XYZ]$")
     target_triangles: int = Field(24_000, ge=100, le=25_000)

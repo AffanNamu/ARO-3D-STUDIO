@@ -14,7 +14,7 @@ from aro_studio.core.errors import InvalidInputError
 from aro_studio.geometry import ops
 from aro_studio.geometry.inspect import MeshReport, inspect_mesh
 from aro_studio.scene.store import Scene
-from aro_studio.scene.transform import scene_bounds, transform_scene
+from aro_studio.scene.transform import scene_bounds, stretch_scene, transform_scene
 
 # Operations applied independently to each part mesh: (mesh, **params) -> (mesh, OpReport)
 PART_OPS: dict[str, Callable[..., tuple[trimesh.Trimesh, ops.OpReport]]] = {
@@ -25,11 +25,12 @@ PART_OPS: dict[str, Callable[..., tuple[trimesh.Trimesh, ops.OpReport]]] = {
     "remove_small_components": ops.remove_small_components,
     "fix_normals": ops.fix_normals,
     "fill_holes": ops.fill_holes,
+    "remove_non_manifold": ops.remove_non_manifold,
     "smooth": ops.smooth,
     "decimate": ops.decimate,
 }
 # Operations applied to the whole scene with one matrix so parts stay aligned.
-SCENE_OPS = {"orient", "scale", "uniform_scale", "set_pivot"}
+SCENE_OPS = {"orient", "align_yaw", "scale", "fit_dimensions", "uniform_scale", "set_pivot"}
 
 STANDARD_CLEANUP: list[dict[str, Any]] = [
     {"op": "remove_invalid"},
@@ -102,12 +103,44 @@ def run_steps(
     return work, {"steps": log, "before": before, "after": after}
 
 
+def _shape_op(work: Scene, name: str, params: dict[str, Any], b: np.ndarray) -> tuple[Scene, dict[str, Any]]:
+    if name == "align_yaw":
+        verts = np.concatenate([m.vertices for m in work.meshes.values() if len(m.vertices)])
+        yaw_m, info = ops.footprint_yaw_matrix(verts, min_aspect=float(params.get("min_aspect", 1.15)))
+        if yaw_m is None:
+            return work, {"op": name, "params": params, **info}
+        return transform_scene(work, yaw_m), {"op": name, "params": params, **info}
+    if name == "fit_dimensions":
+        targets = {k: float(params[k]) for k in ("length_m", "width_m", "height_m") if params.get(k) is not None}
+        if not targets or any(tv <= 0 for tv in targets.values()):
+            raise InvalidInputError("fit_dimensions needs at least one positive length_m / width_m / height_m.")
+        ext = b[1] - b[0]  # canonical frame: X = width, Y = height, Z = length
+        axis_of = {"width_m": 0, "height_m": 1, "length_m": 2}
+        f = np.ones(3)
+        for k, t in targets.items():
+            if ext[axis_of[k]] <= 0:
+                raise InvalidInputError(f"Cannot fit {k}: zero extent on that axis.")
+            f[axis_of[k]] = t / ext[axis_of[k]]
+        uniform = float(np.cbrt(np.prod(f)))
+        distortion = {n: round(float(f[i] / uniform), 3) for i, n in enumerate(("width", "height", "length"))}
+        out = stretch_scene(work, (float(f[0]), float(f[1]), float(f[2])))
+        return out, {
+            "op": name,
+            "params": params,
+            "factors_xyz": f.round(4).tolist(),
+            "distortion_vs_uniform": distortion,
+        }
+    raise InvalidInputError(f"Unknown scene operation '{name}'.")  # pragma: no cover
+
+
 def _scene_op(work: Scene, name: str, params: dict[str, Any], group: str) -> tuple[Scene, dict[str, Any]]:
     b = scene_bounds(work)
     if name == "orient":
         m = ops.rotation_to_canonical(params["up"], params["forward"])
         out = transform_scene(work, m)
         return out, {"op": name, "params": params}
+    if name in ("align_yaw", "fit_dimensions"):
+        return _shape_op(work, name, params, b)
     if name == "scale":
         length = float(params["length_m"])
         axis = params.get("axis", "Z").upper()

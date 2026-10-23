@@ -252,6 +252,8 @@ def read_smoke_evidence(path: Path) -> Evidence:
             problems.append(f"{i.get('name')}: missing receipts (model_ran/cache_hit/finite/output_sha256)")
         if i.get("result") != PASS:
             problems.append(f"{i.get('name')}: item result {i.get('result')}")
+        if ((i.get("export") or {}).get("lod_collision_audit") or {}).get("ok") is not True:
+            problems.append(f"{i.get('name')}: the per-LOD / collision audit of the exported GLB is missing or failed")
         if ri.get("engine_id") == "plumbing_test_double":
             problems.append(f"{i.get('name')}: produced by the test double")
     if data.get("coverage_problems") != []:

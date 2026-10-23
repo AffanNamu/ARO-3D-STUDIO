@@ -17,3 +17,6 @@ dist/
 
 # real-inference smoke test: raw TripoSR meshes are large; keep them out of git (hashes are in smoke-evidence.json)
 docs/acceptance/evidence/ai/smoke/raw/
+
+# archived earlier smoke runs (moved here when a new run starts); never committed
+docs/acceptance/evidence/ai/smoke-previous/

@@ -91,6 +91,7 @@ def _smoke_doc(**over):
             "output_sha256": "ab" * 32,
             "engine_id": "triposr",
         },
+        "export": {"lod_collision_audit": {"ok": True}},
     }
     d = {
         "mode": "real_engine",
@@ -112,6 +113,10 @@ def test_smoke_evidence_rules(tmp_path):
     cached = _smoke_doc()
     cached["items"][0]["real_inference"]["cache_hit"] = True
     assert ev.read_smoke_evidence(_w(tmp_path, cached)).status == ev.FAIL
+    unaudited = _smoke_doc()
+    unaudited["items"][1]["export"] = {}
+    r = ev.read_smoke_evidence(_w(tmp_path, unaudited))
+    assert r.status == ev.FAIL and "audit" in r.detail  # PASS needs the per-LOD / collision audit of every exported GLB
     few = _smoke_doc(items=_smoke_doc()["items"][:2])
     assert ev.read_smoke_evidence(_w(tmp_path, few)).status == ev.FAIL
     assert ev.read_smoke_evidence(_w(tmp_path, _smoke_doc(coverage_problems=["no vehicle image"]))).status == ev.FAIL

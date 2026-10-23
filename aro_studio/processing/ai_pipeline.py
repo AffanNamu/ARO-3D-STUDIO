@@ -26,6 +26,18 @@ class AIPipelineOptions:
     )
     length_m: float = 6.5  # real-world length along the forward axis
     length_supplied: bool = False  # True only when a person gave the real size; otherwise the size is an ASSUMPTION
+    width_m: float | None = (
+        None  # real-world width / height, ONLY when a person supplies them (never guessed): the model's depth is
+    )
+    height_m: float | None = (
+        None  # an estimate from one view, so these stretch the reconstruction to the stated proportions
+    )
+    auto_align_yaw: bool = (
+        True  # square the footprint up with the axes (single-view output is often yawed); skipped if forward is given
+    )
+    smooth_iterations: int = (
+        40  # Taubin smoothing of the full-resolution mesh before decimation (0 = off); deviation is reported
+    )
     target_triangles: int = 24_000  # decimation target (UV unwrapping is limited to 25,000 triangles per atlas)
     texture_resolution: int = 1024
     fill_holes_edges: int = 200
@@ -141,31 +153,57 @@ def run_ai_pipeline(
         advance(f"{name} complete")
         return True
 
-    ok = run(
-        "geometry: orient + scale + pivot + cleanup + fill holes",
-        "geometry",
-        {
-            "steps": [
-                {"op": "orient", "params": {"up": up, "forward": fwd}},
-                {"op": "scale", "params": {"length_m": opts.length_m, "axis": "Z"}},
-                {"op": "set_pivot", "params": {"mode": "ground_center"}},
-                {"op": "remove_invalid"},
-                {"op": "merge_vertices"},
-                {"op": "remove_degenerate"},
-                {"op": "remove_duplicate_faces"},
-                {"op": "remove_small_components", "params": {"min_face_ratio": 0.01}},
-                {"op": "fix_normals"},
-                {"op": "fill_holes", "params": {"max_hole_edges": opts.fill_holes_edges}},
-            ]
-        },
-    )
+    prep_steps: list[dict[str, Any]] = [{"op": "orient", "params": {"up": up, "forward": fwd}}]
+    if opts.auto_align_yaw and not opts.forward:
+        prep_steps.append({"op": "align_yaw"})
+    prep_steps.append({"op": "scale", "params": {"length_m": opts.length_m, "axis": "Z"}})
+    if opts.width_m is not None or opts.height_m is not None:
+        prep_steps.append({"op": "fit_dimensions", "params": {"width_m": opts.width_m, "height_m": opts.height_m}})
+    prep_steps += [
+        {"op": "set_pivot", "params": {"mode": "ground_center"}},
+        {"op": "remove_invalid"},
+        {"op": "merge_vertices"},
+        {"op": "remove_degenerate"},
+        {"op": "remove_duplicate_faces"},
+        {"op": "remove_small_components", "params": {"min_face_ratio": 0.01}},
+        {"op": "fix_normals"},
+        {"op": "fill_holes", "params": {"max_hole_edges": opts.fill_holes_edges}},
+    ]
+    if opts.smooth_iterations > 0:
+        # low-pass the iso-surface noise at FULL resolution (before decimation, so facets are not baked in); the raw version is untouched
+        prep_steps += [{"op": "smooth", "params": {"iterations": int(opts.smooth_iterations)}}]
+    ok = run("geometry: orient + scale + pivot + cleanup + fill holes + smooth", "geometry", {"steps": prep_steps})
+    if steps:
+        details = ((steps[-1].detail.get("report") or {}).get("step_details")) or {}
+        yaw = details.get("align_yaw")
+        if yaw is not None:
+            needs_human.append(
+                f"footprint aligned to the axes by rotating {yaw['yaw_deg']:+.1f} deg about the up axis (long side = forward, footprint {yaw['footprint_long_m']:.3g} x {yaw['footprint_short_m']:.3g})"
+                if yaw.get("aligned")
+                else f"footprint NOT yaw-aligned: {yaw.get('reason', 'not applicable')}"
+            )
+        fit = details.get("fit_dimensions")
+        if fit is not None:
+            needs_human.append(
+                "proportions were STRETCHED to the supplied width/height (distortion vs a uniform scale: "
+                f"{fit['distortion_vs_uniform']}): this is not what the model predicted, and a stretch of the height changes wheel roundness"
+            )
+        elif opts.width_m is None and opts.height_m is None:
+            needs_human.append(
+                "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): "
+                "supply the real width/height to correct the proportions"
+            )
     cleaned = cur
     ok = ok and run(
         "geometry: decimate for texturing",
         "geometry",
         {
             "steps": [
-                {"op": "decimate", "params": {"target_faces": opts.target_triangles}},
+                {"op": "decimate", "params": {"target_faces": opts.target_triangles, "stages": 5}},
+                # quadric decimation can pinch a closed surface (edges shared by 3+ triangles): repair, close the specks, re-orient
+                {"op": "remove_non_manifold"},
+                {"op": "fill_holes", "params": {"max_hole_edges": 60}},
+                {"op": "fix_normals"},
                 # decimation moves silhouette vertices slightly: re-ground so the wheels/base sit exactly on Y=0
                 {"op": "set_pivot", "params": {"mode": "ground_center"}},
             ]

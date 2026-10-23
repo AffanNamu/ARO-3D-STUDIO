@@ -91,7 +91,10 @@ def six_views(scene, out: Path, label: str) -> list[str]:
         ("3q", 40, 15),
     ):
         p = out / f"{label}-{view}.png"
-        render_asset_scene(scene, azimuth_deg=az, elevation_deg=el, size=640, background=(236, 236, 236)).save(p)
+        # smooth shading = what a viewer shows for the exported vertex normals (flat shading exaggerates facets and surface noise)
+        render_asset_scene(
+            scene, azimuth_deg=az, elevation_deg=el, size=640, background=(236, 236, 236), smooth_shading=True
+        ).save(p)
         names.append(p.name)
     return names
 
@@ -429,6 +432,7 @@ def main() -> int:
             final_id = rpt["final_version_id"]
             final_scene = ctx.assets.load_scene(final_id)
             rec["prepared_views"] = six_views(final_scene, out / "views", f"{idx + 1:02d}-prepared")
+            rec["views_shading"] = "smooth (vertex normals, as exported)"
 
             # export + independent re-open
             ej = client.post(f"/api/versions/{final_id}/export", json={"formats": ["glb"]})
@@ -476,12 +480,25 @@ def main() -> int:
                         "khronos": kh,
                     }
                 )
+                try:  # every LOD and the collision mesh, re-opened from the bytes just downloaded
+                    from aro_studio.verification.glb_audit import audit_glb
+
+                    audit = audit_glb(out / f"{idx + 1:02d}-prepared.glb")
+                    rec["export"]["lod_collision_audit"] = {
+                        "ok": audit["ok"],
+                        "failed_checks": [c["message"] for c in audit["checks"] if not c["ok"]],
+                        "nodes": audit["nodes"],
+                        "checks": audit["checks"],
+                    }
+                except Exception as e:  # noqa: BLE001 - recorded as a failure, never skipped silently
+                    rec["export"]["lod_collision_audit"] = {"ok": False, "error": f"{type(e).__name__}: {e}"}
             ok = (
                 rec["export"].get("status") == "COMPLETED"
                 and rec["export"].get("sha256_matches_record")
                 and rec["export"].get("internal_verification_ok")
                 and not (rec["export"].get("khronos") or {}).get("errors")
                 and rec["export"].get("reopened_vertices_finite") is True
+                and (rec["export"].get("lod_collision_audit") or {}).get("ok") is True
                 and rec["export"].get("reopened_triangles_all_lods", 0) > 0
                 and rec["raw_immutable"]
                 and rec["viewer_preview"]["status"] == 200
@@ -527,30 +544,32 @@ def main() -> int:
 
 
 def archive_previous_evidence(out: Path) -> Path | None:
-    """Keep the previous run's evidence JSON and report: a new run starts by writing a RUNNING marker over smoke-evidence.json.
+    """Move the WHOLE previous run (JSON, report, inputs, views, prepared GLB, raw meshes) out of ``out``.
 
-    (A new run still overwrites the views / prepared GLB of the same index: those belong to the latest run only.)
+    Otherwise a new run writes its RUNNING marker over smoke-evidence.json while old inputs/views/GLBs stay behind, and a package built from
+    ``out`` mixes artefacts of different runs. The archive is a sibling directory (``<out>-previous/<stamp>[-unfinished]``), never inside
+    the evidence directory that is packaged or committed. The tracked README.md stays.
     """
     cur = out / "smoke-evidence.json"
-    if not cur.is_file():
+    leftovers = [p for p in out.iterdir() if p.name != "README.md"] if out.is_dir() else []
+    if not leftovers:
         return None
     try:
-        data = json.loads(cur.read_text())
+        data = json.loads(cur.read_text()) if cur.is_file() else {}
     except (OSError, ValueError):
         data = {}
     state = (data.get("status") or {}).get("real_inference") if isinstance(data, dict) else None
-    stamp = str(
-        (data.get("recorded_at_utc") if isinstance(data, dict) else None) or time.strftime("%Y%m%dT%H%M%SZ")
-    ).replace(":", "")
+    stamp = str((data.get("recorded_at_utc") if isinstance(data, dict) else None) or time.strftime("%Y%m%dT%H%M%SZ"))
     tag = "-unfinished" if state in (None, "RUNNING") else ""
-    dest = out / "previous"
-    dest.mkdir(parents=True, exist_ok=True)
-    keep = dest / f"{stamp}-smoke-evidence{tag}.json"
-    shutil.copy2(cur, keep)
-    report = out / "smoke-report.md"
-    if report.is_file():
-        shutil.copy2(report, dest / f"{stamp}-smoke-report{tag}.md")
-    return keep
+    dest = out.parent / f"{out.name}-previous" / f"{stamp.replace(':', '')}{tag}"
+    n = 1
+    while dest.exists():
+        n += 1
+        dest = dest.with_name(f"{dest.name}-{n}")
+    dest.mkdir(parents=True)
+    for p in leftovers:
+        shutil.move(str(p), str(dest / p.name))
+    return dest
 
 
 def write_report(ev: dict, path: Path) -> None:

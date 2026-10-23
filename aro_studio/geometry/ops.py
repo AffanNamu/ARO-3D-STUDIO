@@ -204,6 +204,45 @@ def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimes
     return out, _report("fill_holes", mesh, out, holes_filled=filled, holes_skipped=skipped, warnings=warn)
 
 
+def remove_non_manifold(mesh: trimesh.Trimesh, max_rounds: int = 8) -> tuple[trimesh.Trimesh, OpReport]:
+    """Make every edge belong to at most two triangles by dropping the SMALLEST triangles on each over-shared edge.
+
+    Quadric decimation can pinch a closed surface so that three or more triangles meet at one edge. Dropping the smallest ones removes the
+    defect with the least visible change; any tiny opening left behind is for ``fill_holes`` to close.
+
+    Edges are judged on the mesh with vertices WELDED BY POSITION (UV / normal seams must not hide a pinch), but the triangles are removed
+    from the original mesh, so a textured mesh keeps its seams, UVs and colours untouched.
+    """
+    faces = np.asarray(mesh.faces)
+    verts = np.asarray(mesh.vertices)
+    welded = trimesh.Trimesh(verts, faces, process=False)
+    welded.merge_vertices()
+    wfaces = np.asarray(welded.faces)
+    area = trimesh.Trimesh(verts, faces, process=False).area_faces
+    keep = np.ones(len(faces), dtype=bool)
+    removed = 0
+    for _ in range(max_rounds):
+        idx = np.flatnonzero(keep)
+        ff = wfaces[idx]
+        edges = np.sort(np.stack([ff[:, [0, 1]], ff[:, [1, 2]], ff[:, [2, 0]]], axis=1).reshape(-1, 2), axis=1)
+        owner = np.repeat(idx, 3)
+        _, inverse, counts = np.unique(edges, axis=0, return_inverse=True, return_counts=True)
+        bad = np.flatnonzero(counts > 2)
+        if not len(bad):
+            break
+        for b in bad:
+            members = owner[inverse == b]
+            for drop in members[np.argsort(-area[members])][2:]:
+                if keep[drop]:
+                    keep[drop] = False
+                    removed += 1
+    out = mesh.copy()
+    if removed:
+        out.update_faces(keep)
+        out.remove_unreferenced_vertices()
+    return out, _report("remove_non_manifold", mesh, out, triangles_removed=removed)
+
+
 # -- smoothing / optimisation -----------------------------------------------------------------
 def smooth(
     mesh: trimesh.Trimesh, iterations: int = 5, lamb: float = 0.5, nu: float = 0.53
@@ -218,9 +257,18 @@ def smooth(
 
 
 def decimate(
-    mesh: trimesh.Trimesh, *, target_faces: int | None = None, ratio: float | None = None, aggressiveness: int = 7
+    mesh: trimesh.Trimesh,
+    *,
+    target_faces: int | None = None,
+    ratio: float | None = None,
+    aggressiveness: int = 7,
+    stages: int = 1,
 ) -> tuple[trimesh.Trimesh, OpReport]:
-    """Quadric-error decimation to ``target_faces`` (or ``ratio`` of the current count)."""
+    """Quadric-error decimation to ``target_faces`` (or ``ratio`` of the current count).
+
+    ``stages`` > 1 reaches the target through a geometric ladder of intermediate counts. One big step can pinch a closed surface into
+    edges shared by 3+ triangles; on a real reconstruction 1 step left 23 such edges and 5 steps left 3 (``remove_non_manifold`` closes those).
+    """
     n = len(mesh.faces)
     if target_faces is None and ratio is None:
         raise InvalidInputError("Provide target_faces or ratio.")
@@ -231,13 +279,14 @@ def decimate(
     target_faces = max(4, int(target_faces))
     if target_faces >= n:
         return _clone(mesh), _report("decimate", mesh, mesh, target_faces=target_faces, note="already below target")
-    reduction = 1.0 - target_faces / n
-    pts, faces = fast_simplification.simplify(
-        np.asarray(mesh.vertices, dtype=np.float64),
-        np.asarray(mesh.faces, dtype=np.int64),
-        target_reduction=reduction,
-        agg=aggressiveness,
-    )
+    if not 1 <= stages <= 12:
+        raise InvalidInputError("stages must be 1-12.")
+    pts, faces = np.asarray(mesh.vertices, dtype=np.float64), np.asarray(mesh.faces, dtype=np.int64)
+    for i in range(1, stages + 1):
+        goal = target_faces if i == stages else max(target_faces, int(n * (target_faces / n) ** (i / stages)))
+        pts, faces = fast_simplification.simplify(
+            pts, faces, target_reduction=1.0 - goal / len(faces), agg=aggressiveness
+        )
     out = trimesh.Trimesh(pts, faces, process=False)
     transferred = _copy_attrs_nearest(mesh, out)
     warnings = []
@@ -248,6 +297,7 @@ def decimate(
         mesh,
         out,
         target_faces=target_faces,
+        stages=stages,
         achieved_ratio=len(out.faces) / n,
         attributes_transferred=transferred,
         warnings=warnings,
@@ -333,6 +383,43 @@ def set_pivot(
     m = np.eye(4)
     m[:3, 3] = t
     return apply_matrix(mesh, m, "set_pivot", mode=mode, translation=t.round(9).tolist())
+
+
+def footprint_yaw_matrix(vertices: np.ndarray, *, min_aspect: float = 1.15) -> tuple[np.ndarray | None, dict[str, Any]]:
+    """Rotation about +Y that squares the horizontal footprint up with X/Z and puts its LONG side on Z (the forward axis).
+
+    The rectangle of minimum area around the (x, z) footprint gives the yaw. Of the equivalent rotations the smallest one is used, so the
+    existing guess of which END is the front is kept. A footprint that is nearly square has no meaningful long side: nothing is rotated.
+    """
+    v = np.asarray(vertices, dtype=float)
+    pts = v[:, [0, 2]]
+    info: dict[str, Any] = {"aligned": False}
+    if len(pts) < 8:
+        info["reason"] = "too few vertices"
+        return None, info
+    transform, extents = trimesh.bounds.oriented_bounds_2D(pts)
+    long_side, short_side = float(max(extents)), float(min(extents))
+    aspect = long_side / max(short_side, 1e-12)
+    info.update(
+        footprint_aspect=round(aspect, 3), footprint_long_m=round(long_side, 4), footprint_short_m=round(short_side, 4)
+    )
+    if aspect < min_aspect:
+        info["reason"] = f"footprint is nearly square (aspect {aspect:.2f} < {min_aspect}): no reliable long side"
+        return None, info
+    rot = np.asarray(transform)[:2, :2]  # maps (x, z) into the rectangle's own frame
+    if np.linalg.det(rot) < 0:  # a reflection must never be applied to a mesh
+        rot = rot @ np.diag([1.0, -1.0])
+    if extents[0] > extents[1]:  # long side currently on the first rectangle axis: turn a quarter so it lands on Z
+        rot = np.array([[0.0, -1.0], [1.0, 0.0]]) @ rot
+    ang = np.arctan2(rot[1, 0], rot[0, 0])
+    ang = (ang + np.pi) % (2 * np.pi) - np.pi
+    if abs(ang) > np.pi / 2:  # the half-turn equivalent is the smaller rotation and keeps the front guess
+        ang = ang - np.copysign(np.pi, ang)
+    c, s = np.cos(ang), np.sin(ang)
+    m = np.eye(4)
+    m[0, 0], m[0, 2], m[2, 0], m[2, 2] = c, -s, s, c  # acts on (x, z) exactly like the 2x2 ``rot`` above
+    info.update(aligned=True, yaw_deg=round(float(np.degrees(ang)), 2))
+    return m, info
 
 
 # -- orientation suggestion -------------------------------------------------------------------

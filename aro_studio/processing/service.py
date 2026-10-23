@@ -217,6 +217,13 @@ class ProcessingService:
 
 def _brief(rep: dict) -> dict:
     """A compact report for the job result (full report is stored with the version)."""
-    return {k: v for k, v in rep.items() if k not in ("before", "after", "steps")} | (
+    out = {k: v for k, v in rep.items() if k not in ("before", "after", "steps")} | (
         {"steps": [s["op"] for s in rep["steps"]]} if "steps" in rep else {}
     )
+    # what the shape-correcting steps actually did is part of the answer (yaw applied or skipped and why, stretch factors)
+    details = {
+        s["op"]: {k: v for k, v in s.items() if k != "params"}
+        for s in rep.get("steps", [])
+        if s["op"] in ("align_yaw", "fit_dimensions", "smooth")
+    }
+    return out | ({"step_details": details} if details else {})

@@ -41,7 +41,19 @@ GENERATION_KEYS = (
     "use_cache",
     "force",
 )
-PREPARE_KEYS = ("length_m", "length_supplied", "up", "forward", "target_triangles", "texture_resolution", "lod")
+PREPARE_KEYS = (
+    "length_m",
+    "length_supplied",
+    "width_m",
+    "height_m",
+    "smooth_iterations",
+    "auto_align_yaw",
+    "up",
+    "forward",
+    "target_triangles",
+    "texture_resolution",
+    "lod",
+)
 
 
 class StageContext:

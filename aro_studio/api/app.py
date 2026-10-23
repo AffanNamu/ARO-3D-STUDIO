@@ -451,6 +451,10 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         settings_json: str = Form("{}"),
         preprocess_json: str = Form("{}"),
         length_m: float | None = Form(None, gt=0.01, le=100),
+        width_m: float | None = Form(None, gt=0.01, le=100),
+        height_m: float | None = Form(None, gt=0.01, le=100),
+        smooth_iterations: int = Form(40, ge=0, le=100),
+        auto_align_yaw: str | None = Form(None),
         up: str | None = Form(None, pattern=r"^[+-][XYZ]$"),
         forward: str | None = Form(None, pattern=r"^[+-][XYZ]$"),
         target_triangles: int = Form(24_000, ge=100, le=25_000),
@@ -544,7 +548,15 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
             "formats": fmts,
             "length_supplied": length_m is not None,  # otherwise the size is a flagged placeholder
         }
-        for key, value in (("length_m", length_m), ("up", up), ("forward", forward)):
+        params["smooth_iterations"] = smooth_iterations
+        params["auto_align_yaw"] = form_flag(auto_align_yaw, True)
+        for key, value in (
+            ("length_m", length_m),
+            ("width_m", width_m),
+            ("height_m", height_m),
+            ("up", up),
+            ("forward", forward),
+        ):
             if value is not None:
                 params[key] = value
         job = c.jobs.submit(

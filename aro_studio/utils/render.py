@@ -28,8 +28,13 @@ def render_scene(
     size: int = 768,
     background=(238, 238, 238),
     fov_deg: float = 28.0,
+    smooth_shading: bool = False,
 ) -> Image.Image:
-    """Render ``(mesh, rgba 0..1)`` items. +Y is up; azimuth 0 looks at the +Z face from +Z."""
+    """Render ``(mesh, rgba 0..1)`` items. +Y is up; azimuth 0 looks at the +Z face from +Z.
+
+    ``smooth_shading`` lights each triangle with the average of its vertex normals, which is what a viewer shows for an exported mesh that
+    carries smooth normals (the default flat shading exaggerates facets and surface noise).
+    """
     all_v = np.concatenate([m.vertices for m, _ in items])
     center = (all_v.min(0) + all_v.max(0)) / 2
     radius = np.linalg.norm(all_v.max(0) - all_v.min(0)) / 2
@@ -49,6 +54,10 @@ def render_scene(
         n = n / np.where(ln == 0, 1, ln)
         centroid = t.mean(axis=1)
         facing = ((eye - centroid) * n).sum(axis=1) > 0
+        if smooth_shading:
+            vn = np.asarray(mesh.vertex_normals)[fcs].mean(axis=1)
+            lv = np.linalg.norm(vn, axis=1, keepdims=True)
+            n = vn / np.where(lv == 0, 1, lv)
         shade = 0.38 + 0.62 * np.clip((n * light).sum(axis=1), 0, 1)
         rel = t - eye
         cam = np.stack([rel @ r, rel @ u, rel @ f], axis=-1)  # (N,3,3) x,y,depth

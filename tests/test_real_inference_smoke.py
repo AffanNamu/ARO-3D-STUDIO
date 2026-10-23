@@ -433,13 +433,14 @@ def test_notebook_checks_checkpoint_parameter_names_and_falls_back_to_transforme
     assert not re.search(r"load_state_dict\([^)]*strict\s*=\s*False", engine)
 
 
-def test_a_new_run_keeps_the_previous_runs_evidence_instead_of_overwriting_it(tmp_path):
-    """Colab: starting run 2 replaced run 1's finished smoke-evidence.json with the RUNNING marker."""
+def test_a_new_run_archives_the_whole_previous_run_instead_of_mixing_artefacts(tmp_path):
+    """Colab: run 2's marker replaced run 1's JSON while run 1's inputs/views/GLB stayed behind in the packaged directory."""
     sys.path.insert(0, str(ROOT / "scripts"))
     import real_inference_smoke as smoke
 
     out = tmp_path / "smoke"
     out.mkdir()
+    (out / "README.md").write_text("tracked placeholder")
     assert smoke.archive_previous_evidence(out) is None  # nothing to keep on a first run
     done = {
         "recorded_at_utc": "2026-10-23T07:42:19Z",
@@ -448,9 +449,15 @@ def test_a_new_run_keeps_the_previous_runs_evidence_instead_of_overwriting_it(tm
     }
     (out / "smoke-evidence.json").write_text(json.dumps(done))
     (out / "smoke-report.md").write_text("report 1")
+    for d in ("inputs", "views", "raw"):
+        (out / d).mkdir()
+        (out / d / "01-x").write_bytes(b"1")
+    (out / "01-prepared.glb").write_bytes(b"glb")
     kept = smoke.archive_previous_evidence(out)
-    assert kept is not None and json.loads(kept.read_text()) == done
-    assert (out / "previous" / "2026-10-23T074219Z-smoke-report.md").read_text() == "report 1"
+    assert kept is not None and kept.parent == tmp_path / "smoke-previous"  # outside the packaged / committed directory
+    assert json.loads((kept / "smoke-evidence.json").read_text()) == done and (kept / "01-prepared.glb").is_file()
+    assert (kept / "inputs" / "01-x").is_file() and (kept / "raw" / "01-x").is_file()
+    assert sorted(p.name for p in out.iterdir()) == ["README.md"]  # the new run starts from a clean directory
     # an earlier run that never finished is kept too, but clearly labelled
     (out / "smoke-evidence.json").write_text(
         json.dumps({"recorded_at_utc": "2026-10-23T08:03:14Z", "status": {"real_inference": "RUNNING"}})
@@ -470,3 +477,16 @@ def test_packaging_refuses_an_unfinished_run(tmp_path, monkeypatch, capsys):
     assert "REFUSING" in capsys.readouterr().out and not (tmp_path / "out" / "smoke-evidence-repo.zip").exists()
     (src / "smoke-evidence.json").write_text(json.dumps({"status": {"real_inference": "PARTIAL"}, "items": []}))
     assert pk.main() == 0 and (tmp_path / "out" / "smoke-evidence-repo.zip").exists()
+
+
+def test_notebook_reprepare_cell_never_ships_guessed_dimensions_and_the_full_run_is_the_default():
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
+    for name in ("REAL_LENGTH_M", "REAL_WIDTH_M", "REAL_HEIGHT_M"):
+        assert re.search(rf"^{name}\s*=\s*None\b", code, re.M), (
+            f"{name} must default to None: dimensions are never guessed"
+        )
+    assert "reprepare_raw_mesh.py" in code and (ROOT / "scripts" / "reprepare_raw_mesh.py").is_file()
+    assert re.search(
+        r"^FOCUSED_TRUCK_ONLY\s*=\s*False\b", code, re.M
+    )  # the 4-image run is the default (only it can reach PASS)
