@@ -192,6 +192,7 @@ def main() -> int:
         print("evidence:", out / "smoke-evidence.json")
         return code
 
+    archive_previous_evidence(out)
     # marker on disk until the run ends: if the process is killed or the runtime disconnects, this stays and the reader reports FAIL
     marker = {**ev, "status": {"real_inference": "RUNNING"}}
     (out / "smoke-evidence.json").write_text(json.dumps(marker, indent=2, default=str) + "\n")
@@ -523,6 +524,33 @@ def main() -> int:
     finally:
         poller.stop()
         ctx.close()
+
+
+def archive_previous_evidence(out: Path) -> Path | None:
+    """Keep the previous run's evidence JSON and report: a new run starts by writing a RUNNING marker over smoke-evidence.json.
+
+    (A new run still overwrites the views / prepared GLB of the same index: those belong to the latest run only.)
+    """
+    cur = out / "smoke-evidence.json"
+    if not cur.is_file():
+        return None
+    try:
+        data = json.loads(cur.read_text())
+    except (OSError, ValueError):
+        data = {}
+    state = (data.get("status") or {}).get("real_inference") if isinstance(data, dict) else None
+    stamp = str(
+        (data.get("recorded_at_utc") if isinstance(data, dict) else None) or time.strftime("%Y%m%dT%H%M%SZ")
+    ).replace(":", "")
+    tag = "-unfinished" if state in (None, "RUNNING") else ""
+    dest = out / "previous"
+    dest.mkdir(parents=True, exist_ok=True)
+    keep = dest / f"{stamp}-smoke-evidence{tag}.json"
+    shutil.copy2(cur, keep)
+    report = out / "smoke-report.md"
+    if report.is_file():
+        shutil.copy2(report, dest / f"{stamp}-smoke-report{tag}.md")
+    return keep
 
 
 def write_report(ev: dict, path: Path) -> None:

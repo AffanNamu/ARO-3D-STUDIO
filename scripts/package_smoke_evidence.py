@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import sys
 import zipfile
 from pathlib import Path
@@ -61,6 +62,16 @@ def main() -> int:
     if not (src / "smoke-evidence.json").is_file():
         print(f"no smoke-evidence.json in {src}: run scripts/real_inference_smoke.py first")
         return 2
+    try:
+        state = (json.loads((src / "smoke-evidence.json").read_text()).get("status") or {}).get("real_inference")
+    except (OSError, ValueError):
+        state = None
+    if state in (None, "RUNNING"):
+        print(
+            "REFUSING to package: smoke-evidence.json is an unfinished-run marker (or unreadable). The run is still going, it crashed, or "
+            "the runtime disconnected. Wait for the smoke-test cell to finish (or re-run it), then package."
+        )
+        return 3
     Path(a.out).mkdir(parents=True, exist_ok=True)
     r = package(src, Path(a.out))
     for k, v in r.items():

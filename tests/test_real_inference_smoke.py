@@ -431,3 +431,42 @@ def test_notebook_checks_checkpoint_parameter_names_and_falls_back_to_transforme
     # the loader must never be loosened to hide such a mismatch
     engine = (ROOT / "aro_studio" / "engines" / "triposr.py").read_text()
     assert not re.search(r"load_state_dict\([^)]*strict\s*=\s*False", engine)
+
+
+def test_a_new_run_keeps_the_previous_runs_evidence_instead_of_overwriting_it(tmp_path):
+    """Colab: starting run 2 replaced run 1's finished smoke-evidence.json with the RUNNING marker."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import real_inference_smoke as smoke
+
+    out = tmp_path / "smoke"
+    out.mkdir()
+    assert smoke.archive_previous_evidence(out) is None  # nothing to keep on a first run
+    done = {
+        "recorded_at_utc": "2026-10-23T07:42:19Z",
+        "status": {"real_inference": "PARTIAL"},
+        "items": [{"name": "truck"}],
+    }
+    (out / "smoke-evidence.json").write_text(json.dumps(done))
+    (out / "smoke-report.md").write_text("report 1")
+    kept = smoke.archive_previous_evidence(out)
+    assert kept is not None and json.loads(kept.read_text()) == done
+    assert (out / "previous" / "2026-10-23T074219Z-smoke-report.md").read_text() == "report 1"
+    # an earlier run that never finished is kept too, but clearly labelled
+    (out / "smoke-evidence.json").write_text(
+        json.dumps({"recorded_at_utc": "2026-10-23T08:03:14Z", "status": {"real_inference": "RUNNING"}})
+    )
+    assert "unfinished" in smoke.archive_previous_evidence(out).name
+
+
+def test_packaging_refuses_an_unfinished_run(tmp_path, monkeypatch, capsys):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import package_smoke_evidence as pk
+
+    src = tmp_path / "smoke"
+    src.mkdir()
+    (src / "smoke-evidence.json").write_text(json.dumps({"status": {"real_inference": "RUNNING"}, "items": []}))
+    monkeypatch.setattr(sys, "argv", ["x", "--dir", str(src), "--out", str(tmp_path / "out")])
+    assert pk.main() == 3
+    assert "REFUSING" in capsys.readouterr().out and not (tmp_path / "out" / "smoke-evidence-repo.zip").exists()
+    (src / "smoke-evidence.json").write_text(json.dumps({"status": {"real_inference": "PARTIAL"}, "items": []}))
+    assert pk.main() == 0 and (tmp_path / "out" / "smoke-evidence-repo.zip").exists()
