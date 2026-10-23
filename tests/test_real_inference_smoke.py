@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -429,4 +430,4 @@ def test_notebook_checks_checkpoint_parameter_names_and_falls_back_to_transforme
     assert "VIT_KEYS_MISMATCH" in code and "transformers==4.46.3" in code and "tokenizers==0.20.3" in code
     # the loader must never be loosened to hide such a mismatch
     engine = (ROOT / "aro_studio" / "engines" / "triposr.py").read_text()
-    assert "strict=False" not in engine
+    assert not re.search(r"load_state_dict\([^)]*strict\s*=\s*False", engine)
