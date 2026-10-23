@@ -324,10 +324,10 @@ def test_notebook_builds_torchmcubes_the_documented_way_and_saves_uploads_where_
     nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
     code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
     # torchmcubes main refuses isolated builds (its metadata step needs torch): build tools first, then --no-build-isolation
-    assert (
-        "'--no-build-isolation'" in code and "scikit-build-core" in code and "CUDACXX" in code and "cmake>=3.24" in code
-    )
-    assert "CPU-ONLY first" in code and "TRY_CUDA_KERNELS" in code and "pip-torchmcubes.log" in code
+    assert "'--no-build-isolation'" in code and "scikit-build-core" in code and "cmake>=3.24" in code
+    # torch is a CUDA build, so torch's CMake config REQUIRES a CUDA compiler: a "CPU-only" build (hiding nvcc) aborts - do not reintroduce it
+    assert "CUDACXX" not in code and "/nonexistent/nvcc" not in code
+    assert "CMAKE_CUDA_ARCHITECTURES" in code and "WITH CUDA kernels" in code and "pip-torchmcubes.log" in code
     assert "still working" in code and "do NOT interrupt" in code  # output is streamed live, never hidden
     # import checks happen in a fresh process (a pip-upgraded numpy must not cause false failures in the stale kernel)
     assert "subprocess.run([sys.executable, '-c', f'import {mod}']" in code
