@@ -1,0 +1,417 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-23T08:12:04Z",
+  "mode": "real_engine",
+  "environment": {
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+    "python": "3.13.15",
+    "machine": "x86_64",
+    "nvidia_smi": "Tesla T4, 580.82.07, 15360 MiB",
+    "torch": "2.11.0+cu130",
+    "cuda": {
+      "available": true,
+      "version": "13.0",
+      "device": "Tesla T4",
+      "total_vram_mb": 14912
+    },
+    "tsr_importable": true,
+    "packages": {
+      "torch": "2.11.0+cu130",
+      "torchvision": "0.26.0+cu130",
+      "transformers": "4.46.3",
+      "omegaconf": "2.4.0",
+      "einops": "0.8.2",
+      "huggingface-hub": "0.36.2",
+      "numpy": "2.5.4",
+      "trimesh": "5.1.1",
+      "pillow": "13.0.0",
+      "rembg": "2.0.86",
+      "onnxruntime": "1.31.0",
+      "torchmcubes": "0.1.0",
+      "xatlas": "0.0.11"
+    },
+    "tsr_source": null,
+    "torchmcubes_build": {
+      "version": "0.1.0",
+      "url": "https://github.com/tatsy/torchmcubes.git",
+      "commit": "a9ac95aa329957ba646e7bb057f825f5dfa77f38",
+      "cuda_kernels": true
+    },
+    "rembg_models": {
+      ".rembg/models/bria-rmbg/bria-rmbg.onnx": {
+        "sha256": "5b486f08200f513f460da46dd701db5fbb47d79b4be4b708a19444bcd4e79958",
+        "size_bytes": 1024331469
+      },
+      ".rembg/models/u2net/u2net.onnx": {
+        "sha256": "8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491",
+        "size_bytes": 175997641
+      }
+    }
+  },
+  "studio_commit": "60eadb39000f25c0a4dac52d0023b36ec8d24840",
+  "status": {
+    "real_inference": "PARTIAL",
+    "scope": "focused run: coverage requirement NOT met (needs >= 3 images incl. vehicle + non-vehicle)"
+  },
+  "blockers": [
+    "coverage: only 1 image(s): at least 3 genuinely different images are required; no non-vehicle image"
+  ],
+  "coverage_problems": [
+    "only 1 image(s): at least 3 genuinely different images are required",
+    "no non-vehicle image"
+  ],
+  "items": [
+    {
+      "name": "Premium Blue SUV Studio Render",
+      "category": "heavy_truck",
+      "category_group": "vehicles",
+      "input_file": "Premium Blue SUV Studio Render.png",
+      "input_sha256": "950d84ab2b867189cca890a1bb0bbb26c63f668e4d8797fe27bb7af95888de42",
+      "input_size_bytes": 1900741,
+      "input_image": {
+        "width": 1536,
+        "height": 1024,
+        "mode": "RGB",
+        "format": "PNG",
+        "has_alpha": false
+      },
+      "input_source_note": "Project-owner-supplied image 'Premium Blue SUV Studio Render.png' (provenance as stated by the project owner; not a TripoSR sample, not the procedural TITAN 480 model)",
+      "input_preserved_as": "inputs/01-Premium Blue SUV Studio Render.png",
+      "batch_status": "QUEUED",
+      "human_review": {
+        "status": "PENDING_HUMAN_REVIEW",
+        "recognisable": null,
+        "visual_defects": null,
+        "category_limitations": null,
+        "orientation_up_front": null
+      },
+      "generation_job": {
+        "job_id": "job_45389fe0aa544786b89c",
+        "state": "COMPLETED",
+        "error": null,
+        "job_seconds": 19.85,
+        "preflight": {
+          "estimate": {
+            "vram_mb": 6000,
+            "ram_mb": 4000,
+            "measured": true,
+            "note": "Published by TripoSR for default options (single image)."
+          },
+          "gpu": {
+            "available": true,
+            "name": "Tesla T4",
+            "total_mb": 15360,
+            "free_mb": 14910,
+            "driver": "580.82.07",
+            "source": "nvidia-smi"
+          },
+          "ram_available_mb": 10350,
+          "disk_free_mb": 68338
+        }
+      },
+      "real_inference": {
+        "model_ran": true,
+        "cache_hit": false,
+        "engine_id": "triposr",
+        "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+        "device": "cuda",
+        "model_load_time_s": 13.85,
+        "inference_time_s": 3.901,
+        "vertices": 58727,
+        "triangles": 117262,
+        "extents_native": [
+          0.8169751167297363,
+          0.8029381632804871,
+          0.4152243733406067
+        ],
+        "finite": true,
+        "output_sha256": "04515371fab2efc4ff661095202f6939f69d5f60f7a660ccf63ded3f7cfb6875",
+        "output_size_bytes": 2347768,
+        "generation_id": "gen_608c6535656349e59443",
+        "raw_version_id": "ver_d3c07e69aad947259bcc",
+        "raw_stage": "raw",
+        "provenance": {
+          "source": "ai_reconstruction",
+          "engine_id": "triposr",
+          "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+          "generation_id": "gen_608c6535656349e59443",
+          "input_image_sha256": "950d84ab2b867189cca890a1bb0bbb26c63f668e4d8797fe27bb7af95888de42",
+          "note": "TripoSR single-image reconstruction on cuda; raw native coordinate frame."
+        },
+        "stored_source_sha256": "950d84ab2b867189cca890a1bb0bbb26c63f668e4d8797fe27bb7af95888de42",
+        "provenance_source_sha256_matches_batch": true,
+        "source_image_served": true,
+        "raw_copy_sha256": "04515371fab2efc4ff661095202f6939f69d5f60f7a660ccf63ded3f7cfb6875",
+        "input_bytes_equal_stored_source": true,
+        "peak_vram_nvidia_smi_mb_whole_run": 5455
+      },
+      "raw_mesh_file": "raw/01-Premium Blue SUV Studio Render-raw.glb",
+      "generation_report": {
+        "settings": {
+          "engine": {
+            "chunk_size": 8192,
+            "foreground_ratio": 0.85,
+            "mc_resolution": 256,
+            "mc_threshold": 25.0,
+            "preset": "BALANCED"
+          },
+          "preprocess": {
+            "foreground_ratio": 0.85,
+            "output_size": 512,
+            "remove_background": "auto"
+          }
+        },
+        "preprocess_steps": [
+          {
+            "size": [
+              1536,
+              1024
+            ],
+            "step": "orientation"
+          },
+          {
+            "color": [
+              247,
+              247,
+              247
+            ],
+            "spread": 6.928203105926514,
+            "step": "background_analysis",
+            "uniform": true
+          },
+          {
+            "method": "border_color_matte",
+            "model": null,
+            "step": "background_removal"
+          },
+          {
+            "bbox": [
+              21,
+              129,
+              1481,
+              938
+            ],
+            "size": [
+              1460,
+              809
+            ],
+            "step": "crop"
+          },
+          {
+            "canvas": 512,
+            "step": "resize",
+            "subject_size": [
+              435,
+              241
+            ]
+          },
+          {
+            "composite_background": 0.5,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "step": "normalize"
+          }
+        ],
+        "engine_details": {
+          "coordinate_frame": "TripoSR native (unrotated)",
+          "extents": [
+            0.8169751167297363,
+            0.8029381632804871,
+            0.4152243733406067
+          ],
+          "mc_resolution": 256,
+          "orientation_hint": {
+            "basis": "tsr/utils.py::to_gradio_3d_orientation = Rx(-90deg) then Ry(+90deg) at upstream commit 107cefd",
+            "forward": "UNCONFIRMED: decide from the first real output",
+            "native_up": "+Z",
+            "status": "inferred_from_source_not_yet_verified_by_inference"
+          },
+          "weights_source": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a"
+        },
+        "execution_time_s": 3.901056292999783,
+        "model_load_time_s": 13.850153931000023
+      },
+      "raw_sanity": {
+        "vertices": 58727,
+        "faces": 117262,
+        "watertight": false,
+        "components": 1,
+        "issues": [
+          {
+            "id": "holes",
+            "severity": "major",
+            "message": "113 open boundary loop(s) (438 boundary edges)."
+          },
+          {
+            "id": "incorrect_scale",
+            "severity": "major",
+            "message": "Longest extent is 0.817 m; a vehicle is expected to be 2.0-25.0 m long. Rescale in metres."
+          },
+          {
+            "id": "incorrect_orientation",
+            "severity": "major",
+            "message": "Longest axis is X; vehicles must be built along +Z (forward) with +Y up."
+          },
+          {
+            "id": "incorrect_pivot",
+            "severity": "minor",
+            "message": "Origin is not at ground level on the centreline."
+          }
+        ]
+      },
+      "raw_manifest_sha256_before_prep": "64c67aa8941e291efc2a8209e49a9fbe4e08c3022cdab11c83728a6f0bc17613",
+      "raw_views": [
+        "01-raw-front.png",
+        "01-raw-rear.png",
+        "01-raw-left.png",
+        "01-raw-right.png",
+        "01-raw-top.png",
+        "01-raw-3q.png"
+      ],
+      "viewer_preview": {
+        "status": 200,
+        "bytes": 3269200
+      },
+      "preparation": {
+        "job_state": "COMPLETED",
+        "ok": true,
+        "needs_human": [
+          "forward axis guessed as the longest horizontal extent (+X); WHICH END IS THE FRONT cannot be determined automatically - review the 6-view renders and re-run with --forward if reversed",
+          "real-world size is not recoverable from a single image: the model was scaled to 1 m along its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions",
+          "no vehicle specification supplied: wheel/axle/pivot positions and component roles are artist work (automatic part detection is not implemented); validation WILL report NEEDS_REVIEW for a vehicle category"
+        ],
+        "steps": [
+          {
+            "step": "geometry: orient + scale + pivot + cleanup + fill holes",
+            "status": "PASS",
+            "seconds": 18.08
+          },
+          {
+            "step": "geometry: decimate for texturing",
+            "status": "PASS",
+            "seconds": 4.1
+          },
+          {
+            "step": "textures: unwrap + bake colour from the RAW mesh",
+            "status": "PASS",
+            "seconds": 18.79
+          },
+          {
+            "step": "collision",
+            "status": "PASS",
+            "seconds": 0.1
+          },
+          {
+            "step": "LOD generation",
+            "status": "PASS",
+            "seconds": 0.21
+          },
+          {
+            "step": "validation",
+            "status": "PASS",
+            "seconds": 0.46
+          },
+          {
+            "step": "finalize",
+            "status": "PASS",
+            "seconds": 0.11
+          }
+        ],
+        "final_extents_m": [
+          0.9837,
+          0.5078,
+          0.9989
+        ],
+        "validation": {
+          "status": "NEEDS_REVIEW",
+          "overall": 70.2,
+          "critical_failures": 4,
+          "major_failures": 8
+        },
+        "source_axes": {
+          "up": "+Z",
+          "forward": "+X"
+        },
+        "final_version_id": "ver_573814c2560e458da2e9"
+      },
+      "raw_immutable": true,
+      "prepared_views": [
+        "01-prepared-front.png",
+        "01-prepared-rear.png",
+        "01-prepared-left.png",
+        "01-prepared-right.png",
+        "01-prepared-top.png",
+        "01-prepared-3q.png"
+      ],
+      "export": {
+        "job_state": "COMPLETED",
+        "export_id": "exp_edff057cabe24eb791fc",
+        "status": "COMPLETED",
+        "size_bytes": 1930952,
+        "sha256_download": "f68db2de23e506f755b508ee7461bc5ef64d033e268625b456499014843e0cfb",
+        "sha256_matches_record": true,
+        "internal_verification_ok": true,
+        "reopened_triangles_all_lods": 44644,
+        "reopened_geometry_count": 5,
+        "reopened_vertices_finite": true,
+        "reopened_lod0_extents_m": [
+          0.9844,
+          0.5085,
+          0.9999
+        ],
+        "khronos": {
+          "ran": true,
+          "validator_version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "ok": true,
+          "messages": []
+        }
+      },
+      "result": "PASS"
+    }
+  ],
+  "engine": {
+    "id": "triposr",
+    "version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+    "revision": "5b521936b01fbe1890f6f9baed0254ab6351c04a",
+    "licence": {
+      "spdx": "MIT",
+      "source_url": "https://huggingface.co/stabilityai/TripoSR",
+      "commercial_use": "allowed",
+      "status": "verified",
+      "notes": "source code and pretrained models (as stated by the upstream README). Evidence: https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE (independently fetched, 2026-10-10); https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/README.md (independently fetched, 2026-10-10); https://huggingface.co/stabilityai/TripoSR (owner statement, 2026-10-10)."
+    },
+    "runnable": true,
+    "availability": {
+      "ok": true,
+      "reasons": [],
+      "warnings": [
+        "Weights will be downloaded from huggingface.co at pinned revision 5b521936b01fbe1890f6f9baed0254ab6351c04a and SHA-256 verified before loading."
+      ],
+      "activation": []
+    },
+    "device": "cuda",
+    "lock_missing": []
+  },
+  "batch_response_status": 202,
+  "batch": {
+    "batch_id": "batch_0b20b1f6908643039b67",
+    "total": 2,
+    "queued": 1,
+    "failed": 1
+  },
+  "negative_probe": {
+    "status": "FAILED",
+    "error": {
+      "code": "INVALID_INPUT",
+      "message": "The file content is not a PNG, JPEG or WebP image (extension and declared type are ignored).",
+      "recommended_action": "Export the concept as PNG, JPG or WebP."
+    },
+    "siblings_queued": 1,
+    "result": "PASS"
+  }
+}
