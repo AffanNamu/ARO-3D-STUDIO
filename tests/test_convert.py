@@ -182,3 +182,13 @@ def test_progress_messages_name_the_step(api):
             break
         time.sleep(0.02)
     assert j["state"] == "COMPLETED" and any(m.startswith("Step ") for m in seen)
+
+
+def test_omitted_boolean_form_fields_keep_their_documented_defaults(api):
+    """Regression: recent FastAPI turns an absent ``bool = Form(True)`` into False (cache and LOD silently off)."""
+    c, _ = api
+    p = post(c, length_m="1").json()["job"]["params"]
+    assert p["use_cache"] is True and p["lod"] is True and p["force"] is False
+    q = post(c, length_m="1", use_cache="false", lod="0", force="true").json()["job"]["params"]
+    assert q["use_cache"] is False and q["lod"] is False and q["force"] is True
+    assert post(c, length_m="1", lod="maybe").status_code == 400

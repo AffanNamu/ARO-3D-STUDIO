@@ -63,6 +63,22 @@ CSP = (
 )
 
 
+def form_flag(value: str | None, default: bool) -> bool:
+    """A boolean multipart field with a REAL default.
+
+    ``bool = Form(True)`` is not safe: recent FastAPI releases turn an ABSENT form boolean into ``False`` (checkbox semantics), which
+    silently disabled the reconstruction cache and LOD generation for clients that simply omit the field.
+    """
+    if value is None or not str(value).strip():
+        return default
+    v = str(value).strip().lower()
+    if v in ("1", "true", "on", "yes"):
+        return True
+    if v in ("0", "false", "off", "no"):
+        return False
+    raise InvalidInputError(f"'{value}' is not a valid true/false value.")
+
+
 async def read_limited(f: UploadFile, max_bytes: int) -> bytes:
     """Read an upload in chunks, aborting as soon as it exceeds ``max_bytes`` (no unbounded buffering)."""
     chunks, total = [], 0
@@ -292,7 +308,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         settings_json: str = Form("{}"),
         preprocess_json: str = Form("{}"),
         items_json: str = Form("[]"),
-        use_cache: bool = Form(True),
+        use_cache: str | None = Form(None),
         force: bool = Form(False),
         priority: int = Form(5, ge=1, le=9),
         max_retries: int = Form(0, ge=0, le=3),
@@ -370,7 +386,7 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
                     "preset": preset or None,
                     "settings": settings_value,
                     "preprocess": preprocess_value,
-                    "use_cache": use_cache,
+                    "use_cache": form_flag(use_cache, True),
                     "force": force,
                     "project_id": pid,
                     "asset_id": asset["asset_id"],
@@ -439,9 +455,9 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         forward: str | None = Form(None, pattern=r"^[+-][XYZ]$"),
         target_triangles: int = Form(24_000, ge=100, le=25_000),
         texture_resolution: int = Form(1024),
-        lod: bool = Form(True),
+        lod: str | None = Form(None),
         formats: str = Form("glb"),
-        use_cache: bool = Form(True),
+        use_cache: str | None = Form(None),
         force: bool = Form(False),
         priority: int = Form(5, ge=1, le=9),
         max_retries: int = Form(0, ge=0, le=3),
@@ -520,11 +536,11 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
             "preset": preset or None,
             "settings": settings_value,
             "preprocess": preprocess_value,
-            "use_cache": use_cache,
+            "use_cache": form_flag(use_cache, True),
             "force": force,
             "target_triangles": target_triangles,
             "texture_resolution": texture_resolution,
-            "lod": lod,
+            "lod": form_flag(lod, True),
             "formats": fmts,
             "length_supplied": length_m is not None,  # otherwise the size is a flagged placeholder
         }
