@@ -490,3 +490,15 @@ def test_notebook_reprepare_cell_never_ships_guessed_dimensions_and_the_full_run
     assert re.search(
         r"^FOCUSED_TRUCK_ONLY\s*=\s*False\b", code, re.M
     )  # the 4-image run is the default (only it can reach PASS)
+
+
+def test_the_smoke_cell_fixes_transformers_itself_before_inference():
+    """Colab (fresh runtime, transformers 5.x): skipping cell 4 sent the run straight into a BLOCKED harness."""
+    nb = json.loads((ROOT / "notebooks" / "aro_real_inference_colab.ipynb").read_text())
+    cell = next(
+        "".join(c["source"])
+        for c in nb["cells"]
+        if c["cell_type"] == "code" and "real_inference_smoke.py --manifest" in "".join(c["source"])
+    )
+    assert cell.index("transformers==4.46.3") < cell.index("real_inference_smoke.py --manifest")
+    assert "startswith('4.')" in cell and "assert _tf()" in cell
