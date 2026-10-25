@@ -10,7 +10,7 @@ The evidence-completion commit that follows is listed in the changelog below wit
 |---|---|
 | Baseline CI green (format failure fixed) | **PASS** (`de73a8d`, runs 38–39; run 44 on the final code) |
 | Batch upload UI works, no browser errors | **PASS** — browser test with a labelled test-double engine; **now runs in CI** |
-| Real image-to-3D proven through the Studio with the real engine | **PARTIAL.** Real TripoSR inference ran through the Studio on a Colab T4 for single images (truck twice, same raw hash; SUV once): [`partial-runs/`](acceptance/evidence/ai/partial-runs/README.md). Each run is PARTIAL by the coverage rule. The complete ≥ 3-image run is **outstanding** |
+| Real image-to-3D proven through the Studio with the real engine | **PARTIAL.** Real TripoSR inference ran through the Studio on a Colab T4 for single images (truck Sunset Hauler twice, same raw hash; a second truck, Golden Hour, at `9540e801` with the per-node audit; SUV once): [`partial-runs/`](acceptance/evidence/ai/partial-runs/README.md). Each run is PARTIAL by the coverage rule. The complete ≥ 3-image run is **outstanding** |
 | Real raw outputs from ≥ 3 non-procedural images | **NOT YET** (truck + SUV exist, from separate runs; no non-vehicle, no single run with ≥ 3) |
 | Generic preparation preserves raw, reports steps, versions outputs | **PASS on a synthetic mesh** (not AI output) |
 | Verified GLB export reopened and checked | **PASS** (checksum + re-open + Khronos in CI) |
