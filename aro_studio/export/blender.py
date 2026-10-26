@@ -165,3 +165,19 @@ class BlenderBackend:
         if not res.get("ok"):
             raise ModelError(f"Blender could not render {src.name}: {res.get('error')}", details=res)
         return [Path(p) for p in res["images"]]
+
+    def turntable(self, src: Path, out_gif: Path, frames: int = 24, size: int = 384, samples: int = 12) -> Path:
+        """A 360-degree turntable GIF of LOD0 rendered by Blender: the quickest way to look at a model from every side."""
+        from PIL import Image
+
+        frames = max(4, min(int(frames), 72))
+        views = tuple(f"turn-{round(360 * i / frames):03d}" for i in range(frames))
+        tmp = out_gif.parent / f".{out_gif.stem}-frames"
+        paths = self.render(src, tmp, views=views, size=size, samples=samples)
+        imgs = [Image.open(p).convert("P", palette=Image.Palette.ADAPTIVE) for p in paths]
+        out_gif.parent.mkdir(parents=True, exist_ok=True)
+        imgs[0].save(out_gif, save_all=True, append_images=imgs[1:], duration=80, loop=0, optimize=True)
+        for p in paths:
+            p.unlink(missing_ok=True)
+        tmp.rmdir()
+        return out_gif

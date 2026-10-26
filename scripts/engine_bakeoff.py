@@ -185,6 +185,8 @@ def run_one(
                     prepared, out / "blender", views=("3q", "side", "front", "rear", "top"), size=640, samples=32
                 )
                 row["blender_renders"] = [p.name for p in imgs]
+                ctx.exports.blender.turntable(prepared, out / "blender" / "turntable.gif")
+                row["turntable"] = "blender/turntable.gif"
             except Exception as e:  # noqa: BLE001 - a nice-to-have must not fail a good run
                 row["blender_renders_error"] = f"{type(e).__name__}: {str(e)[:200]}"
         else:

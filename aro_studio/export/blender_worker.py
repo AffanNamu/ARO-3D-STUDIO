@@ -328,6 +328,15 @@ VIEWS = {  # name -> (azimuth, elevation) in the Studio convention: azimuth 0 lo
 }
 
 
+def view_angles(name: str) -> tuple[float, float]:
+    """(azimuth, elevation) of a named view; ``turn-<degrees>`` is a turntable frame at 12 degrees elevation."""
+    if name in VIEWS:
+        return VIEWS[name]
+    if name.startswith("turn-"):
+        return float(name.split("-", 1)[1]), 12.0
+    raise ValueError(f"unknown view '{name}'")
+
+
 def _to_blender(v):
     """Studio (X right, Y up, Z forward) -> Blender (X right, Y forward, Z up): glTF's own conversion."""
     from mathutils import Vector
@@ -400,7 +409,7 @@ def render_views(out_dir: str, views: list[str], size: int, samples: int) -> dic
     os.makedirs(out_dir, exist_ok=True)
     written = []
     for name in views:
-        az, el = VIEWS[name]
+        az, el = view_angles(name)
         a, e = math.radians(az), math.radians(el)
         # Studio-frame direction towards the camera, converted to Blender axes; centre/radius are already in Blender axes
         direction = _to_blender((math.sin(a) * math.cos(e), math.sin(e), math.cos(a) * math.cos(e)))
@@ -448,7 +457,7 @@ def main(argv: list[str]) -> int:
         elif a.cmd == "render":
             reset()
             import_any(a.src)
-            result = render_views(a.out_dir, [v for v in a.views.split(",") if v in VIEWS], a.size, a.samples)
+            result = render_views(a.out_dir, [v for v in a.views.split(",") if v], a.size, a.samples)
         else:
             result = run_convert(a.src, a.dst, a.format, a.target)
         print(RESULT_TAG + json.dumps(result))
