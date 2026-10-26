@@ -171,3 +171,68 @@ def test_texture_failure_degrades_to_untextured_geometry_and_is_reported(studio,
     assert not final.manifest.textures and final.manifest.colliders
     # the raw reconstruction was never touched
     assert studio.assets.get_version(raw["version_id"])["stage"] == "raw"
+
+
+def holed_coloured_blob_glb() -> bytes:
+    """Like ``raw_like_mesh_glb`` but smaller and with a real opening, as every reconstruction has: filling it used to drop the colours."""
+    m = trimesh.creation.icosphere(subdivisions=6)
+    m.apply_scale([1.0, 0.45, 0.4])
+    c = ((m.vertices - m.vertices.min(0)) / np.ptp(m.vertices, axis=0) * 255).astype(np.uint8)
+    m.visual = trimesh.visual.ColorVisuals(mesh=m, vertex_colors=np.c_[c, np.full(len(c), 255, np.uint8)])
+    dist = np.linalg.norm(m.triangles_center - m.vertices[0], axis=1)
+    keep = np.sort(np.argsort(dist)[12:])  # drop the 12 faces nearest one vertex: a small, genuine opening
+    holed = trimesh.Trimesh(m.vertices, m.faces[keep], process=False)
+    holed.visual = trimesh.visual.ColorVisuals(mesh=holed, vertex_colors=np.c_[c, np.full(len(c), 255, np.uint8)])
+    return holed.export(file_type="glb")
+
+
+def test_baked_colour_lands_where_the_raw_colour_was_after_orient_scale_and_pivot(studio):
+    """REGRESSION (two defects): (1) colour used to be projected from the raw mesh, which is still in the engine's frame, onto a target that
+    had been rotated, scaled and moved, so the texture was scrambled; (2) closing a hole threw the vertex colours away, so a real mesh
+    (which always has openings) silently got NO texture. The fixture's colour channel R encodes the NATIVE X position; the pipeline turns
+    native X into the forward axis Z, so the baked R must follow the final Z. Smoothing is left at its default."""
+    import io as _io
+
+    from PIL import Image
+
+    from aro_studio.assets.importer import import_mesh_bytes
+    from aro_studio.core.enums import Stage
+
+    p = studio.projects.create("colour-alignment")
+    a = studio.assets.create_asset(p["project_id"], "Blob", "car")
+    scene, _ = import_mesh_bytes(
+        holed_coloured_blob_glb(), "raw.glb", name="Blob", category="car", max_bytes=200_000_000
+    )
+    raw = studio.assets.add_version(
+        a["asset_id"], scene, stage=Stage.RAW, operation="import", description="synthetic (NOT AI)"
+    )
+    rep = run_ai_pipeline(studio.processing, studio.assets, raw["version_id"], AIPipelineOptions(length_m=4.5))
+    assert rep["ok"], [s for s in rep["steps"] if s["status"] != "PASS"]
+    bake = next(s for s in rep["steps"] if "bake" in s["step"])
+    assert bake["status"] == "PASS" and not any("NO texture" in n for n in rep["needs_human"])
+    final = studio.assets.load_scene(rep["final_version_id"])
+    mesh = next(iter(final.meshes.values()))
+    tex_def = final.manifest.textures[0]
+    tex = np.asarray(Image.open(_io.BytesIO(final.texture_data[tex_def.file])).convert("RGB")).astype(float)
+    uv = np.asarray(mesh.visual.uv)
+    h, w = tex.shape[:2]
+    px = (uv[:, 0] * (w - 1)).round().astype(int).clip(0, w - 1)
+    py = ((1.0 - uv[:, 1]) * (h - 1)).round().astype(int).clip(0, h - 1)
+    red = tex[py, px, 0]
+    corr = float(np.corrcoef(mesh.vertices[:, 2], red)[0, 1])
+    assert abs(corr) > 0.95, f"baked colour is not aligned with the geometry (corr {corr:.3f})"
+
+
+def test_a_bake_that_produces_nothing_is_reported_as_skipped_not_passed(studio):
+    from aro_studio.assets.importer import import_mesh_bytes
+    from aro_studio.core.enums import Stage
+
+    m = trimesh.creation.icosphere(subdivisions=5)
+    m.apply_scale([1.0, 0.45, 0.4])  # no colours at all
+    p = studio.projects.create("no-colour")
+    a = studio.assets.create_asset(p["project_id"], "Plain", "car")
+    scene, _ = import_mesh_bytes(m.export(file_type="glb"), "raw.glb", name="Plain", category="car", max_bytes=10**8)
+    raw = studio.assets.add_version(a["asset_id"], scene, stage=Stage.RAW, operation="import", description="synthetic")
+    rep = run_ai_pipeline(studio.processing, studio.assets, raw["version_id"], AIPipelineOptions(length_m=3.0))
+    bake = next(s for s in rep["steps"] if "bake" in s["step"])
+    assert bake["status"] == "SKIPPED" and any("NO texture" in n for n in rep["needs_human"])

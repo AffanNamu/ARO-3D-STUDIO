@@ -1,0 +1,399 @@
+{
+  "kind": "re-preparation of a preserved raw mesh (NOT new inference)",
+  "raw_file": "01-ARO 480 Truck at Golden Hour-raw.glb",
+  "raw_sha256": "8c5d0615ed8b88fac20bec38196a68afc34dae4c278c82476520d8e9def268cd",
+  "raw_bytes": 3536304,
+  "variants": [
+    {
+      "label": "improved",
+      "options": {
+        "up": "+Z",
+        "target_triangles": 24000,
+        "smooth_iterations": 40,
+        "auto_align_yaw": true
+      },
+      "job_state": "COMPLETED",
+      "export_job_state": "COMPLETED",
+      "export_report": {
+        "status": "COMPLETED",
+        "sha256_matches_download": true,
+        "internal_verification_ok": true,
+        "khronos": {
+          "ran": false,
+          "reason": "Node.js v22.22.0"
+        }
+      },
+      "unity_package": {
+        "status": "COMPLETED",
+        "file": "improved-unity-package.zip",
+        "bytes": 8313528,
+        "sha256": "1fbe1be7865e52f70ef5136d9110befd672d7ee524b0cb63112786618aa3c856",
+        "note": "integrity-verified by the Studio; NOT imported into Unity (no editor here): see docs/verification/unity-verification-runbook.md"
+      },
+      "glb": "improved-prepared.glb",
+      "glb_bytes": 2237900,
+      "glb_sha256": "fe43ae986fe48e0a51901c76b5ba9ba24293e900d4a10d4fe61f8f4ac8eadef8",
+      "views": [
+        "improved-front.png",
+        "improved-rear.png",
+        "improved-left.png",
+        "improved-right.png",
+        "improved-top.png",
+        "improved-3q.png"
+      ],
+      "views_shading": "smooth (vertex normals, as exported)",
+      "needs_human": [
+        "forward axis guessed as the longest horizontal extent (+X); WHICH END IS THE FRONT cannot be determined automatically - review the 6-view renders and re-run with --forward if reversed",
+        "real-world size is not recoverable from a single image: the model was scaled to 1 m along its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions",
+        "footprint aligned to the axes by rotating -35.4 deg about the up axis (long side = forward, footprint 0.958 x 0.816)",
+        "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): supply the real width/height to correct the proportions",
+        "no vehicle specification supplied: wheel/axle/pivot positions and component roles are artist work (automatic part detection is not implemented); validation WILL report NEEDS_REVIEW for a vehicle category"
+      ],
+      "validation": {
+        "status": "NEEDS_REVIEW",
+        "overall": 74.1,
+        "critical_failures": 4,
+        "major_failures": 7
+      },
+      "validation_blocking_reasons": [
+        "4 critical failure(s): V001, V002, V003, U001",
+        "7 major failure(s): V004, V005, V006, V007, V008, V009, U008",
+        "overall score 74.1% is below the 90% threshold"
+      ],
+      "validation_failed_checks": [
+        {
+          "id": "G007",
+          "category": "geometry",
+          "title": "No duplicate vertices",
+          "severity": "minor",
+          "status": "warning",
+          "message": "3956 duplicate vertices (weld them)"
+        },
+        {
+          "id": "M005",
+          "category": "materials",
+          "title": "Vehicle material categories covered",
+          "severity": "minor",
+          "status": "warning",
+          "message": "missing categories: ['glass', 'paint', 'rubber']"
+        },
+        {
+          "id": "V001",
+          "category": "vehicle",
+          "title": "Vehicle metadata exists",
+          "severity": "critical",
+          "status": "failed",
+          "message": "vehicle metadata is missing"
+        },
+        {
+          "id": "V002",
+          "category": "vehicle",
+          "title": "Wheels exist",
+          "severity": "critical",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V003",
+          "category": "vehicle",
+          "title": "Axles exist",
+          "severity": "critical",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V004",
+          "category": "vehicle",
+          "title": "Wheels reference axles and parts",
+          "severity": "major",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V005",
+          "category": "vehicle",
+          "title": "Pivots exist for articulated parts",
+          "severity": "major",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V006",
+          "category": "vehicle",
+          "title": "Wheel positions are consistent",
+          "severity": "major",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V007",
+          "category": "vehicle",
+          "title": "Axle positions match their wheels",
+          "severity": "major",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V008",
+          "category": "vehicle",
+          "title": "Centre of mass is plausible",
+          "severity": "major",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V009",
+          "category": "vehicle",
+          "title": "Attachment points are valid",
+          "severity": "major",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "V010",
+          "category": "vehicle",
+          "title": "Wheels are left/right symmetric",
+          "severity": "minor",
+          "status": "failed",
+          "message": "vehicle metadata is missing (configure the vehicle)"
+        },
+        {
+          "id": "U001",
+          "category": "unity",
+          "title": "Scale is valid (metres)",
+          "severity": "critical",
+          "status": "failed",
+          "message": "vehicle length 1.000 m is outside 2\u201325 m (is the unit wrong?)"
+        },
+        {
+          "id": "U008",
+          "category": "unity",
+          "title": "Real-world size is confirmed",
+          "severity": "major",
+          "status": "failed",
+          "message": "the size is an ASSUMED placeholder (a single image cannot tell the real size): a plausible-looking scale is not a verified scale, so this asset cannot be PRODUCTION_READY until the real dimensions are entered"
+        },
+        {
+          "id": "U004",
+          "category": "unity",
+          "title": "Hierarchy is valid",
+          "severity": "major",
+          "status": "warning",
+          "message": "no rig hierarchy: parts export as a flat list"
+        }
+      ],
+      "steps": [
+        {
+          "step": "geometry: orient + scale + pivot + cleanup + fill holes + smooth",
+          "status": "PASS",
+          "seconds": 17.08
+        },
+        {
+          "step": "geometry: decimate for texturing",
+          "status": "PASS",
+          "seconds": 3.64
+        },
+        {
+          "step": "textures: unwrap + bake colour from the cleaned full-resolution mesh (which carries the raw vertex colours)",
+          "status": "PASS",
+          "seconds": 9.36
+        },
+        {
+          "step": "collision",
+          "status": "PASS",
+          "seconds": 0.08
+        },
+        {
+          "step": "LOD generation",
+          "status": "PASS",
+          "seconds": 0.3
+        },
+        {
+          "step": "validation",
+          "status": "PASS",
+          "seconds": 0.31
+        },
+        {
+          "step": "finalize",
+          "status": "PASS",
+          "seconds": 0.11
+        }
+      ],
+      "final_extents_m": [
+        0.8504,
+        0.8559,
+        1.0
+      ],
+      "lod0_roughness": {
+        "mean_deg": 13.96,
+        "p90_deg": 29.34
+      },
+      "audit": {
+        "ok": true,
+        "failed": [],
+        "nodes": [
+          {
+            "name": "COL_Hull",
+            "vertices": 133,
+            "triangles": 252,
+            "finite": true,
+            "indices_in_range": true,
+            "degenerate_triangles": 0,
+            "welded_vertices": 128,
+            "non_manifold_edges": 0,
+            "watertight": true,
+            "convex": true,
+            "extents_m": [
+              0.8522,
+              0.8552,
+              1.0006
+            ],
+            "bounds_m": [
+              [
+                -0.4251,
+                0.0,
+                -0.5008
+              ],
+              [
+                0.4271,
+                0.8552,
+                0.4998
+              ]
+            ],
+            "uv_present": false,
+            "uv_in_0_1": null,
+            "normals_unit_length": true
+          },
+          {
+            "name": "geometry_0_LOD3",
+            "vertices": 3537,
+            "triangles": 2396,
+            "finite": true,
+            "indices_in_range": true,
+            "degenerate_triangles": 0,
+            "welded_vertices": 2134,
+            "non_manifold_edges": 0,
+            "watertight": false,
+            "convex": false,
+            "extents_m": [
+              0.8505,
+              0.8555,
+              1.0019
+            ],
+            "bounds_m": [
+              [
+                -0.424,
+                0.002,
+                -0.5
+              ],
+              [
+                0.4265,
+                0.8574,
+                0.5019
+              ]
+            ],
+            "uv_present": true,
+            "uv_in_0_1": true,
+            "normals_unit_length": true
+          },
+          {
+            "name": "geometry_0_LOD2",
+            "vertices": 6757,
+            "triangles": 5992,
+            "finite": true,
+            "indices_in_range": true,
+            "degenerate_triangles": 0,
+            "welded_vertices": 4190,
+            "non_manifold_edges": 0,
+            "watertight": false,
+            "convex": false,
+            "extents_m": [
+              0.8507,
+              0.8555,
+              1.0005
+            ],
+            "bounds_m": [
+              [
+                -0.4246,
+                0.0,
+                -0.5
+              ],
+              [
+                0.426,
+                0.8555,
+                0.5005
+              ]
+            ],
+            "uv_present": true,
+            "uv_in_0_1": true,
+            "normals_unit_length": true
+          },
+          {
+            "name": "geometry_0_LOD1",
+            "vertices": 10094,
+            "triangles": 11984,
+            "finite": true,
+            "indices_in_range": true,
+            "degenerate_triangles": 0,
+            "welded_vertices": 7337,
+            "non_manifold_edges": 0,
+            "watertight": false,
+            "convex": false,
+            "extents_m": [
+              0.8505,
+              0.8551,
+              1.0012
+            ],
+            "bounds_m": [
+              [
+                -0.4249,
+                0.0,
+                -0.5012
+              ],
+              [
+                0.4256,
+                0.8551,
+                0.5
+              ]
+            ],
+            "uv_present": true,
+            "uv_in_0_1": true,
+            "normals_unit_length": true
+          },
+          {
+            "name": "geometry_0_LOD0",
+            "vertices": 18175,
+            "triangles": 23992,
+            "finite": true,
+            "indices_in_range": true,
+            "degenerate_triangles": 0,
+            "welded_vertices": 11994,
+            "non_manifold_edges": 0,
+            "watertight": true,
+            "convex": false,
+            "extents_m": [
+              0.8504,
+              0.8559,
+              1.0
+            ],
+            "bounds_m": [
+              [
+                -0.4252,
+                0.0,
+                -0.5
+              ],
+              [
+                0.4252,
+                0.8559,
+                0.5
+              ]
+            ],
+            "uv_present": true,
+            "uv_in_0_1": true,
+            "normals_unit_length": true
+          }
+        ]
+      }
+    }
+  ]
+}

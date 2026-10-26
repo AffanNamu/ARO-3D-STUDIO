@@ -39,4 +39,4 @@ What exists, what is partial, what is missing. Every row names the code that imp
 
 * Orientation: TripoSR's native up axis is inferred from upstream source (`+Z`); which end is the front is unknown and always flagged.
 * Collision is a convex hull of the whole mesh (≤ 255 triangles); concave shapes (chair, mug handle) are approximated.
-* Colour is baked from the raw vertex colours; geometry detail is bounded by TripoSR (≈ 256³ marching cubes).
+* Colour is baked from the cleaned full-resolution mesh, which carries the raw vertex colours (until 2026-10-26 it was projected from the unaligned raw mesh: see evidence/ai/ERRATUM-texture-alignment.md); geometry detail is bounded by TripoSR (≈ 256³ marching cubes).

@@ -6,6 +6,8 @@ the interactive three.js viewer.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import trimesh
 from PIL import Image, ImageDraw
@@ -20,8 +22,23 @@ def _look_at(eye, target, up=(0, 1, 0)):
     return r, u, f
 
 
+def textured_face_colors(mesh: trimesh.Trimesh, texture: bytes) -> np.ndarray | None:
+    """RGB 0..1 per face: the baked texture sampled at each triangle's UV centroid (Studio UV convention: v up). None if no UVs."""
+    import io
+
+    uv = getattr(mesh.visual, "uv", None)
+    if uv is None or len(uv) != len(mesh.vertices):
+        return None
+    img = np.asarray(Image.open(io.BytesIO(texture)).convert("RGB"), dtype=np.float32) / 255.0
+    h, w = img.shape[:2]
+    c = np.asarray(uv)[np.asarray(mesh.faces)].mean(axis=1)
+    px = np.clip((c[:, 0] * (w - 1)).round().astype(int), 0, w - 1)
+    py = np.clip(((1.0 - c[:, 1]) * (h - 1)).round().astype(int), 0, h - 1)
+    return img[py, px]
+
+
 def render_scene(
-    items: list[tuple[trimesh.Trimesh, tuple[float, float, float, float]]],
+    items: list[tuple[trimesh.Trimesh, tuple[float, float, float, float] | np.ndarray]],
     *,
     azimuth_deg: float = 35.0,
     elevation_deg: float = 15.0,
@@ -30,7 +47,7 @@ def render_scene(
     fov_deg: float = 28.0,
     smooth_shading: bool = False,
 ) -> Image.Image:
-    """Render ``(mesh, rgba 0..1)`` items. +Y is up; azimuth 0 looks at the +Z face from +Z.
+    """Render ``(mesh, colour)`` items; colour is one rgba 0..1 tuple or an (n_faces, 3|4) array of per-face colours. +Y is up; azimuth 0 looks at the +Z face from +Z.
 
     ``smooth_shading`` lights each triangle with the average of its vertex normals, which is what a viewer shows for an exported mesh that
     carries smooth normals (the default flat shading exaggerates facets and surface noise).
@@ -65,8 +82,10 @@ def render_scene(
         scale = (size / 2) / np.tan(np.radians(fov_deg) / 2)
         px = size / 2 + cam[:, :, 0] / np.maximum(cam[:, :, 2], 1e-6) * scale
         py = size / 2 - cam[:, :, 1] / np.maximum(cam[:, :, 2], 1e-6) * scale
+        cols: Any = color
+        per_face = isinstance(cols, np.ndarray) and cols.ndim == 2
         for i in np.where(facing & (cam[:, :, 2] > 0.01).all(axis=1))[0]:
-            tris.append((depth[i], px[i], py[i], shade[i], color))
+            tris.append((depth[i], px[i], py[i], shade[i], cols[i] if per_face else cols))
     tris.sort(key=lambda x: -x[0])
     ss = 2
     img = Image.new("RGB", (size * ss, size * ss), background)
@@ -77,14 +96,23 @@ def render_scene(
     return img.resize((size, size), Image.Resampling.LANCZOS)
 
 
-def render_asset_scene(scene, **kw) -> Image.Image:
-    items = []
+def render_asset_scene(scene, *, textured: bool = True, **kw) -> Image.Image:
+    """Render an asset's LOD0. With ``textured`` a part whose material has a baked base-colour texture is shown in that colour (sampled per
+    triangle), so the views show what the export will look like; otherwise (or without a texture) the material's flat colour is used."""
+    items: list = []
     mats = {m.name: m for m in scene.manifest.materials}
     for p in scene.manifest.parts:
         m = scene.meshes[p.name]
         mat = mats.get(p.material or "")
-        col = mat.base_color if mat else (0.7, 0.7, 0.7, 1.0)
+        col: Any = mat.base_color if mat else (0.7, 0.7, 0.7, 1.0)
         if mat and mat.category.value == "glass":
             col = (0.35, 0.5, 0.58, 1.0)
+        elif textured and mat and mat.textures.get("base_color"):
+            tdef = scene.manifest.texture(mat.textures["base_color"])
+            data = scene.texture_data.get(tdef.file) if tdef else None
+            faces_rgb = textured_face_colors(m, data) if data else None
+            if faces_rgb is not None:
+                tint = np.asarray(mat.base_color[:3], dtype=np.float32)
+                col = np.clip(faces_rgb * tint, 0, 1)
         items.append((m, col))
     return render_scene(items, **kw)

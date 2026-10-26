@@ -204,7 +204,9 @@ def run_ai_pipeline(
                 {"op": "remove_non_manifold"},
                 {"op": "fill_holes", "params": {"max_hole_edges": 60}},
                 {"op": "fix_normals"},
-                # decimation moves silhouette vertices slightly: re-ground so the wheels/base sit exactly on Y=0
+                # smoothing and decimation shift the surface a little: restore the exact requested length, then re-ground so the
+                # wheels/base sit exactly on Y=0
+                {"op": "scale", "params": {"length_m": opts.length_m, "axis": "Z"}},
                 {"op": "set_pivot", "params": {"mode": "ground_center"}},
             ]
         },
@@ -213,16 +215,24 @@ def run_ai_pipeline(
         needs_human.append("target_triangles exceeds the 25,000-triangle UV unwrap limit; texture baking will fail")
     if ok:
         textured = run(
-            "textures: unwrap + bake colour from the RAW mesh",
+            "textures: unwrap + bake colour from the cleaned full-resolution mesh (which carries the raw vertex colours)",
             "textures",
             {
                 "action": "bake",
                 "resolution": opts.texture_resolution,
-                "source_version_id": raw_version_id,
+                "source_version_id": cleaned,
                 "max_faces": 25_000,
             },
         )
         ok = textured
+        baked = (steps[-1].detail.get("report") or {}) if textured else {}
+        if textured and not baked.get("groups"):
+            # the step "succeeded" but baked nothing (e.g. the mesh had lost its colours): never present that as a texture
+            reasons = (
+                "; ".join(str(x.get("reason")) for x in baked.get("skipped", [])) or "no texture group was produced"
+            )
+            steps[-1].status = "SKIPPED"
+            needs_human.append(f"texture baking produced NO texture ({reasons}): the prepared mesh has no baked colour")
         if not textured and opts.target_triangles <= 25_000:
             ok = True
             # Texturing is optional: keep going with untextured geometry rather than discarding a usable mesh.

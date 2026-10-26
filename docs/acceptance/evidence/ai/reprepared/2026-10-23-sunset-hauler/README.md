@@ -38,3 +38,5 @@ yaw alignment and smoothing change orientation and appearance far more than the 
 
 Remaining validation failures on the improved variant: vehicle metadata (V001–V010: wheels/axles/pivots are artist work, nothing
 detects them), U001 scale (placeholder size), U004 hierarchy (flat), M005 materials, G007 duplicate vertices (UV seams).
+
+> **Erratum (2026-10-26):** the baked colour texture of the prepared GLB in this folder is mis-projected, see [ERRATUM-texture-alignment.md](../../ERRATUM-texture-alignment.md). Geometry, size and scores are unaffected.

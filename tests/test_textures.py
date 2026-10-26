@@ -173,3 +173,31 @@ def test_worker_script_is_self_contained():
         ).returncode
         == 0
     )
+
+
+def test_textured_face_colours_follow_the_uv_layout():
+    """The six-view evidence renders must show the baked texture where the UVs say, v up (Studio convention)."""
+    import io
+
+    import numpy as np
+    import trimesh
+    from PIL import Image
+
+    from aro_studio.utils.render import textured_face_colors
+
+    img = Image.new("RGB", (8, 8), (255, 0, 0))  # top half red
+    img.paste((0, 0, 255), (0, 4, 8, 8))  # bottom half blue
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    # one quad, two triangles: v in [0, 0.4] is the bottom of the image (blue), v in [0.6, 1] the top (red)
+    verts = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=float)
+    mesh = trimesh.Trimesh(verts, [[0, 1, 2], [0, 2, 3]], process=False)
+    mesh.visual = trimesh.visual.TextureVisuals(uv=np.array([[0, 0], [1, 0], [1, 0.4], [0, 0.4]]))
+    cols = textured_face_colors(mesh, buf.getvalue())
+    assert cols is not None and np.allclose(cols, [[0, 0, 1], [0, 0, 1]])
+    mesh.visual = trimesh.visual.TextureVisuals(uv=np.array([[0, 0.6], [1, 0.6], [1, 1], [0, 1]]))
+    assert np.allclose(textured_face_colors(mesh, buf.getvalue()), [[1, 0, 0], [1, 0, 0]])
+    plain = trimesh.Trimesh(verts, [[0, 1, 2]], process=False)
+    assert (
+        textured_face_colors(plain, buf.getvalue()) is None
+    )  # no UVs: the caller falls back to the flat material colour

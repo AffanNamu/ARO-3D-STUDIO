@@ -177,7 +177,9 @@ def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimes
     out.merge_vertices()
     loops = boundary_loops(out)
     verts = np.asarray(out.vertices)
+    vc = vertex_colors(out)  # the cap must not cost the mesh its colours (a texture is baked from them later)
     new_v: list[np.ndarray] = []
+    new_c: list[np.ndarray] = []
     new_f: list[list[int]] = []
     filled = skipped = 0
     for loop in loops:
@@ -187,6 +189,8 @@ def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimes
         c = verts[loop].mean(axis=0)
         ci = len(verts) + len(new_v)
         new_v.append(c)
+        if vc is not None:
+            new_c.append(vc[loop].astype(float).mean(axis=0))
         n = len(loop)
         for i in range(n):
             a, b = loop[i], loop[(i + 1) % n]
@@ -200,6 +204,9 @@ def fill_holes(mesh: trimesh.Trimesh, max_hole_edges: int = 200) -> tuple[trimes
             process=False,
         )
         trimesh.repair.fix_winding(out)
+        if vc is not None:
+            colours = np.vstack([vc, np.array(new_c).round().astype(np.uint8)])
+            out.visual = trimesh.visual.ColorVisuals(mesh=out, vertex_colors=colours)
     warn = [f"{skipped} large opening(s) were left open (> {max_hole_edges} edges)."] if skipped else []
     return out, _report("fill_holes", mesh, out, holes_filled=filled, holes_skipped=skipped, warnings=warn)
 
