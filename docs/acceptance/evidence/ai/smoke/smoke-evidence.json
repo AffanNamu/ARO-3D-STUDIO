@@ -1,0 +1,2786 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-26T07:52:11Z",
+  "mode": "real_engine",
+  "environment": {
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+    "python": "3.13.16",
+    "machine": "x86_64",
+    "nvidia_smi": "Tesla T4, 580.82.07, 15360 MiB",
+    "torch": "2.11.0+cu130",
+    "cuda": {
+      "available": true,
+      "version": "13.0",
+      "device": "Tesla T4",
+      "total_vram_mb": 14912
+    },
+    "tsr_importable": true,
+    "packages": {
+      "torch": "2.11.0+cu130",
+      "torchvision": "0.26.0+cu130",
+      "transformers": "4.46.3",
+      "omegaconf": "2.4.0",
+      "einops": "0.8.2",
+      "huggingface-hub": "0.36.2",
+      "numpy": "2.5.4",
+      "trimesh": "5.2.0",
+      "pillow": "13.0.0",
+      "rembg": "2.0.86",
+      "onnxruntime": "1.31.0",
+      "torchmcubes": "0.1.0",
+      "xatlas": "0.0.11"
+    },
+    "tsr_source": null,
+    "torchmcubes_build": {
+      "version": "0.1.0",
+      "url": "https://github.com/tatsy/torchmcubes.git",
+      "commit": "a9ac95aa329957ba646e7bb057f825f5dfa77f38",
+      "cuda_kernels": true
+    },
+    "rembg_models": {
+      ".rembg/models/u2net/u2net.onnx": {
+        "sha256": "8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491",
+        "size_bytes": 175997641
+      }
+    }
+  },
+  "studio_commit": "92570513114637268846d0108c884326473462df",
+  "status": {
+    "real_inference": "PASS",
+    "visual_quality": "PENDING_HUMAN_REVIEW",
+    "production_ready": "NOT_CLAIMED"
+  },
+  "blockers": [],
+  "coverage_problems": [],
+  "items": [
+    {
+      "name": "ARO 480 Truck at Golden Hour",
+      "category": "heavy_truck",
+      "category_group": "vehicles",
+      "input_file": "ARO 480 Truck at Golden Hour.png",
+      "input_sha256": "7becf57f8fbb6d818a7826b49b313ee147984fa2094aa0ee894c084bf71f1267",
+      "input_size_bytes": 2158660,
+      "input_image": {
+        "width": 1536,
+        "height": 1024,
+        "mode": "RGB",
+        "format": "PNG",
+        "has_alpha": false
+      },
+      "input_source_note": "Project-owner-supplied image 'ARO 480 Truck at Golden Hour.png' (provenance as stated by the project owner; not a TripoSR sample, not the procedural TITAN 480 model)",
+      "input_preserved_as": "inputs/01-ARO 480 Truck at Golden Hour.png",
+      "batch_status": "QUEUED",
+      "human_review": {
+        "status": "PENDING_HUMAN_REVIEW",
+        "recognisable": null,
+        "visual_defects": null,
+        "category_limitations": null,
+        "orientation_up_front": null
+      },
+      "generation_job": {
+        "job_id": "job_236bdb230a4b48a98099",
+        "state": "COMPLETED",
+        "error": null,
+        "job_seconds": 26.593,
+        "preflight": {
+          "estimate": {
+            "vram_mb": 6000,
+            "ram_mb": 4000,
+            "measured": true,
+            "note": "Published by TripoSR for default options (single image)."
+          },
+          "gpu": {
+            "available": true,
+            "name": "Tesla T4",
+            "total_mb": 15360,
+            "free_mb": 14910,
+            "driver": "580.82.07",
+            "source": "nvidia-smi"
+          },
+          "ram_available_mb": 10493,
+          "disk_free_mb": 69393
+        }
+      },
+      "real_inference": {
+        "model_ran": true,
+        "cache_hit": false,
+        "engine_id": "triposr",
+        "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+        "device": "cuda",
+        "model_load_time_s": 10.784,
+        "inference_time_s": 5.883,
+        "vertices": 88486,
+        "triangles": 176628,
+        "extents_native": [
+          1.032818228006363,
+          1.015875667333603,
+          0.8176840543746948
+        ],
+        "finite": true,
+        "output_sha256": "8c5d0615ed8b88fac20bec38196a68afc34dae4c278c82476520d8e9def268cd",
+        "output_size_bytes": 3536304,
+        "generation_id": "gen_64fcb6d4e53a4b4080f0",
+        "raw_version_id": "ver_1396f624edf2417d9d20",
+        "raw_stage": "raw",
+        "provenance": {
+          "source": "ai_reconstruction",
+          "engine_id": "triposr",
+          "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+          "generation_id": "gen_64fcb6d4e53a4b4080f0",
+          "input_image_sha256": "7becf57f8fbb6d818a7826b49b313ee147984fa2094aa0ee894c084bf71f1267",
+          "note": "TripoSR single-image reconstruction on cuda; raw native coordinate frame."
+        },
+        "stored_source_sha256": "7becf57f8fbb6d818a7826b49b313ee147984fa2094aa0ee894c084bf71f1267",
+        "provenance_source_sha256_matches_batch": true,
+        "source_image_served": true,
+        "raw_copy_sha256": "8c5d0615ed8b88fac20bec38196a68afc34dae4c278c82476520d8e9def268cd",
+        "input_bytes_equal_stored_source": true,
+        "peak_vram_nvidia_smi_mb_whole_run": 5455
+      },
+      "raw_mesh_file": "raw/01-ARO 480 Truck at Golden Hour-raw.glb",
+      "generation_report": {
+        "settings": {
+          "engine": {
+            "chunk_size": 8192,
+            "foreground_ratio": 0.85,
+            "mc_resolution": 256,
+            "mc_threshold": 25.0,
+            "preset": "BALANCED"
+          },
+          "preprocess": {
+            "foreground_ratio": 0.85,
+            "output_size": 512,
+            "remove_background": "auto"
+          }
+        },
+        "preprocess_steps": [
+          {
+            "size": [
+              1536,
+              1024
+            ],
+            "step": "orientation"
+          },
+          {
+            "color": [
+              121,
+              118,
+              89
+            ],
+            "spread": 148.12156677246094,
+            "step": "background_analysis",
+            "uniform": false
+          },
+          {
+            "method": "rembg",
+            "model": "u2net",
+            "step": "background_removal"
+          },
+          {
+            "bbox": [
+              171,
+              3,
+              1433,
+              975
+            ],
+            "size": [
+              1262,
+              972
+            ],
+            "step": "crop"
+          },
+          {
+            "canvas": 512,
+            "step": "resize",
+            "subject_size": [
+              435,
+              335
+            ]
+          },
+          {
+            "composite_background": 0.5,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "step": "normalize"
+          }
+        ],
+        "engine_details": {
+          "coordinate_frame": "TripoSR native (unrotated)",
+          "extents": [
+            1.032818228006363,
+            1.015875667333603,
+            0.8176840543746948
+          ],
+          "mc_resolution": 256,
+          "orientation_hint": {
+            "basis": "tsr/utils.py::to_gradio_3d_orientation = Rx(-90deg) then Ry(+90deg) at upstream commit 107cefd",
+            "forward": "UNCONFIRMED: decide from the first real output",
+            "native_up": "+Z",
+            "status": "inferred_from_source_not_yet_verified_by_inference"
+          },
+          "weights_source": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a"
+        },
+        "execution_time_s": 5.883397113000001,
+        "model_load_time_s": 10.784386942999959
+      },
+      "raw_sanity": {
+        "vertices": 88486,
+        "faces": 176628,
+        "watertight": false,
+        "components": 16,
+        "issues": [
+          {
+            "id": "disconnected_components",
+            "severity": "major",
+            "message": "16 disconnected components (15 tiny)."
+          },
+          {
+            "id": "holes",
+            "severity": "major",
+            "message": "154 open boundary loop(s) (596 boundary edges)."
+          },
+          {
+            "id": "incorrect_scale",
+            "severity": "major",
+            "message": "Longest extent is 1.033 m; a vehicle is expected to be 2.0-25.0 m long. Rescale in metres."
+          },
+          {
+            "id": "incorrect_orientation",
+            "severity": "major",
+            "message": "Longest axis is X; vehicles must be built along +Z (forward) with +Y up."
+          },
+          {
+            "id": "incorrect_pivot",
+            "severity": "minor",
+            "message": "Origin is not at ground level on the centreline."
+          }
+        ]
+      },
+      "raw_manifest_sha256_before_prep": "2f87234a60bc0ca537e99899bd991bb39734b7944efdee5e8ab8dd5d66d5fa41",
+      "raw_views": [
+        "01-raw-front.png",
+        "01-raw-rear.png",
+        "01-raw-left.png",
+        "01-raw-right.png",
+        "01-raw-top.png",
+        "01-raw-3q.png"
+      ],
+      "viewer_preview": {
+        "status": 200,
+        "bytes": 4986004
+      },
+      "preparation": {
+        "job_state": "COMPLETED",
+        "ok": true,
+        "needs_human": [
+          "forward axis guessed as the longest horizontal extent (+X); WHICH END IS THE FRONT cannot be determined automatically - review the 6-view renders and re-run with --forward if reversed",
+          "real-world size is not recoverable from a single image: the model was scaled to 1 m along its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions",
+          "footprint aligned to the axes by rotating -35.4 deg about the up axis (long side = forward, footprint 0.958 x 0.816)",
+          "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): supply the real width/height to correct the proportions",
+          "no vehicle specification supplied: wheel/axle/pivot positions and component roles are artist work (automatic part detection is not implemented); validation WILL report NEEDS_REVIEW for a vehicle category"
+        ],
+        "steps": [
+          {
+            "step": "geometry: orient + scale + pivot + cleanup + fill holes + smooth",
+            "status": "PASS",
+            "seconds": 22.69
+          },
+          {
+            "step": "geometry: decimate for texturing",
+            "status": "PASS",
+            "seconds": 4.66
+          },
+          {
+            "step": "textures: unwrap + bake colour from the RAW mesh",
+            "status": "PASS",
+            "seconds": 32.67
+          },
+          {
+            "step": "collision",
+            "status": "PASS",
+            "seconds": 0.08
+          },
+          {
+            "step": "LOD generation",
+            "status": "PASS",
+            "seconds": 0.4
+          },
+          {
+            "step": "validation",
+            "status": "PASS",
+            "seconds": 0.32
+          },
+          {
+            "step": "finalize",
+            "status": "PASS",
+            "seconds": 0.1
+          }
+        ],
+        "final_extents_m": [
+          0.8488,
+          0.8542,
+          0.9981
+        ],
+        "validation": {
+          "status": "NEEDS_REVIEW",
+          "overall": 75.3,
+          "critical_failures": 4,
+          "major_failures": 6
+        },
+        "source_axes": {
+          "up": "+Z",
+          "forward": "+X"
+        },
+        "final_version_id": "ver_fb1b1bf695b8477eb810"
+      },
+      "raw_immutable": true,
+      "prepared_views": [
+        "01-prepared-front.png",
+        "01-prepared-rear.png",
+        "01-prepared-left.png",
+        "01-prepared-right.png",
+        "01-prepared-top.png",
+        "01-prepared-3q.png"
+      ],
+      "views_shading": "smooth (vertex normals, as exported)",
+      "export": {
+        "job_state": "COMPLETED",
+        "export_id": "exp_11e4cb1084614ce2a0f3",
+        "status": "COMPLETED",
+        "size_bytes": 1922416,
+        "sha256_download": "c8bb2c5528c5e91edf7b1425527bf1c195bb938886c40f4ba458901ab5d1d391",
+        "sha256_matches_record": true,
+        "internal_verification_ok": true,
+        "reopened_triangles_all_lods": 44612,
+        "reopened_geometry_count": 5,
+        "reopened_vertices_finite": true,
+        "reopened_lod0_extents_m": [
+          0.8506,
+          0.8543,
+          0.9995
+        ],
+        "khronos": {
+          "ran": true,
+          "validator_version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "ok": true,
+          "messages": []
+        },
+        "lod_collision_audit": {
+          "ok": true,
+          "failed_checks": [],
+          "nodes": [
+            {
+              "name": "COL_Hull",
+              "vertices": 132,
+              "triangles": 252,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 128,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": true,
+              "extents_m": [
+                0.8506,
+                0.8535,
+                0.9995
+              ],
+              "bounds_m": [
+                [
+                  -0.4244,
+                  0.0,
+                  -0.4996
+                ],
+                [
+                  0.4262,
+                  0.8535,
+                  0.4999
+                ]
+              ],
+              "uv_present": false,
+              "uv_in_0_1": null,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD3",
+              "vertices": 3748,
+              "triangles": 2395,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 2427,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8484,
+                0.8532,
+                0.997
+              ],
+              "bounds_m": [
+                [
+                  -0.4241,
+                  -0.0,
+                  -0.4986
+                ],
+                [
+                  0.4244,
+                  0.8532,
+                  0.4984
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD2",
+              "vertices": 7433,
+              "triangles": 5988,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 4625,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8484,
+                0.8539,
+                0.9975
+              ],
+              "bounds_m": [
+                [
+                  -0.4241,
+                  -0.0,
+                  -0.4986
+                ],
+                [
+                  0.4244,
+                  0.8539,
+                  0.4989
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD1",
+              "vertices": 11026,
+              "triangles": 11985,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 7793,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8481,
+                0.8543,
+                0.9981
+              ],
+              "bounds_m": [
+                [
+                  -0.4237,
+                  -0.0,
+                  -0.499
+                ],
+                [
+                  0.4244,
+                  0.8543,
+                  0.499
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD0",
+              "vertices": 19696,
+              "triangles": 23992,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 11994,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": false,
+              "extents_m": [
+                0.8488,
+                0.8542,
+                0.9981
+              ],
+              "bounds_m": [
+                [
+                  -0.4244,
+                  -0.0,
+                  -0.499
+                ],
+                [
+                  0.4244,
+                  0.8542,
+                  0.499
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            }
+          ],
+          "checks": [
+            {
+              "id": "nodes.visual_lods",
+              "ok": true,
+              "message": "4 visual LOD node(s): ['Raw_Mesh_LOD0', 'Raw_Mesh_LOD1', 'Raw_Mesh_LOD2', 'Raw_Mesh_LOD3']"
+            },
+            {
+              "id": "nodes.colliders",
+              "ok": true,
+              "message": "1 collision node(s): ['COL_Hull']"
+            },
+            {
+              "id": "COL_Hull.finite",
+              "ok": true,
+              "message": "COL_Hull: all vertices finite, all indices in range"
+            },
+            {
+              "id": "COL_Hull.not_empty",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles"
+            },
+            {
+              "id": "COL_Hull.degenerate",
+              "ok": true,
+              "message": "COL_Hull: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "COL_Hull.normals",
+              "ok": true,
+              "message": "COL_Hull: vertex normals are unit length"
+            },
+            {
+              "id": "COL_Hull.manifold",
+              "ok": true,
+              "message": "COL_Hull: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 2395 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 5988 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 11985 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 23992 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "lods.ladder",
+              "ok": true,
+              "message": "LOD triangle counts strictly decrease: [23992, 11985, 5988, 2395]"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: bounds differ from LOD0 by 0.04 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: bounds differ from LOD0 by 0.03 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: bounds differ from LOD0 by 0.06 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "COL_Hull.bounds",
+              "ok": true,
+              "message": "COL_Hull: bounds differ from LOD0 by 0.12 % of the diagonal (limit 5 %)"
+            },
+            {
+              "id": "COL_Hull.convex",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is convex"
+            },
+            {
+              "id": "COL_Hull.watertight",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is closed (after welding seams)"
+            },
+            {
+              "id": "COL_Hull.triangle_limit",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles (convex-collider limit 255)"
+            }
+          ]
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "name": "Chair",
+      "category": "furniture",
+      "category_group": "objects",
+      "input_file": "chair.png",
+      "input_sha256": "2503c12a74419d91a4c6c9f1affc48fee6e2b8b9091956ca6211e91ada57b5bf",
+      "input_size_bytes": 114705,
+      "input_image": {
+        "width": 512,
+        "height": 512,
+        "mode": "RGBA",
+        "format": "PNG",
+        "has_alpha": true
+      },
+      "input_source_note": "TripoSR repository examples/ at commit 107cefdc244c (repo MIT-licensed; per-image authorship not stated upstream)",
+      "input_preserved_as": "inputs/02-chair.png",
+      "batch_status": "QUEUED",
+      "human_review": {
+        "status": "PENDING_HUMAN_REVIEW",
+        "recognisable": null,
+        "visual_defects": null,
+        "category_limitations": null,
+        "orientation_up_front": null
+      },
+      "generation_job": {
+        "job_id": "job_cf80d9c441ed409c860a",
+        "state": "COMPLETED",
+        "error": null,
+        "job_seconds": 14.73,
+        "preflight": {
+          "estimate": {
+            "vram_mb": 6000,
+            "ram_mb": 4000,
+            "measured": true,
+            "note": "Published by TripoSR for default options (single image)."
+          },
+          "gpu": {
+            "available": true,
+            "name": "Tesla T4",
+            "total_mb": 15360,
+            "free_mb": 9458,
+            "driver": "580.82.07",
+            "source": "nvidia-smi"
+          },
+          "ram_available_mb": 7174,
+          "disk_free_mb": 69217
+        }
+      },
+      "real_inference": {
+        "model_ran": true,
+        "cache_hit": false,
+        "engine_id": "triposr",
+        "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+        "device": "cuda",
+        "model_load_time_s": 0.0,
+        "inference_time_s": 13.435,
+        "vertices": 41505,
+        "triangles": 82833,
+        "extents_native": [
+          0.5892589688301086,
+          0.5673311352729797,
+          1.0668253004550934
+        ],
+        "finite": true,
+        "output_sha256": "9e8bea4206a9988c57e7b542460c228d7c1a8a38a2f74c78682af76487eec180",
+        "output_size_bytes": 1659064,
+        "generation_id": "gen_1d1d7bed6e894956a773",
+        "raw_version_id": "ver_016a51188d9d4d04a8cf",
+        "raw_stage": "raw",
+        "provenance": {
+          "source": "ai_reconstruction",
+          "engine_id": "triposr",
+          "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+          "generation_id": "gen_1d1d7bed6e894956a773",
+          "input_image_sha256": "2503c12a74419d91a4c6c9f1affc48fee6e2b8b9091956ca6211e91ada57b5bf",
+          "note": "TripoSR single-image reconstruction on cuda; raw native coordinate frame."
+        },
+        "stored_source_sha256": "2503c12a74419d91a4c6c9f1affc48fee6e2b8b9091956ca6211e91ada57b5bf",
+        "provenance_source_sha256_matches_batch": true,
+        "source_image_served": true,
+        "raw_copy_sha256": "9e8bea4206a9988c57e7b542460c228d7c1a8a38a2f74c78682af76487eec180",
+        "input_bytes_equal_stored_source": true,
+        "peak_vram_nvidia_smi_mb_whole_run": 5455
+      },
+      "raw_mesh_file": "raw/02-chair-raw.glb",
+      "generation_report": {
+        "settings": {
+          "engine": {
+            "chunk_size": 8192,
+            "foreground_ratio": 0.85,
+            "mc_resolution": 256,
+            "mc_threshold": 25.0,
+            "preset": "BALANCED"
+          },
+          "preprocess": {
+            "foreground_ratio": 0.85,
+            "output_size": 512,
+            "remove_background": "auto"
+          }
+        },
+        "preprocess_steps": [
+          {
+            "size": [
+              512,
+              512
+            ],
+            "step": "orientation"
+          },
+          {
+            "color": null,
+            "from_alpha": true,
+            "spread": 0.0,
+            "step": "background_analysis",
+            "uniform": true
+          },
+          {
+            "method": "existing_alpha",
+            "step": "background_removal"
+          },
+          {
+            "bbox": [
+              134,
+              42,
+              378,
+              470
+            ],
+            "size": [
+              244,
+              428
+            ],
+            "step": "crop"
+          },
+          {
+            "canvas": 512,
+            "step": "resize",
+            "subject_size": [
+              248,
+              435
+            ]
+          },
+          {
+            "composite_background": 0.5,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "step": "normalize"
+          }
+        ],
+        "engine_details": {
+          "coordinate_frame": "TripoSR native (unrotated)",
+          "extents": [
+            0.5892589688301086,
+            0.5673311352729797,
+            1.0668253004550934
+          ],
+          "mc_resolution": 256,
+          "orientation_hint": {
+            "basis": "tsr/utils.py::to_gradio_3d_orientation = Rx(-90deg) then Ry(+90deg) at upstream commit 107cefd",
+            "forward": "UNCONFIRMED: decide from the first real output",
+            "native_up": "+Z",
+            "status": "inferred_from_source_not_yet_verified_by_inference"
+          },
+          "weights_source": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a"
+        },
+        "execution_time_s": 13.434998080000014,
+        "model_load_time_s": 0.0
+      },
+      "raw_sanity": {
+        "vertices": 41505,
+        "faces": 82833,
+        "watertight": false,
+        "components": 1,
+        "issues": [
+          {
+            "id": "holes",
+            "severity": "major",
+            "message": "95 open boundary loop(s) (375 boundary edges)."
+          },
+          {
+            "id": "incorrect_pivot",
+            "severity": "minor",
+            "message": "Origin is not at ground level on the centreline."
+          }
+        ]
+      },
+      "raw_manifest_sha256_before_prep": "e1a9610dca6ddff7efd349153a68a33d508f982dbd323b0cef0010b7b0637802",
+      "raw_views": [
+        "02-raw-front.png",
+        "02-raw-rear.png",
+        "02-raw-left.png",
+        "02-raw-right.png",
+        "02-raw-top.png",
+        "02-raw-3q.png"
+      ],
+      "viewer_preview": {
+        "status": 200,
+        "bytes": 1715172
+      },
+      "preparation": {
+        "job_state": "COMPLETED",
+        "ok": true,
+        "needs_human": [
+          "forward axis guessed as the longest horizontal extent (+X); WHICH END IS THE FRONT cannot be determined automatically - review the 6-view renders and re-run with --forward if reversed",
+          "real-world size is not recoverable from a single image: the model was scaled to 1 m along its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions",
+          "footprint NOT yaw-aligned: footprint is nearly square (aspect 1.03 < 1.15): no reliable long side",
+          "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): supply the real width/height to correct the proportions",
+          "the result is one merged mesh: parts, pivots and hierarchy are not detected automatically (part detection is not implemented)"
+        ],
+        "steps": [
+          {
+            "step": "geometry: orient + scale + pivot + cleanup + fill holes + smooth",
+            "status": "PASS",
+            "seconds": 10.3
+          },
+          {
+            "step": "geometry: decimate for texturing",
+            "status": "PASS",
+            "seconds": 3.52
+          },
+          {
+            "step": "textures: unwrap + bake colour from the RAW mesh",
+            "status": "PASS",
+            "seconds": 24.46
+          },
+          {
+            "step": "collision",
+            "status": "PASS",
+            "seconds": 0.08
+          },
+          {
+            "step": "LOD generation",
+            "status": "PASS",
+            "seconds": 0.34
+          },
+          {
+            "step": "validation",
+            "status": "PASS",
+            "seconds": 0.31
+          },
+          {
+            "step": "finalize",
+            "status": "PASS",
+            "seconds": 0.1
+          }
+        ],
+        "final_extents_m": [
+          0.9636,
+          1.8117,
+          1.0001
+        ],
+        "validation": {
+          "status": "PRODUCTION_READY",
+          "overall": 99.6,
+          "critical_failures": 0,
+          "major_failures": 0
+        },
+        "source_axes": {
+          "up": "+Z",
+          "forward": "+X"
+        },
+        "final_version_id": "ver_5c400769748d4a38a717"
+      },
+      "raw_immutable": true,
+      "prepared_views": [
+        "02-prepared-front.png",
+        "02-prepared-rear.png",
+        "02-prepared-left.png",
+        "02-prepared-right.png",
+        "02-prepared-top.png",
+        "02-prepared-3q.png"
+      ],
+      "views_shading": "smooth (vertex normals, as exported)",
+      "export": {
+        "job_state": "COMPLETED",
+        "export_id": "exp_13f512deeb5b456991bc",
+        "status": "COMPLETED",
+        "size_bytes": 1276608,
+        "sha256_download": "b040697765ed55dc7098152fa6969aa8575c5826527c7823397c403379b22ebd",
+        "sha256_matches_record": true,
+        "internal_verification_ok": true,
+        "reopened_triangles_all_lods": 44636,
+        "reopened_geometry_count": 5,
+        "reopened_vertices_finite": true,
+        "reopened_lod0_extents_m": [
+          0.9651,
+          1.813,
+          1.0026
+        ],
+        "khronos": {
+          "ran": true,
+          "validator_version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "ok": true,
+          "messages": []
+        },
+        "lod_collision_audit": {
+          "ok": true,
+          "failed_checks": [],
+          "nodes": [
+            {
+              "name": "COL_Hull",
+              "vertices": 133,
+              "triangles": 252,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 128,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": true,
+              "extents_m": [
+                0.9611,
+                1.8107,
+                1.0016
+              ],
+              "bounds_m": [
+                [
+                  -0.4833,
+                  0.0,
+                  -0.4999
+                ],
+                [
+                  0.4778,
+                  1.8107,
+                  0.5017
+                ]
+              ],
+              "uv_present": false,
+              "uv_in_0_1": null,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD3",
+              "vertices": 2164,
+              "triangles": 2396,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 1591,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.9634,
+                1.8115,
+                1.0016
+              ],
+              "bounds_m": [
+                [
+                  -0.4821,
+                  -0.0013,
+                  -0.5009
+                ],
+                [
+                  0.4812,
+                  1.8102,
+                  0.5007
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD2",
+              "vertices": 4204,
+              "triangles": 5997,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 3548,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.9635,
+                1.8121,
+                1.0002
+              ],
+              "bounds_m": [
+                [
+                  -0.4818,
+                  -0.0008,
+                  -0.4997
+                ],
+                [
+                  0.4818,
+                  1.8113,
+                  0.5005
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD1",
+              "vertices": 7296,
+              "triangles": 11995,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 6643,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.9635,
+                1.8117,
+                1.0
+              ],
+              "bounds_m": [
+                [
+                  -0.4818,
+                  -0.0,
+                  -0.4997
+                ],
+                [
+                  0.4818,
+                  1.8117,
+                  0.5003
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD0",
+              "vertices": 14145,
+              "triangles": 23996,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 11994,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": false,
+              "extents_m": [
+                0.9636,
+                1.8117,
+                1.0001
+              ],
+              "bounds_m": [
+                [
+                  -0.4818,
+                  -0.0,
+                  -0.5001
+                ],
+                [
+                  0.4818,
+                  1.8117,
+                  0.5001
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            }
+          ],
+          "checks": [
+            {
+              "id": "nodes.visual_lods",
+              "ok": true,
+              "message": "4 visual LOD node(s): ['Raw_Mesh_LOD0', 'Raw_Mesh_LOD1', 'Raw_Mesh_LOD2', 'Raw_Mesh_LOD3']"
+            },
+            {
+              "id": "nodes.colliders",
+              "ok": true,
+              "message": "1 collision node(s): ['COL_Hull']"
+            },
+            {
+              "id": "COL_Hull.finite",
+              "ok": true,
+              "message": "COL_Hull: all vertices finite, all indices in range"
+            },
+            {
+              "id": "COL_Hull.not_empty",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles"
+            },
+            {
+              "id": "COL_Hull.degenerate",
+              "ok": true,
+              "message": "COL_Hull: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "COL_Hull.normals",
+              "ok": true,
+              "message": "COL_Hull: vertex normals are unit length"
+            },
+            {
+              "id": "COL_Hull.manifold",
+              "ok": true,
+              "message": "COL_Hull: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 2396 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 5997 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 11995 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 23996 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "lods.ladder",
+              "ok": true,
+              "message": "LOD triangle counts strictly decrease: [23996, 11995, 5997, 2396]"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: bounds differ from LOD0 by 0.02 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: bounds differ from LOD0 by 0.04 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: bounds differ from LOD0 by 0.07 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "COL_Hull.bounds",
+              "ok": true,
+              "message": "COL_Hull: bounds differ from LOD0 by 0.18 % of the diagonal (limit 5 %)"
+            },
+            {
+              "id": "COL_Hull.convex",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is convex"
+            },
+            {
+              "id": "COL_Hull.watertight",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is closed (after welding seams)"
+            },
+            {
+              "id": "COL_Hull.triangle_limit",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles (convex-collider limit 255)"
+            }
+          ]
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "name": "Teapot",
+      "category": "household_object",
+      "category_group": "objects",
+      "input_file": "teapot.png",
+      "input_sha256": "66b0b8f7dd759e97d20665999885e0548f96c95dadee6bf9762ccd877c596b8c",
+      "input_size_bytes": 275764,
+      "input_image": {
+        "width": 874,
+        "height": 874,
+        "mode": "RGB",
+        "format": "PNG",
+        "has_alpha": false
+      },
+      "input_source_note": "TripoSR repository examples/ at commit 107cefdc244c (repo MIT-licensed; per-image authorship not stated upstream)",
+      "input_preserved_as": "inputs/03-teapot.png",
+      "batch_status": "QUEUED",
+      "human_review": {
+        "status": "PENDING_HUMAN_REVIEW",
+        "recognisable": null,
+        "visual_defects": null,
+        "category_limitations": null,
+        "orientation_up_front": null
+      },
+      "generation_job": {
+        "job_id": "job_99b9325e38c441ecb512",
+        "state": "COMPLETED",
+        "error": null,
+        "job_seconds": 4.382,
+        "preflight": {
+          "estimate": {
+            "vram_mb": 6000,
+            "ram_mb": 4000,
+            "measured": true,
+            "note": "Published by TripoSR for default options (single image)."
+          },
+          "gpu": {
+            "available": true,
+            "name": "Tesla T4",
+            "total_mb": 15360,
+            "free_mb": 9458,
+            "driver": "580.82.07",
+            "source": "nvidia-smi"
+          },
+          "ram_available_mb": 6967,
+          "disk_free_mb": 69206
+        }
+      },
+      "real_inference": {
+        "model_ran": true,
+        "cache_hit": false,
+        "engine_id": "triposr",
+        "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+        "device": "cuda",
+        "model_load_time_s": 0.0,
+        "inference_time_s": 3.078,
+        "vertices": 41813,
+        "triangles": 83476,
+        "extents_native": [
+          0.5618658065795898,
+          0.9595465958118439,
+          0.6319135427474976
+        ],
+        "finite": true,
+        "output_sha256": "5997adf6a662563196ee24aa16fbc7f6e463c3a5c59797f403e76bc62474c5fb",
+        "output_size_bytes": 1671712,
+        "generation_id": "gen_c0862e0dfff44f2e82bd",
+        "raw_version_id": "ver_270db330592545dfa414",
+        "raw_stage": "raw",
+        "provenance": {
+          "source": "ai_reconstruction",
+          "engine_id": "triposr",
+          "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+          "generation_id": "gen_c0862e0dfff44f2e82bd",
+          "input_image_sha256": "66b0b8f7dd759e97d20665999885e0548f96c95dadee6bf9762ccd877c596b8c",
+          "note": "TripoSR single-image reconstruction on cuda; raw native coordinate frame."
+        },
+        "stored_source_sha256": "66b0b8f7dd759e97d20665999885e0548f96c95dadee6bf9762ccd877c596b8c",
+        "provenance_source_sha256_matches_batch": true,
+        "source_image_served": true,
+        "raw_copy_sha256": "5997adf6a662563196ee24aa16fbc7f6e463c3a5c59797f403e76bc62474c5fb",
+        "input_bytes_equal_stored_source": true,
+        "peak_vram_nvidia_smi_mb_whole_run": 5455
+      },
+      "raw_mesh_file": "raw/03-teapot-raw.glb",
+      "generation_report": {
+        "settings": {
+          "engine": {
+            "chunk_size": 8192,
+            "foreground_ratio": 0.85,
+            "mc_resolution": 256,
+            "mc_threshold": 25.0,
+            "preset": "BALANCED"
+          },
+          "preprocess": {
+            "foreground_ratio": 0.85,
+            "output_size": 512,
+            "remove_background": "auto"
+          }
+        },
+        "preprocess_steps": [
+          {
+            "size": [
+              874,
+              874
+            ],
+            "step": "orientation"
+          },
+          {
+            "color": [
+              127,
+              127,
+              127
+            ],
+            "spread": 0.0,
+            "step": "background_analysis",
+            "uniform": true
+          },
+          {
+            "method": "border_color_matte",
+            "model": null,
+            "step": "background_removal"
+          },
+          {
+            "bbox": [
+              70,
+              188,
+              802,
+              686
+            ],
+            "size": [
+              732,
+              498
+            ],
+            "step": "crop"
+          },
+          {
+            "canvas": 512,
+            "step": "resize",
+            "subject_size": [
+              435,
+              296
+            ]
+          },
+          {
+            "composite_background": 0.5,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "step": "normalize"
+          }
+        ],
+        "engine_details": {
+          "coordinate_frame": "TripoSR native (unrotated)",
+          "extents": [
+            0.5618658065795898,
+            0.9595465958118439,
+            0.6319135427474976
+          ],
+          "mc_resolution": 256,
+          "orientation_hint": {
+            "basis": "tsr/utils.py::to_gradio_3d_orientation = Rx(-90deg) then Ry(+90deg) at upstream commit 107cefd",
+            "forward": "UNCONFIRMED: decide from the first real output",
+            "native_up": "+Z",
+            "status": "inferred_from_source_not_yet_verified_by_inference"
+          },
+          "weights_source": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a"
+        },
+        "execution_time_s": 3.0779197809999914,
+        "model_load_time_s": 0.0
+      },
+      "raw_sanity": {
+        "vertices": 41813,
+        "faces": 83476,
+        "watertight": false,
+        "components": 2,
+        "issues": [
+          {
+            "id": "disconnected_components",
+            "severity": "major",
+            "message": "2 disconnected components (1 tiny)."
+          },
+          {
+            "id": "holes",
+            "severity": "major",
+            "message": "75 open boundary loop(s) (296 boundary edges)."
+          },
+          {
+            "id": "incorrect_pivot",
+            "severity": "minor",
+            "message": "Origin is not at ground level on the centreline."
+          }
+        ]
+      },
+      "raw_manifest_sha256_before_prep": "cde92bd246184ace1397b6d54b5b7e86528360d7ff54ea86517599f9d73626f9",
+      "raw_views": [
+        "03-raw-front.png",
+        "03-raw-rear.png",
+        "03-raw-left.png",
+        "03-raw-right.png",
+        "03-raw-top.png",
+        "03-raw-3q.png"
+      ],
+      "viewer_preview": {
+        "status": 200,
+        "bytes": 1745724
+      },
+      "preparation": {
+        "job_state": "COMPLETED",
+        "ok": true,
+        "needs_human": [
+          "forward axis guessed as the longest horizontal extent (+Y); WHICH END IS THE FRONT cannot be determined automatically - review the 6-view renders and re-run with --forward if reversed",
+          "real-world size is not recoverable from a single image: the model was scaled to 1 m along its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions",
+          "footprint aligned to the axes by rotating +41.5 deg about the up axis (long side = forward, footprint 0.75 x 0.639)",
+          "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): supply the real width/height to correct the proportions",
+          "the result is one merged mesh: parts, pivots and hierarchy are not detected automatically (part detection is not implemented)"
+        ],
+        "steps": [
+          {
+            "step": "geometry: orient + scale + pivot + cleanup + fill holes + smooth",
+            "status": "PASS",
+            "seconds": 10.57
+          },
+          {
+            "step": "geometry: decimate for texturing",
+            "status": "PASS",
+            "seconds": 3.44
+          },
+          {
+            "step": "textures: unwrap + bake colour from the RAW mesh",
+            "status": "PASS",
+            "seconds": 17.01
+          },
+          {
+            "step": "collision",
+            "status": "PASS",
+            "seconds": 0.12
+          },
+          {
+            "step": "LOD generation",
+            "status": "PASS",
+            "seconds": 0.36
+          },
+          {
+            "step": "validation",
+            "status": "PASS",
+            "seconds": 0.31
+          },
+          {
+            "step": "finalize",
+            "status": "PASS",
+            "seconds": 0.09
+          }
+        ],
+        "final_extents_m": [
+          0.853,
+          0.8431,
+          1.0008
+        ],
+        "validation": {
+          "status": "PRODUCTION_READY",
+          "overall": 99.6,
+          "critical_failures": 0,
+          "major_failures": 0
+        },
+        "source_axes": {
+          "up": "+Z",
+          "forward": "+Y"
+        },
+        "final_version_id": "ver_2c425195e2974e7ea1cf"
+      },
+      "raw_immutable": true,
+      "prepared_views": [
+        "03-prepared-front.png",
+        "03-prepared-rear.png",
+        "03-prepared-left.png",
+        "03-prepared-right.png",
+        "03-prepared-top.png",
+        "03-prepared-3q.png"
+      ],
+      "views_shading": "smooth (vertex normals, as exported)",
+      "export": {
+        "job_state": "COMPLETED",
+        "export_id": "exp_68c1a499c8c74079ac33",
+        "status": "COMPLETED",
+        "size_bytes": 1470640,
+        "sha256_download": "cd9b279e644a28da2dedef29b53ef332eecb6bb9a541ab4c6cd96f4a0bfea552",
+        "sha256_matches_record": true,
+        "internal_verification_ok": true,
+        "reopened_triangles_all_lods": 44647,
+        "reopened_geometry_count": 5,
+        "reopened_vertices_finite": true,
+        "reopened_lod0_extents_m": [
+          0.8535,
+          0.8454,
+          1.0028
+        ],
+        "khronos": {
+          "ran": true,
+          "validator_version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "ok": true,
+          "messages": []
+        },
+        "lod_collision_audit": {
+          "ok": true,
+          "failed_checks": [],
+          "nodes": [
+            {
+              "name": "COL_Hull",
+              "vertices": 132,
+              "triangles": 252,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 128,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": true,
+              "extents_m": [
+                0.8515,
+                0.8452,
+                1.0028
+              ],
+              "bounds_m": [
+                [
+                  -0.425,
+                  -0.0007,
+                  -0.5018
+                ],
+                [
+                  0.4265,
+                  0.8445,
+                  0.501
+                ]
+              ],
+              "uv_present": false,
+              "uv_in_0_1": null,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD3",
+              "vertices": 2609,
+              "triangles": 2400,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 1921,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8531,
+                0.8448,
+                0.9992
+              ],
+              "bounds_m": [
+                [
+                  -0.4269,
+                  -0.0,
+                  -0.5006
+                ],
+                [
+                  0.4262,
+                  0.8447,
+                  0.4986
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD2",
+              "vertices": 4728,
+              "triangles": 5997,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 3951,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8534,
+                0.8444,
+                1.0011
+              ],
+              "bounds_m": [
+                [
+                  -0.4268,
+                  0.0003,
+                  -0.5009
+                ],
+                [
+                  0.4266,
+                  0.8446,
+                  0.5002
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD1",
+              "vertices": 8014,
+              "triangles": 11998,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 7040,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8531,
+                0.8431,
+                1.0002
+              ],
+              "bounds_m": [
+                [
+                  -0.4265,
+                  0.0,
+                  -0.5001
+                ],
+                [
+                  0.4266,
+                  0.8431,
+                  0.5002
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD0",
+              "vertices": 15389,
+              "triangles": 24000,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 12000,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": false,
+              "extents_m": [
+                0.853,
+                0.8431,
+                1.0008
+              ],
+              "bounds_m": [
+                [
+                  -0.4265,
+                  0.0,
+                  -0.5004
+                ],
+                [
+                  0.4265,
+                  0.8431,
+                  0.5004
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            }
+          ],
+          "checks": [
+            {
+              "id": "nodes.visual_lods",
+              "ok": true,
+              "message": "4 visual LOD node(s): ['Raw_Mesh_LOD0', 'Raw_Mesh_LOD1', 'Raw_Mesh_LOD2', 'Raw_Mesh_LOD3']"
+            },
+            {
+              "id": "nodes.colliders",
+              "ok": true,
+              "message": "1 collision node(s): ['COL_Hull']"
+            },
+            {
+              "id": "COL_Hull.finite",
+              "ok": true,
+              "message": "COL_Hull: all vertices finite, all indices in range"
+            },
+            {
+              "id": "COL_Hull.not_empty",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles"
+            },
+            {
+              "id": "COL_Hull.degenerate",
+              "ok": true,
+              "message": "COL_Hull: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "COL_Hull.normals",
+              "ok": true,
+              "message": "COL_Hull: vertex normals are unit length"
+            },
+            {
+              "id": "COL_Hull.manifold",
+              "ok": true,
+              "message": "COL_Hull: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 2400 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 5997 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 11998 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 24000 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "lods.ladder",
+              "ok": true,
+              "message": "LOD triangle counts strictly decrease: [24000, 11998, 5997, 2400]"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: bounds differ from LOD0 by 0.02 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: bounds differ from LOD0 by 0.10 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: bounds differ from LOD0 by 0.12 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "COL_Hull.bounds",
+              "ok": true,
+              "message": "COL_Hull: bounds differ from LOD0 by 0.10 % of the diagonal (limit 5 %)"
+            },
+            {
+              "id": "COL_Hull.convex",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is convex"
+            },
+            {
+              "id": "COL_Hull.watertight",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is closed (after welding seams)"
+            },
+            {
+              "id": "COL_Hull.triangle_limit",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles (convex-collider limit 255)"
+            }
+          ]
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "name": "Toy robot",
+      "category": "equipment",
+      "category_group": "objects",
+      "input_file": "robot.png",
+      "input_sha256": "092ee61f1729ac9ed516c8d031d071f44dfa6e79f6ece04f32c988721b2b657a",
+      "input_size_bytes": 151541,
+      "input_image": {
+        "width": 512,
+        "height": 512,
+        "mode": "RGBA",
+        "format": "PNG",
+        "has_alpha": true
+      },
+      "input_source_note": "TripoSR repository examples/ at commit 107cefdc244c (repo MIT-licensed; per-image authorship not stated upstream)",
+      "input_preserved_as": "inputs/04-robot.png",
+      "batch_status": "QUEUED",
+      "human_review": {
+        "status": "PENDING_HUMAN_REVIEW",
+        "recognisable": null,
+        "visual_defects": null,
+        "category_limitations": null,
+        "orientation_up_front": null
+      },
+      "generation_job": {
+        "job_id": "job_be281967115a4cdd8a85",
+        "state": "COMPLETED",
+        "error": null,
+        "job_seconds": 5.17,
+        "preflight": {
+          "estimate": {
+            "vram_mb": 6000,
+            "ram_mb": 4000,
+            "measured": true,
+            "note": "Published by TripoSR for default options (single image)."
+          },
+          "gpu": {
+            "available": true,
+            "name": "Tesla T4",
+            "total_mb": 15360,
+            "free_mb": 9458,
+            "driver": "580.82.07",
+            "source": "nvidia-smi"
+          },
+          "ram_available_mb": 7089,
+          "disk_free_mb": 69203
+        }
+      },
+      "real_inference": {
+        "model_ran": true,
+        "cache_hit": false,
+        "engine_id": "triposr",
+        "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+        "device": "cuda",
+        "model_load_time_s": 0.0,
+        "inference_time_s": 3.145,
+        "vertices": 79529,
+        "triangles": 158779,
+        "extents_native": [
+          0.763382077217102,
+          0.9493332505226135,
+          0.9894337356090546
+        ],
+        "finite": true,
+        "output_sha256": "c4a0fefd10489b9916de89141f15512c01bc7d66416c5ebb43d46ff0e2d8adb3",
+        "output_size_bytes": 3178804,
+        "generation_id": "gen_ddb263b746b941dbad50",
+        "raw_version_id": "ver_b466a68168914b85a1f4",
+        "raw_stage": "raw",
+        "provenance": {
+          "source": "ai_reconstruction",
+          "engine_id": "triposr",
+          "model_version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+          "generation_id": "gen_ddb263b746b941dbad50",
+          "input_image_sha256": "092ee61f1729ac9ed516c8d031d071f44dfa6e79f6ece04f32c988721b2b657a",
+          "note": "TripoSR single-image reconstruction on cuda; raw native coordinate frame."
+        },
+        "stored_source_sha256": "092ee61f1729ac9ed516c8d031d071f44dfa6e79f6ece04f32c988721b2b657a",
+        "provenance_source_sha256_matches_batch": true,
+        "source_image_served": true,
+        "raw_copy_sha256": "c4a0fefd10489b9916de89141f15512c01bc7d66416c5ebb43d46ff0e2d8adb3",
+        "input_bytes_equal_stored_source": true,
+        "peak_vram_nvidia_smi_mb_whole_run": 5455
+      },
+      "raw_mesh_file": "raw/04-robot-raw.glb",
+      "generation_report": {
+        "settings": {
+          "engine": {
+            "chunk_size": 8192,
+            "foreground_ratio": 0.85,
+            "mc_resolution": 256,
+            "mc_threshold": 25.0,
+            "preset": "BALANCED"
+          },
+          "preprocess": {
+            "foreground_ratio": 0.85,
+            "output_size": 512,
+            "remove_background": "auto"
+          }
+        },
+        "preprocess_steps": [
+          {
+            "size": [
+              512,
+              512
+            ],
+            "step": "orientation"
+          },
+          {
+            "color": null,
+            "from_alpha": true,
+            "spread": 0.0,
+            "step": "background_analysis",
+            "uniform": true
+          },
+          {
+            "method": "existing_alpha",
+            "step": "background_removal"
+          },
+          {
+            "bbox": [
+              85,
+              125,
+              416,
+              480
+            ],
+            "size": [
+              331,
+              355
+            ],
+            "step": "crop"
+          },
+          {
+            "canvas": 512,
+            "step": "resize",
+            "subject_size": [
+              406,
+              435
+            ]
+          },
+          {
+            "composite_background": 0.5,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "step": "normalize"
+          }
+        ],
+        "engine_details": {
+          "coordinate_frame": "TripoSR native (unrotated)",
+          "extents": [
+            0.763382077217102,
+            0.9493332505226135,
+            0.9894337356090546
+          ],
+          "mc_resolution": 256,
+          "orientation_hint": {
+            "basis": "tsr/utils.py::to_gradio_3d_orientation = Rx(-90deg) then Ry(+90deg) at upstream commit 107cefd",
+            "forward": "UNCONFIRMED: decide from the first real output",
+            "native_up": "+Z",
+            "status": "inferred_from_source_not_yet_verified_by_inference"
+          },
+          "weights_source": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a"
+        },
+        "execution_time_s": 3.145215324999981,
+        "model_load_time_s": 0.0
+      },
+      "raw_sanity": {
+        "vertices": 79529,
+        "faces": 158779,
+        "watertight": false,
+        "components": 3,
+        "issues": [
+          {
+            "id": "disconnected_components",
+            "severity": "major",
+            "message": "3 disconnected components (1 tiny)."
+          },
+          {
+            "id": "holes",
+            "severity": "major",
+            "message": "140 open boundary loop(s) (555 boundary edges)."
+          },
+          {
+            "id": "incorrect_pivot",
+            "severity": "minor",
+            "message": "Origin is not at ground level on the centreline."
+          }
+        ]
+      },
+      "raw_manifest_sha256_before_prep": "2f0696af787fe1e5f097fdec12d6de85ccaf43cf79e2ece6d02c308949524b3a",
+      "raw_views": [
+        "04-raw-front.png",
+        "04-raw-rear.png",
+        "04-raw-left.png",
+        "04-raw-right.png",
+        "04-raw-top.png",
+        "04-raw-3q.png"
+      ],
+      "viewer_preview": {
+        "status": 200,
+        "bytes": 4266272
+      },
+      "preparation": {
+        "job_state": "COMPLETED",
+        "ok": true,
+        "needs_human": [
+          "forward axis guessed as the longest horizontal extent (+Y); WHICH END IS THE FRONT cannot be determined automatically - review the 6-view renders and re-run with --forward if reversed",
+          "real-world size is not recoverable from a single image: the model was scaled to 1 m along its forward axis as a PLACEHOLDER - enter the true length and re-run before using it for dimensions",
+          "footprint NOT yaw-aligned: footprint is nearly square (aspect 1.08 < 1.15): no reliable long side",
+          "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): supply the real width/height to correct the proportions",
+          "the result is one merged mesh: parts, pivots and hierarchy are not detected automatically (part detection is not implemented)"
+        ],
+        "steps": [
+          {
+            "step": "geometry: orient + scale + pivot + cleanup + fill holes + smooth",
+            "status": "PASS",
+            "seconds": 19.93
+          },
+          {
+            "step": "geometry: decimate for texturing",
+            "status": "PASS",
+            "seconds": 4.4
+          },
+          {
+            "step": "textures: unwrap + bake colour from the RAW mesh",
+            "status": "PASS",
+            "seconds": 26.32
+          },
+          {
+            "step": "collision",
+            "status": "PASS",
+            "seconds": 0.13
+          },
+          {
+            "step": "LOD generation",
+            "status": "PASS",
+            "seconds": 0.35
+          },
+          {
+            "step": "validation",
+            "status": "PASS",
+            "seconds": 0.32
+          },
+          {
+            "step": "finalize",
+            "status": "PASS",
+            "seconds": 0.1
+          }
+        ],
+        "final_extents_m": [
+          0.8032,
+          1.0413,
+          0.9987
+        ],
+        "validation": {
+          "status": "PRODUCTION_READY",
+          "overall": 99.6,
+          "critical_failures": 0,
+          "major_failures": 0
+        },
+        "source_axes": {
+          "up": "+Z",
+          "forward": "+Y"
+        },
+        "final_version_id": "ver_8690587e326e4f3988d6"
+      },
+      "raw_immutable": true,
+      "prepared_views": [
+        "04-prepared-front.png",
+        "04-prepared-rear.png",
+        "04-prepared-left.png",
+        "04-prepared-right.png",
+        "04-prepared-top.png",
+        "04-prepared-3q.png"
+      ],
+      "views_shading": "smooth (vertex normals, as exported)",
+      "export": {
+        "job_state": "COMPLETED",
+        "export_id": "exp_2d571e3968444cefbce7",
+        "status": "COMPLETED",
+        "size_bytes": 1583960,
+        "sha256_download": "ae3da96eafcf355801a0efb0c5713fc7154f9ff37e39823345eb15d5b0473c3a",
+        "sha256_matches_record": true,
+        "internal_verification_ok": true,
+        "reopened_triangles_all_lods": 44614,
+        "reopened_geometry_count": 5,
+        "reopened_vertices_finite": true,
+        "reopened_lod0_extents_m": [
+          0.8048,
+          1.0444,
+          0.9997
+        ],
+        "khronos": {
+          "ran": true,
+          "validator_version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "ok": true,
+          "messages": []
+        },
+        "lod_collision_audit": {
+          "ok": true,
+          "failed_checks": [],
+          "nodes": [
+            {
+              "name": "COL_Hull",
+              "vertices": 129,
+              "triangles": 252,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 128,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": true,
+              "extents_m": [
+                0.8025,
+                1.0437,
+                0.9996
+              ],
+              "bounds_m": [
+                [
+                  -0.3993,
+                  0.0004,
+                  -0.4996
+                ],
+                [
+                  0.4032,
+                  1.0442,
+                  0.4999
+                ]
+              ],
+              "uv_present": false,
+              "uv_in_0_1": null,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD3",
+              "vertices": 3300,
+              "triangles": 2393,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 2036,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8038,
+                1.0395,
+                0.9985
+              ],
+              "bounds_m": [
+                [
+                  -0.4011,
+                  0.0019,
+                  -0.4991
+                ],
+                [
+                  0.4028,
+                  1.0414,
+                  0.4995
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD2",
+              "vertices": 5626,
+              "triangles": 5990,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 4036,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.803,
+                1.0412,
+                0.9992
+              ],
+              "bounds_m": [
+                [
+                  -0.4016,
+                  -0.0002,
+                  -0.4998
+                ],
+                [
+                  0.4015,
+                  1.0409,
+                  0.4994
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD1",
+              "vertices": 8731,
+              "triangles": 11989,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 7137,
+              "non_manifold_edges": 0,
+              "watertight": false,
+              "convex": false,
+              "extents_m": [
+                0.8029,
+                1.0414,
+                0.9987
+              ],
+              "bounds_m": [
+                [
+                  -0.4014,
+                  -0.0001,
+                  -0.4994
+                ],
+                [
+                  0.4015,
+                  1.0412,
+                  0.4993
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            },
+            {
+              "name": "Raw_Mesh_LOD0",
+              "vertices": 16308,
+              "triangles": 23990,
+              "finite": true,
+              "indices_in_range": true,
+              "degenerate_triangles": 0,
+              "welded_vertices": 11997,
+              "non_manifold_edges": 0,
+              "watertight": true,
+              "convex": false,
+              "extents_m": [
+                0.8032,
+                1.0413,
+                0.9987
+              ],
+              "bounds_m": [
+                [
+                  -0.4016,
+                  0.0,
+                  -0.4994
+                ],
+                [
+                  0.4016,
+                  1.0413,
+                  0.4994
+                ]
+              ],
+              "uv_present": true,
+              "uv_in_0_1": true,
+              "normals_unit_length": true
+            }
+          ],
+          "checks": [
+            {
+              "id": "nodes.visual_lods",
+              "ok": true,
+              "message": "4 visual LOD node(s): ['Raw_Mesh_LOD0', 'Raw_Mesh_LOD1', 'Raw_Mesh_LOD2', 'Raw_Mesh_LOD3']"
+            },
+            {
+              "id": "nodes.colliders",
+              "ok": true,
+              "message": "1 collision node(s): ['COL_Hull']"
+            },
+            {
+              "id": "COL_Hull.finite",
+              "ok": true,
+              "message": "COL_Hull: all vertices finite, all indices in range"
+            },
+            {
+              "id": "COL_Hull.not_empty",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles"
+            },
+            {
+              "id": "COL_Hull.degenerate",
+              "ok": true,
+              "message": "COL_Hull: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "COL_Hull.normals",
+              "ok": true,
+              "message": "COL_Hull: vertex normals are unit length"
+            },
+            {
+              "id": "COL_Hull.manifold",
+              "ok": true,
+              "message": "COL_Hull: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 2393 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 5990 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 11989 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.finite",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: all vertices finite, all indices in range"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.not_empty",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 23990 triangles"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.degenerate",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 degenerate triangle(s)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.normals",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: vertex normals are unit length"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.manifold",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: 0 non-manifold edge(s) (edges shared by 3+ triangles, after welding)"
+            },
+            {
+              "id": "Raw_Mesh_LOD0.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD0: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.uv",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: UV coordinates present and inside 0..1"
+            },
+            {
+              "id": "lods.ladder",
+              "ok": true,
+              "message": "LOD triangle counts strictly decrease: [23990, 11989, 5990, 2393]"
+            },
+            {
+              "id": "Raw_Mesh_LOD1.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD1: bounds differ from LOD0 by 0.01 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD2.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD2: bounds differ from LOD0 by 0.02 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "Raw_Mesh_LOD3.bounds",
+              "ok": true,
+              "message": "Raw_Mesh_LOD3: bounds differ from LOD0 by 0.12 % of the diagonal (limit 3 %)"
+            },
+            {
+              "id": "COL_Hull.bounds",
+              "ok": true,
+              "message": "COL_Hull: bounds differ from LOD0 by 0.18 % of the diagonal (limit 5 %)"
+            },
+            {
+              "id": "COL_Hull.convex",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is convex"
+            },
+            {
+              "id": "COL_Hull.watertight",
+              "ok": true,
+              "message": "COL_Hull: collision mesh is closed (after welding seams)"
+            },
+            {
+              "id": "COL_Hull.triangle_limit",
+              "ok": true,
+              "message": "COL_Hull: 252 triangles (convex-collider limit 255)"
+            }
+          ]
+        }
+      },
+      "result": "PASS"
+    }
+  ],
+  "engine": {
+    "id": "triposr",
+    "version": "stabilityai/TripoSR@5b521936b01fbe1890f6f9baed0254ab6351c04a",
+    "revision": "5b521936b01fbe1890f6f9baed0254ab6351c04a",
+    "licence": {
+      "spdx": "MIT",
+      "source_url": "https://huggingface.co/stabilityai/TripoSR",
+      "commercial_use": "allowed",
+      "status": "verified",
+      "notes": "source code and pretrained models (as stated by the upstream README). Evidence: https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE (independently fetched, 2026-10-10); https://github.com/VAST-AI-Research/TripoSR/blob/107cefdc244c39106fa830359024f6a2f1c78871/README.md (independently fetched, 2026-10-10); https://huggingface.co/stabilityai/TripoSR (owner statement, 2026-10-10)."
+    },
+    "runnable": true,
+    "availability": {
+      "ok": true,
+      "reasons": [],
+      "warnings": [
+        "Weights will be downloaded from huggingface.co at pinned revision 5b521936b01fbe1890f6f9baed0254ab6351c04a and SHA-256 verified before loading."
+      ],
+      "activation": []
+    },
+    "device": "cuda",
+    "lock_missing": []
+  },
+  "batch_response_status": 202,
+  "batch": {
+    "batch_id": "batch_cc43589e537f4abb9b03",
+    "total": 5,
+    "queued": 4,
+    "failed": 1
+  },
+  "negative_probe": {
+    "status": "FAILED",
+    "error": {
+      "code": "INVALID_INPUT",
+      "message": "The file content is not a PNG, JPEG or WebP image (extension and declared type are ignored).",
+      "recommended_action": "Export the concept as PNG, JPG or WebP."
+    },
+    "siblings_queued": 4,
+    "result": "PASS"
+  }
+}
