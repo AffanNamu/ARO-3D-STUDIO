@@ -45,6 +45,8 @@ REVIEWED_LARGE = {"docs/acceptance/ARO-TITAN-480.glb": 6_000_000}
 # real-inference smoke evidence: prepared GLBs may be a few MB; raw meshes are .gitignored and must never be committed
 SMOKE_EVIDENCE_DIR = "docs/acceptance/evidence/ai/smoke/"
 SMOKE_FILE_CAP = 8_000_000
+# quality evidence (re-prepared owner images, engine bake-offs): prepared GLBs with four LODs and a texture reach a few MB; raw engine meshes never
+QUALITY_EVIDENCE_DIR = "docs/acceptance/evidence/quality/"
 
 SECRET_PATTERNS = {
     "hugging face token": r"hf_[A-Za-z0-9]{30,}",
@@ -86,8 +88,14 @@ def test_no_unexpected_binary_or_oversized_files():
         p = ROOT / f
         if not p.is_file():
             continue
-        cap = SMOKE_FILE_CAP if f.startswith(SMOKE_EVIDENCE_DIR) else REVIEWED_LARGE.get(f, MAX_BYTES)
-        if f.startswith(SMOKE_EVIDENCE_DIR + "raw/"):
+        cap = (
+            SMOKE_FILE_CAP
+            if f.startswith((SMOKE_EVIDENCE_DIR, QUALITY_EVIDENCE_DIR))
+            else REVIEWED_LARGE.get(f, MAX_BYTES)
+        )
+        if f.startswith(SMOKE_EVIDENCE_DIR + "raw/") or (
+            f.startswith(QUALITY_EVIDENCE_DIR) and p.name == "raw_output.glb"
+        ):
             bad.append((f, "raw meshes belong outside git"))
         elif p.stat().st_size > cap:
             bad.append((f, f"larger than {cap / 1e6:.0f} MB"))
