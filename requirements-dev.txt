@@ -9,3 +9,4 @@ bandit
 playwright
 tree-sitter
 tree-sitter-c-sharp
+scikit-image>=0.22  # the CPU marching-cubes stand-in for diso (aro_worker/shims) is tested against the real thing
