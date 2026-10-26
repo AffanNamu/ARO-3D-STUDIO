@@ -99,11 +99,13 @@ def build_context(
     )
     jobs.register("generation", generation.handle, heavy=True)
     jobs.register("processing", processing.handle, heavy=False)
-    jobs.register("auto_process", _auto_process_handler(processing, assets, s), heavy=True)
+    jobs.register("auto_process", _auto_process_handler(processing, assets, s, sources), heavy=True)
     jobs.register("export", _export_handler(exports), heavy=False)
     jobs.register(
         "convert",
-        convert_handler(generation.handle, _auto_process_handler(processing, assets, s), _export_handler(exports)),
+        convert_handler(
+            generation.handle, _auto_process_handler(processing, assets, s, sources), _export_handler(exports)
+        ),
         heavy=True,
         timeout_s=3 * s.job_timeout_s,  # three stages share one budget
     )
@@ -153,7 +155,23 @@ def _record_model(db: Database, engine) -> None:
     )
 
 
-def _auto_process_handler(processing: ProcessingService, assets: AssetService, settings: Settings):
+def _reference_cutout(assets: AssetService, sources: SourceService | None, raw_version_id: str, provenance: Any) -> Any:
+    """The source photo's cut-out, for engines that return geometry only. None when it cannot be found (colour is then simply absent)."""
+    sha = getattr(provenance, "input_image_sha256", None)
+    if sources is None or not sha:
+        return None
+    try:
+        from aro_studio.imaging.preprocess import PreprocessOptions, preprocess
+
+        project_id = assets.get_asset(assets.get_version(raw_version_id)["asset_id"])["project_id"]
+        return preprocess(sources.open(project_id, sha), PreprocessOptions()).rgba
+    except Exception:  # noqa: BLE001 - texturing from the photo is an enhancement, never a reason to fail the preparation
+        return None
+
+
+def _auto_process_handler(
+    processing: ProcessingService, assets: AssetService, settings: Settings, sources: SourceService | None = None
+):
     """Build a queued, non-destructive auto-preparation job for raw reconstruction meshes."""
 
     def run(ctx) -> dict[str, Any]:
@@ -173,6 +191,7 @@ def _auto_process_handler(processing: ProcessingService, assets: AssetService, s
             texture_resolution=int(ctx.params.get("texture_resolution", 1024)),
             lod=bool(ctx.params.get("lod", True)),
             tri_budget=settings.tri_budget_lod0,
+            reference=_reference_cutout(assets, sources, raw_version_id, provenance),
         )
         ctx.annotate(
             raw_version_id=raw_version_id,

@@ -46,11 +46,13 @@ def render_scene(
     background=(238, 238, 238),
     fov_deg: float = 28.0,
     smooth_shading: bool = False,
+    shaded: bool = True,
 ) -> Image.Image:
     """Render ``(mesh, colour)`` items; colour is one rgba 0..1 tuple or an (n_faces, 3|4) array of per-face colours. +Y is up; azimuth 0 looks at the +Z face from +Z.
 
     ``smooth_shading`` lights each triangle with the average of its vertex normals, which is what a viewer shows for an exported mesh that
-    carries smooth normals (the default flat shading exaggerates facets and surface noise).
+    carries smooth normals (the default flat shading exaggerates facets and surface noise). ``shaded=False`` draws the colours as they are
+    (no lighting), for tests and texture previews.
     """
     all_v = np.concatenate([m.vertices for m, _ in items])
     center = (all_v.min(0) + all_v.max(0)) / 2
@@ -75,7 +77,7 @@ def render_scene(
             vn = np.asarray(mesh.vertex_normals)[fcs].mean(axis=1)
             lv = np.linalg.norm(vn, axis=1, keepdims=True)
             n = vn / np.where(lv == 0, 1, lv)
-        shade = 0.38 + 0.62 * np.clip((n * light).sum(axis=1), 0, 1)
+        shade = (0.38 + 0.62 * np.clip((n * light).sum(axis=1), 0, 1)) if shaded else np.ones(len(n))
         rel = t - eye
         cam = np.stack([rel @ r, rel @ u, rel @ f], axis=-1)  # (N,3,3) x,y,depth
         depth = cam[:, :, 2].mean(axis=1)

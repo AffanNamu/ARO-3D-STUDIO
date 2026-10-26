@@ -224,6 +224,7 @@ class Provenance(_M):
     model_version: str | None = None
     generation_id: str | None = None
     input_image_sha256: str | None = None
+    native_up: str | None = None  # the raw mesh's up axis (+Y, -Z, ...), when it was detected rather than assumed
     note: str = ""
 
 

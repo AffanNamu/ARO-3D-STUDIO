@@ -104,3 +104,22 @@ def test_a_good_outline_with_stubby_depth_does_not_meet_the_floor():
     assert bv.iou > 0.95
     p = fd.proportion_check(tuple(float(x) for x in stubby.extents[:3]), "heavy_truck")
     assert p["verdict"] == "implausible" and not (bv.iou >= fd.IOU_FLOOR and p["verdict"] != "implausible")
+
+
+@pytest.mark.parametrize("native_up", ["+Y", "-Y", "+Z", "-Z", "+X", "-X"])
+def test_up_axis_is_recovered_from_the_reference_silhouette(native_up):
+    """An engine may emit any frame. Rotating the mesh into each of the six possible ones, the reference match must name the right one."""
+    canonical = truckish()
+    ref = reference_mask_from(canonical, 35.0, 10.0)
+    rot = fd._UP_TO_Y[native_up]  # carries the native up axis onto +Y
+    native = trimesh.Trimesh(np.asarray(canonical.vertices) @ rot, canonical.faces, process=False)
+    res = fd.detect_up_axis(native, ref)
+    assert res["best_by_silhouette"] == native_up, res
+    assert res["confident"] and res["up"] == native_up
+
+
+def test_up_axis_keeps_the_hint_when_the_shape_is_ambiguous():
+    ball = trimesh.creation.icosphere(subdivisions=3)
+    ref = reference_mask_from(ball, 0.0, 10.0)
+    res = fd.detect_up_axis(ball, ref, hint="+Z")
+    assert not res["confident"] and res["up"] == "+Z" and res["used_hint"]

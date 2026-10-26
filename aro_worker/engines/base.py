@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
 from PIL import Image
 
 
@@ -40,19 +41,27 @@ def gpu_info() -> dict[str, Any]:
         return {}
 
 
-def require_cutout(image: Image.Image) -> Image.Image:
-    """The Studio sends a matted RGBA cut-out. An image with no transparent pixel has NO cut-out, and the upstream pipelines would then
-    run their own background-removal network (BRIA RMBG / RMBG-2.0 are non-commercial licences). Refuse instead of letting that happen."""
+def require_cutout(image: Image.Image, min_ratio: float = 0.01) -> Image.Image:
+    """The Studio sends a matted RGBA cut-out. An image without one would make the upstream pipelines run their own background-removal
+    network (BRIA RMBG / RMBG-2.0 are non-commercial licences), or crash trying: refuse instead.
+
+    "Real cut-out" mirrors the upstream validity test (TripoSG's ``is_valid_alpha``): at least ``min_ratio`` of the pixels fully
+    transparent AND at least ``min_ratio`` fully opaque. Anything else (all opaque, all clear, a faint vignette) is not a cut-out.
+    """
     rgba = image.convert("RGBA")
-    extrema: Any = rgba.getchannel("A").getextrema()  # (min, max) for a single-band image
-    lo, hi = int(extrema[0]), int(extrema[1])
-    if lo >= 250:
+    alpha = np.asarray(rgba.getchannel("A"))
+    n = alpha.size
+    clear = float((alpha < 13).sum()) / n
+    solid = float((alpha > 242).sum()) / n
+    if clear < min_ratio and solid >= min_ratio:
         raise ValueError(
             "the image has no transparent background: send the Studio's matted RGBA cut-out (the worker never runs its own "
             "background-removal model, whose licence is non-commercial)"
         )
-    if hi <= 5:
-        raise ValueError("the cut-out is empty (fully transparent)")
+    if solid < min_ratio:
+        raise ValueError("the cut-out is empty or almost fully transparent")
+    if clear < min_ratio:
+        raise ValueError("the cut-out has no clearly transparent pixels")
     return rgba
 
 

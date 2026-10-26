@@ -156,6 +156,8 @@ class ProcessingService:
                 max_faces=int(params.get("max_faces", 25000)),
             )
             return new, rep, Stage.PROCESSED, f"Textures baked at {params.get('resolution', 1024)}px"
+        if action == "project_reference":
+            return self._project_reference(new, params)
         if action == "resize":
             return (
                 new,
@@ -174,7 +176,29 @@ class ProcessingService:
                 Stage.OPTIMIZED,
                 "Textures compressed",
             )
-        raise InvalidInputError("textures.action must be bake, resize or compress.")
+        raise InvalidInputError("textures.action must be bake, project_reference, resize or compress.")
+
+    @staticmethod
+    def _project_reference(new: Scene, params: dict) -> tuple[Scene, dict, Stage, str]:
+        """Colour geometry-only meshes from the reference image (see aro_studio.texturing.projection). Coloured meshes are left alone."""
+        import trimesh
+
+        from aro_studio.core.tm import has_vertex_colors
+        from aro_studio.texturing.projection import project_reference
+
+        reference = params.get("reference")
+        if reference is None:
+            raise InvalidInputError("textures.project_reference needs the reference image ('reference').")
+        done = []
+        for name, mesh in new.meshes.items():
+            if has_vertex_colors(mesh):
+                continue
+            colours, rep = project_reference(mesh, reference, symmetric=bool(params.get("symmetric", True)))
+            mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=colours)
+            done.append({"part": name, **rep.to_dict()})
+        if not done:
+            raise InvalidInputError("Every mesh already has colours: nothing to project onto.")
+        return new, {"projected": done}, Stage.PROCESSED, "Reference image projected onto the geometry"
 
     def _op_vehicle(self, scene: Scene, asset: dict, params: dict, ctx):
         new = scene.copy()

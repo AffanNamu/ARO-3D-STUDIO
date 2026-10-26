@@ -46,6 +46,8 @@ class AIPipelineOptions:
     lod: bool = True
     tri_budget: int | None = None
     validation_intersections: bool = False
+    reference: Any = None  # PIL RGBA cut-out of the source image: geometry-only engines get their colour projected from it (never serialised)
+    symmetric_projection: bool | None = None  # mirror the seen side onto the unseen one; None = yes for vehicles only
 
 
 @dataclass
@@ -57,8 +59,18 @@ class StepRecord:
     detail: dict[str, Any] = field(default_factory=dict)
 
 
+def _has_colours(assets, version_id: str) -> bool:
+    from aro_studio.core.tm import has_vertex_colors
+
+    scene = assets.load_scene(version_id)
+    return any(has_vertex_colors(m) for m in scene.meshes.values())
+
+
 def default_up_axis(provenance) -> str:
     """Native up axis of a raw mesh, from the engine's documented orientation hint (+Y for imported/glTF meshes)."""
+    detected = getattr(provenance, "native_up", None)
+    if detected:  # judged from the reference image at generation time (aro_studio.quality.fidelity.detect_up_axis)
+        return str(detected)
     if (
         getattr(provenance, "source", None) == "ai_reconstruction"
         and getattr(provenance, "engine_id", None) == "triposr"
@@ -193,6 +205,22 @@ def run_ai_pipeline(
                 "width and height relative to the length are the model's estimate from ONE view and are often wrong (often too stubby): "
                 "supply the real width/height to correct the proportions"
             )
+    if ok and opts.reference is not None and not _has_colours(assets, cur):
+        symmetric = (group == "vehicles") if opts.symmetric_projection is None else opts.symmetric_projection
+        projected = run(
+            "textures: project the reference image onto the geometry",
+            "textures",
+            {"action": "project_reference", "reference": opts.reference, "symmetric": symmetric},
+        )
+        if projected:
+            rep_p = (steps[-1].detail.get("report") or {}).get("projected") or [{}]
+            needs_human.append(
+                "the engine returned geometry only: colour was PROJECTED from the reference photo "
+                f"(seen {rep_p[0].get('seen_fraction', 0):.0%}, mirrored {rep_p[0].get('mirrored_fraction', 0):.0%}, "
+                f"filled {rep_p[0].get('filled_fraction', 0):.0%}). Everything not seen is inferred; check the far side and the roof"
+            )
+        else:
+            needs_human.append("projecting the reference colours failed (see the step detail): the mesh has no colour")
     cleaned = cur
     ok = ok and run(
         "geometry: decimate for texturing",

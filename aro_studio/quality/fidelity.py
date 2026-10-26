@@ -141,12 +141,12 @@ def silhouette(
     return normalise_mask(np.asarray(img) > 127, size)
 
 
-def _search_mesh(mesh: trimesh.Trimesh) -> tuple[np.ndarray, np.ndarray]:
+def _search_mesh(mesh: trimesh.Trimesh, max_faces: int = SEARCH_FACES) -> tuple[np.ndarray, np.ndarray]:
     v, f = np.asarray(mesh.vertices, dtype=float), np.asarray(mesh.faces)
-    if len(f) > SEARCH_FACES:
+    if len(f) > max_faces:
         from aro_studio.geometry import ops
 
-        small, _ = ops.decimate(mesh, target_faces=SEARCH_FACES)
+        small, _ = ops.decimate(mesh, target_faces=max_faces)
         v, f = np.asarray(small.vertices, dtype=float), np.asarray(small.faces)
     return v, f
 
@@ -162,15 +162,18 @@ def best_view(
     *,
     azimuths: np.ndarray | None = None,
     elevations: tuple[float, ...] = (0.0, 8.0, 16.0, 26.0, 38.0),
+    size: int = SIZE,
+    search_faces: int = SEARCH_FACES,
+    refine: bool = True,
 ) -> BestView:
     """Coarse-to-fine search over the camera for the best silhouette overlap with the reference cut-out."""
-    ref, ref_aspect = normalise_mask(ref_mask)
-    v, f = _search_mesh(mesh)
+    ref, ref_aspect = normalise_mask(ref_mask, size)
+    v, f = _search_mesh(mesh, search_faces)
     best: tuple[float, float, float, float] | None = None  # iou, az, el, aspect
 
     def consider(az: float, el: float) -> None:
         nonlocal best
-        m, aspect = silhouette(v, f, az, el)
+        m, aspect = silhouette(v, f, az, el, size)
         score = iou(m, ref)
         if best is None or score > best[0]:
             best = (score, az, el, aspect)
@@ -179,12 +182,81 @@ def best_view(
         for el in elevations:
             consider(float(az), float(el))
     assert best is not None
-    _, az0, el0, _ = best
-    for az in np.arange(az0 - 8, az0 + 8.1, 2.0):
-        for el in np.arange(max(-5.0, el0 - 6), el0 + 6.1, 3.0):
-            consider(float(az % 360), float(el))
+    if refine:
+        _, az0, el0, _ = best
+        for az in np.arange(az0 - 8, az0 + 8.1, 2.0):
+            for el in np.arange(max(-5.0, el0 - 6), el0 + 6.1, 3.0):
+                consider(float(az % 360), float(el))
     assert best is not None
     return BestView(best[1], best[2], best[0], best[3], ref_aspect)
+
+
+# -- native frame ------------------------------------------------------------------------------------------------------
+# Rotation that carries a candidate "up" axis of the mesh onto +Y (the Studio's up axis).
+_UP_TO_Y: dict[str, np.ndarray] = {
+    "+Y": np.eye(3),
+    "-Y": np.diag([-1.0, -1.0, 1.0]),
+    "+Z": np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]]),  # Rx(-90 deg)
+    "-Z": np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]]),  # Rx(+90 deg)
+    "+X": np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]),  # Rz(+90 deg)
+    "-X": np.array([[0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]),  # Rz(-90 deg)
+}
+
+
+def detect_up_axis(
+    mesh: trimesh.Trimesh,
+    ref_mask: np.ndarray,
+    *,
+    hint: str | None = None,
+    margin: float = 0.03,
+) -> dict[str, Any]:
+    """Which native axis of ``mesh`` is up, judged by which orientation makes the model's silhouette match the reference cut-out best.
+
+    The photo is a roughly level view of an upright object, so the right axis gives a clearly higher best-view IoU than the five wrong
+    ones. ``confident`` is False when the winner leads the runner-up by less than ``margin`` (symmetric shapes, bad cut-out): the
+    caller should then keep its engine hint. Cheap on purpose (coarse grid, small canvas, decimated copy).
+    """
+    v0, f0 = _search_mesh(mesh, 5_000)
+    coarse: dict[str, BestView] = {}
+    rotated_meshes: dict[str, trimesh.Trimesh] = {}
+    for axis, rot in _UP_TO_Y.items():
+        rotated = trimesh.Trimesh(v0 @ rot.T, f0, process=False)
+        rotated_meshes[axis] = rotated
+        coarse[axis] = best_view(
+            rotated,
+            ref_mask,
+            azimuths=np.arange(0, 360, 20),
+            elevations=(4.0, 18.0, 32.0),
+            size=96,
+            search_faces=len(f0),
+            refine=False,
+        )
+    scores = {axis: bv.iou for axis, bv in coarse.items()}
+    # the coarse grid can leave the right axis only slightly ahead; give the best three a fine search around their own best camera
+    for axis in sorted(scores, key=lambda k: -scores[k])[:3]:
+        c = coarse[axis]
+        fine = best_view(
+            rotated_meshes[axis],
+            ref_mask,
+            azimuths=np.arange(c.azimuth_deg - 20, c.azimuth_deg + 20.1, 5.0) % 360,
+            elevations=tuple(np.clip(np.arange(c.elevation_deg - 12, c.elevation_deg + 12.1, 4.0), -5.0, 60.0)),
+            size=128,
+            search_faces=len(f0),
+            refine=False,
+        )
+        scores[axis] = max(fine.iou, c.iou)
+    scores = {k: round(v, 4) for k, v in scores.items()}
+    order = sorted(scores, key=lambda k: -scores[k])
+    lead = scores[order[0]] - scores[order[1]]
+    chosen = order[0] if lead >= margin or hint is None else hint
+    return {
+        "up": chosen,
+        "best_by_silhouette": order[0],
+        "scores": scores,
+        "lead": round(lead, 4),
+        "confident": lead >= margin,
+        "used_hint": chosen != order[0],
+    }
 
 
 # -- proportions -------------------------------------------------------------------------------------------------------

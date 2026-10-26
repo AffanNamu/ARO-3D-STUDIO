@@ -9,6 +9,7 @@ Hard rules enforced here:
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import Any
 
@@ -42,6 +43,8 @@ from aro_studio.scene.factory import scene_from_mesh
 from aro_studio.scene.model import Provenance
 from aro_studio.storage.layout import StorageLayout
 
+log = logging.getLogger(__name__)
+
 
 class GenerationService:
     def __init__(
@@ -59,6 +62,22 @@ class GenerationService:
         self.registry, self.models, self.metrics = registry, models, metrics or Metrics()
 
     # -- discovery ----------------------------------------------------------------------------
+    @staticmethod
+    def _detect_up(engine_id: str, mesh: Any, cutout: Any) -> tuple[str | None, dict | None]:
+        """Engines other than TripoSR (whose frame is known) emit meshes in a frame nobody has verified here: find the up axis by matching
+        the model's silhouette to the reference cut-out. Never fatal: without a clear winner the caller keeps its default (+Y)."""
+        if engine_id == "triposr" or cutout is None:
+            return None, None
+        try:
+            from aro_studio.quality.fidelity import detect_up_axis
+
+            alpha = np.asarray(cutout.convert("RGBA"))[..., 3] > 127
+            det = detect_up_axis(mesh, alpha, hint="+Y")
+            return str(det["up"]), det
+        except Exception:  # noqa: BLE001 - a failed detection must not lose a real reconstruction
+            log.warning("up-axis detection failed for engine %s", engine_id, exc_info=True)
+            return None, None
+
     def engine_status(self) -> list[dict]:
         device = resolve_device(self.s.device)
         out = []
@@ -299,12 +318,14 @@ class GenerationService:
                 recommended_action="Try another input image or preset.",
             )
         out_hash = sha256_file(out.raw_file)
+        native_up, up_detection = self._detect_up(engine.info.id, mesh, pre.rgba)
         prov = Provenance(
             source="ai_reconstruction",
             engine_id=engine.info.id,
             model_version=engine.info.version,
             generation_id=gid,
             input_image_sha256=image_sha,
+            native_up=native_up,
             note=f"{engine.info.name} single-image reconstruction on {out.device}; raw native coordinate frame.",
         )
         scene = scene_from_mesh(mesh, asset["name"], asset["category"], prov)
@@ -318,6 +339,7 @@ class GenerationService:
             "output_sha256": out_hash,
             "preprocess_steps": pre.steps,
             "engine_details": out.details,
+            "up_axis_detection": up_detection,
         }
         v = self.assets.add_version(
             asset["asset_id"],

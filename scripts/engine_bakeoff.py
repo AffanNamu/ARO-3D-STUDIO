@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -47,6 +48,34 @@ def parse_case(text: str) -> tuple[Path, str, float | None]:
     if not image or not category:
         raise SystemExit(f"--case '{text}': use IMAGE:CATEGORY[:LENGTH_M], e.g. truck.png:heavy_truck:7.0")
     return Path(image), category, length
+
+
+def _norm(name: str) -> str:
+    """'01-ARO 480 Truck at Golden Hour (1).png' and 'ARO 480 Truck at Golden Hour.png' name the same reference."""
+    stem = Path(name).stem.lower()
+    stem = re.sub(r"^\d+[-_ ]+", "", stem)
+    stem = re.sub(r"\s*\(\d+\)$", "", stem)
+    return re.sub(r"[^a-z0-9]+", "", stem)
+
+
+def load_baselines(directory: Path | None) -> dict[str, dict[str, Any]]:
+    """TripoSR fidelity results committed in the repository (``score_model.py`` output), keyed by normalised reference image name."""
+    found: dict[str, dict[str, Any]] = {}
+    if directory is None or not directory.is_dir():
+        return found
+    for f in sorted(directory.rglob("*-fidelity.json")):
+        d = json.loads(f.read_text())
+        if d.get("reference"):
+            found[_norm(d["reference"])] = {
+                "label": d.get("label", f.stem),
+                "silhouette_iou": d["silhouette_iou"],
+                "ratios": d["proportions"]["ratios"],
+                "proportions": d["proportions"]["verdict"],
+                "meets_floor": d["meets_floor"],
+                "triangles": d["mesh"]["triangles"],
+                "source": str(f),
+            }
+    return found
 
 
 def run_one(
@@ -89,7 +118,13 @@ def run_one(
     try:
         client = TestClient(create_app(ctx))
         t0 = time.time()
-        form = {"category": category, "preset": preset, "engine_id": engine_id, "name": image.stem}
+        form = {
+            "category": category,
+            "preset": preset,
+            "engine_id": engine_id,
+            "name": image.stem,
+            "formats": "glb,unity",  # the Unity package is what gets imported into Unity 6 for the verification
+        }
         if length_m:
             form["length_m"] = str(length_m)
         form.update(axes or {})
@@ -120,6 +155,27 @@ def run_one(
             shutil.copy2(raws[0], out / "raw_output.glb")
             row["raw_sha256"] = hashlib.sha256(raws[0].read_bytes()).hexdigest()
             row["raw_bytes"] = raws[0].stat().st_size
+        unity = next((e for e in res.get("exports", []) if e.get("format") == "unity" and e.get("export_id")), None)
+        if unity:
+            u = client.get(f"/api/exports/{unity['export_id']}/download")
+            if u.status_code == 200:
+                (out / "unity-package.zip").write_bytes(u.content)
+                row["unity_package_sha256"] = hashlib.sha256(u.content).hexdigest()
+        try:  # what the engine and the Studio recorded about this run: timing, memory, detected frame, texture route
+            gen = ctx.assets.load_scene(res["raw_version_id"]).reports.get("generation", {})
+            det = gen.get("engine_details") or {}
+            row["engine_details"] = {
+                k: det.get(k)
+                for k in ("worker_seconds", "peak_vram_allocated_mb", "engine_version", "pbr")
+                if det.get(k) is not None
+            } | {
+                k: v
+                for k, v in (det.get("worker_details") or {}).items()
+                if k in ("surface_extractor", "raw_faces", "settings", "notes")
+            }
+            row["up_axis_detection"] = gen.get("up_axis_detection")
+        except Exception as e:  # noqa: BLE001 - diagnostics must not fail a good run
+            row["engine_details_error"] = f"{type(e).__name__}: {e}"
         ref = Image.open(image).convert("RGB")
         mesh = load_lod0(prepared)
         rep = fd.score_model(mesh, ref, category)
@@ -152,12 +208,24 @@ def run_one(
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def markdown(rows: list[dict[str, Any]]) -> str:
+def markdown(rows: list[dict[str, Any]], baselines: dict[str, dict[str, Any]] | None = None) -> str:
     head = (
         "| Engine | Image | Status | IoU | W/L | H/L | Proportions | Floor | Tris | Components | Validation | Seconds |\n"
         "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
     )
     lines = []
+    shown: set[str] = set()
+    for r in rows:
+        base = (baselines or {}).get(_norm(r["image"]))
+        if (
+            base and r["image"] not in shown
+        ):  # the TripoSR result for the SAME reference, committed earlier, as the yardstick
+            shown.add(r["image"])
+            b = base["ratios"]
+            lines.append(
+                f"| triposr (baseline) | {r['image']} | measured earlier | {base['silhouette_iou']:.2f} | {b['width_over_length']:.2f} | "
+                f"{b['height_over_length']:.2f} | {base['proportions']} | {'yes' if base['meets_floor'] else 'NO'} | {base['triangles']} | - | - | - |"
+            )
     for r in rows:
         if r.get("status") in ("BLOCKED", "FAIL"):
             lines.append(f"| {r['engine']} | {r['image']} | **{r['status']}** | - | - | - | - | - | - | - | - | - |")
@@ -195,8 +263,15 @@ def main() -> int:
         help="raw forward axis; default: the longest horizontal extent (a guess, see needs_human)",
     )
     ap.add_argument("--timeout-s", type=int, default=3600)
+    ap.add_argument(
+        "--baseline-dir",
+        type=Path,
+        default=ROOT / "docs" / "acceptance" / "evidence" / "quality",
+        help="folder with committed TripoSR *-fidelity.json files: the same reference's TripoSR result is shown first",
+    )
     ap.add_argument("--out", required=True, type=Path)
     a = ap.parse_args()
+    baselines = load_baselines(a.baseline_dir)
     if not a.token:
         raise SystemExit("--token or ARO_WORKER_TOKEN is required")
     axes = {k: v for k, v in (("up", a.up), ("forward", a.forward)) if v}
@@ -223,9 +298,11 @@ def main() -> int:
                 )
             )
     a.out.mkdir(parents=True, exist_ok=True)
-    (a.out / "bakeoff-summary.json").write_text(json.dumps(rows, indent=2) + "\n")
-    (a.out / "bakeoff-summary.md").write_text(markdown(rows))
-    print(markdown(rows))
+    (a.out / "bakeoff-summary.json").write_text(
+        json.dumps({"rows": rows, "triposr_baselines": baselines}, indent=2) + "\n"
+    )
+    (a.out / "bakeoff-summary.md").write_text(markdown(rows, baselines))
+    print(markdown(rows, baselines))
     return 0 if all(r.get("status") == "PASS" for r in rows) else 1
 
 

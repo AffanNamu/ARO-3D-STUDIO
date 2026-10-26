@@ -1,9 +1,17 @@
-"""TripoSG (VAST-AI, 1.5B rectified-flow shape model, MIT): high-resolution GEOMETRY only (no texture), needs ~8 GB.
+"""TripoSG (VAST-AI, 1.5B rectified-flow shape model, MIT): high-resolution GEOMETRY only (no texture), about 8 GB of VRAM (fp16).
 
-UNVERIFIED ON HARDWARE until a GPU run is recorded. The upstream script removes backgrounds with BRIA RMBG-1.4, which is licensed
-non-commercially: this plug-in never loads it. It passes the Studio's RGBA cut-out; upstream's ``prepare_image`` uses a valid alpha as
-given and only calls the matting network when there is none (and ``rmbg_net`` is None here, so that cannot happen silently).
-The mesh has no colour: the Studio projects the reference image onto it afterwards.
+STATUS: written against the upstream source (VAST-AI-Research/TripoSG: ``scripts/inference_triposg.py``, ``scripts/image_process.py``,
+``triposg/pipelines/pipeline_triposg.py``, ``triposg/inference_utils.py``, read 2026-10-26) but NOT run on a GPU yet. The first real run
+is the open evidence item (docs/architecture/product-reassessment.md).
+
+Licensing and install notes that matter:
+
+* The upstream script removes backgrounds with BRIA RMBG-1.4, licensed NON-COMMERCIALLY. This plug-in never loads it: it hands the
+  Studio's RGBA cut-out to upstream's ``prepare_image`` which uses a valid alpha as given (``require_cutout`` guarantees it is valid,
+  because with ``rmbg_net=None`` an invalid alpha would crash instead of matting).
+* ``triposg.inference_utils`` imports ``diso`` (a CUDA extension compiled at install). When it cannot be imported, the CPU
+  marching-cubes stand-in ``aro_worker.shims.diso_shim`` is registered under that name; the details of every result say which one ran.
+* The mesh has no colour: the Studio projects the reference image onto it afterwards.
 """
 
 from __future__ import annotations
@@ -27,6 +35,20 @@ log = logging.getLogger("aro_worker")
 REPO_ID = "VAST-AI/TripoSG"
 
 
+def ensure_diso() -> str:
+    """Make ``import diso`` work. Returns "diso" (the compiled package) or "skimage-shim" (the CPU stand-in)."""
+    try:
+        import diso  # noqa: F401
+
+        return "diso"
+    except Exception as e:  # noqa: BLE001 - missing, or built against a different CUDA
+        log.warning("diso is not importable (%s): using the skimage marching-cubes stand-in", type(e).__name__)
+        from aro_worker.shims import diso_shim
+
+        sys.modules["diso"] = diso_shim
+        return "skimage-shim"
+
+
 class TripoSGEngine(WorkerEngine):
     id = "triposg"
     name = "TripoSG (1.5B, geometry only)"
@@ -41,29 +63,40 @@ class TripoSGEngine(WorkerEngine):
 
     def __init__(self) -> None:
         self._pipe: Any = None
+        self._diso = "unknown"
         self._root = Path(os.environ.get("TRIPOSG_DIR", "/opt/TripoSG"))
 
     def presets(self) -> dict[str, dict[str, Any]]:
+        # flash_octree_depth is the iso-surface grid: 8 = 256^3, 9 = 512^3 (upstream default). Depth 10 (1024^3) needs the real diso and
+        # a lot of memory: it is not offered.
         return {
-            "DRAFT": {"steps": 25, "guidance": 7.0, "target_faces": 150_000, "seed": 42},
-            "STANDARD": {"steps": 50, "guidance": 7.0, "target_faces": 400_000, "seed": 42},
-            "HIGH": {"steps": 50, "guidance": 7.0, "target_faces": 1_000_000, "seed": 42},
+            "DRAFT": {"steps": 25, "guidance": 7.0, "octree_depth": 8, "target_faces": 150_000, "seed": 42},
+            "STANDARD": {"steps": 50, "guidance": 7.0, "octree_depth": 9, "target_faces": 400_000, "seed": 42},
+            "HIGH": {"steps": 70, "guidance": 7.5, "octree_depth": 9, "target_faces": 800_000, "seed": 42},
         }
 
     def available(self) -> tuple[bool, list[str]]:
         reasons: list[str] = []
         if not (self._root / "triposg").is_dir():
             reasons.append(
-                f"TripoSG checkout not found at {self._root} (set TRIPOSG_DIR; run worker/install_engines.sh)"
+                f"TripoSG checkout not found at {self._root} (set TRIPOSG_DIR; run worker/install_engines.sh or the notebook's setup cell)"
             )
-        if importlib.util.find_spec("torch") is None:
-            reasons.append("torch is not installed")
+        for mod in ("torch", "diffusers", "skimage", "cv2", "einops"):
+            if importlib.util.find_spec(mod) is None:
+                reasons.append(f"python package '{mod}' is not installed in the worker environment")
         g = gpu_info()
         if not g:
             reasons.append("no CUDA GPU is available")
         elif g["total_mb"] < self.vram_mb:
             reasons.append(f"GPU has {g['total_mb']} MB; TripoSG documents {self.vram_mb} MB")
         return not reasons, reasons
+
+    def warnings(self) -> list[str]:
+        return (
+            []
+            if importlib.util.find_spec("diso")
+            else ["diso is not installed: the slower CPU marching-cubes stand-in will be used"]
+        )
 
     def load(self) -> None:
         import torch
@@ -72,6 +105,7 @@ class TripoSGEngine(WorkerEngine):
         for p in (str(self._root), str(self._root / "scripts")):
             if p not in sys.path:
                 sys.path.insert(0, p)
+        self._diso = ensure_diso()
         from triposg.pipelines.pipeline_triposg import TripoSGPipeline
 
         weights = Path(os.environ.get("ARO_WORKER_CACHE", str(Path(tempfile.gettempdir()) / "aro_worker"))) / "TripoSG"
@@ -119,24 +153,39 @@ class TripoSGEngine(WorkerEngine):
         torch.cuda.reset_peak_memory_stats()
         if cancelled():
             raise Cancelled()
-        progress(0.1, "Preparing the cut-out")
+        cutout = require_cutout(image)
+        progress(0.08, "Preparing the cut-out")
         with tempfile.TemporaryDirectory() as td:
             src = Path(td) / "in.png"
-            require_cutout(image).save(src)
+            cutout.save(src)
             prepared = prepare_image(str(src), bg_color=np.array([1.0, 1.0, 1.0]), rmbg_net=None)
-        progress(0.2, f"TripoSG: {s['steps']} flow steps")
+        steps = int(s["steps"])
+
+        def on_step(_pipe: Any, i: int, _t: Any, kw: dict[str, Any]) -> dict[str, Any]:
+            progress(0.12 + 0.68 * (i + 1) / steps, f"TripoSG: flow step {i + 1} of {steps}")
+            if cancelled():
+                raise Cancelled()
+            return kw
+
         with torch.no_grad():
             out = self._pipe(
                 image=prepared,
                 generator=torch.Generator(device=self._pipe.device).manual_seed(int(s["seed"])),
-                num_inference_steps=int(s["steps"]),
+                num_inference_steps=steps,
                 guidance_scale=float(s["guidance"]),
+                flash_octree_depth=int(s["octree_depth"]),
+                callback_on_step_end=on_step,
             ).samples[0]
-        mesh = trimesh.Trimesh(out[0].astype(np.float32), np.ascontiguousarray(out[1]))
+        progress(0.9, "Building the mesh")
+        if out is None or out[0] is None:
+            raise RuntimeError(
+                "TripoSG produced no mesh (the iso-surface extraction failed: see the worker log; out of memory is the usual cause)"
+            )
+        mesh = trimesh.Trimesh(np.asarray(out[0], dtype=np.float32), np.ascontiguousarray(out[1]))
         raw_faces = len(mesh.faces)
         if cancelled():
             raise Cancelled()
-        notes = []
+        notes: list[str] = []
         if raw_faces > int(s["target_faces"]):
             try:
                 import fast_simplification
@@ -162,7 +211,9 @@ class TripoSGEngine(WorkerEngine):
                 "peak_vram_allocated_mb": peak,
                 "raw_faces": raw_faces,
                 "returned_faces": int(len(mesh.faces)),
+                "surface_extractor": self._diso,
                 "pbr": False,
+                "coordinate_frame": "engine native (unverified: the Studio detects the up axis from the reference image)",
                 "notes": notes,
                 "gpu": gpu_info(),
             },

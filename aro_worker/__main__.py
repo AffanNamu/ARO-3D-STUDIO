@@ -24,12 +24,16 @@ def build_engines(names: list[str]) -> list[WorkerEngine]:
             from aro_worker.engines.triposg import TripoSGEngine
 
             out.append(TripoSGEngine())
+        elif n == "hunyuan3d":
+            from aro_worker.engines.hunyuan3d import Hunyuan3DEngine
+
+            out.append(Hunyuan3DEngine())
         elif n == "fake":
             from aro_worker.engines.fake import FakeEngine
 
             out.append(FakeEngine())
         else:
-            raise SystemExit(f"unknown engine '{n}' (trellis2, triposg, fake)")
+            raise SystemExit(f"unknown engine '{n}' (trellis2, triposg, hunyuan3d, fake)")
     return out
 
 

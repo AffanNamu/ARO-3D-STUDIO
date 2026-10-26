@@ -58,6 +58,20 @@ KNOWN: dict[str, dict[str, Any]] = {
         "description": "VAST-AI TripoSG: high-resolution geometry from one image (~8 GB VRAM); the Studio adds colour from the reference image.",
         "source_url": "https://github.com/VAST-AI-Research/TripoSG",
     },
+    "hunyuan3d": {
+        "name": "Hunyuan3D-2 mini shape (EVALUATION ONLY, restricted licence) - remote GPU",
+        "license": ModelLicense(
+            spdx="LicenseRef-Tencent-Hunyuan-3D-2.0-Community",
+            source_url="https://github.com/Tencent-Hunyuan/Hunyuan3D-2/blob/main/LICENSE",
+            commercial_use="restricted",
+            status="claimed",
+            notes="Not valid in the EU, UK or South Korea (including use of Outputs there); Outputs may not be used to improve other AI "
+            "models; above 1M monthly active users a separate licence is needed; some repository files carry an older NON-COMMERCIAL "
+            "header. A quality yardstick for the benchmark only: do not offer it to users in the excluded territories.",
+        ),
+        "description": "Tencent Hunyuan3D-2 mini: geometry only, about 6 GB of VRAM. Evaluation only.",
+        "source_url": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2",
+    },
     "fake": {
         "name": "TEST DOUBLE (procedural, NOT AI) - remote",
         "license": ModelLicense("MIT", "https://github.com/", "allowed", "claimed", "test double"),
