@@ -26,6 +26,7 @@ dependencies = [
   "pydantic>=2.6",
   "pydantic-settings>=2.2",
   "psutil>=5.9",
+  "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
@@ -34,7 +35,7 @@ triposr = ["torch", "torchvision", "omegaconf==2.3.0", "einops==0.7.0", "transfo
 dev = ["pytest>=8", "pytest-cov", "ruff", "mypy", "httpx", "pip-audit", "bandit", "tree-sitter", "tree-sitter-c-sharp"]
 
 [tool.setuptools.packages.find]
-include = ["aro_studio*"]
+include = ["aro_studio*", "aro_worker*"]
 
 [tool.setuptools.package-data]
 aro_studio = ["ui/static/**/*", "py.typed", "export/*.cjs", "engines/locks/*.json"]

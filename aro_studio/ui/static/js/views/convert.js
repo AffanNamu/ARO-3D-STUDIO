@@ -13,14 +13,14 @@ const STEPS = [
 ];
 const slug = (s) => (s || 'model').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'model';
 
-export function convertPanel({ categories, getEngine, getLimits, presets }) {
+export function convertPanel({ categories, getEngine, getLimits, presets, defaultPreset }) {
   const st = { file: null, thumb: null, dims: null, problem: '', phase: 'idle', job: null, result: null, failure: null, asset: null, stepStates: {}, progress: 0, message: '' };
   const input = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', hidden: true, 'aria-label': 'Choose an image to convert' });
   const drop = h('div', { class: 'dropzone', tabindex: 0, role: 'button', 'aria-label': 'Drop an image here or choose a file' }, icon('upload'), h('div', null, 'Drop an image here, or click to choose (PNG, JPG, WebP)'));
   const nameInput = h('input', { maxlength: 120, placeholder: 'Asset name', 'aria-label': 'Asset name' });
   const categoryInput = select(categories, 'other', { 'aria-label': 'Asset category' });
   const lengthInput = h('input', { type: 'number', min: 0.02, max: 100, step: 0.01, placeholder: 'optional, e.g. 0.8', 'aria-label': 'Real length in metres' });
-  const presetInput = select(Object.keys(presets || { BALANCED: 1 }), 'BALANCED', { 'aria-label': 'Quality preset' });
+  const presetInput = select(Object.keys(presets || { BALANCED: 1 }), defaultPreset || 'BALANCED', { 'aria-label': 'Quality preset' });
   const go = h('button', { class: 'btn primary', disabled: true }, icon('play'), 'Convert to 3D');
   const reason = h('div', { class: 'hint convert-reason' });
   const preview = h('div', { class: 'convert-preview' });
@@ -80,6 +80,7 @@ export function convertPanel({ categories, getEngine, getLimits, presets }) {
       const f = new FormData();
       f.append('file', st.file, st.file.name);
       f.append('name', nameInput.value || ''); f.append('category', categoryInput.value); f.append('preset', presetInput.value);
+      if (getEngine()) f.append('engine_id', getEngine().info.id);
       if (lengthInput.value !== '') f.append('length_m', lengthInput.value);
       const r = await api.post('/api/convert', f);
       st.job = r.job; st.asset = r.asset; st.phase = 'running'; draw();
@@ -143,7 +144,7 @@ export function convertPanel({ categories, getEngine, getLimits, presets }) {
 
   const el = h('div', { class: 'card convert-card', id: 'convert-panel' },
     h('div', { class: 'btn-row', style: { justifyContent: 'space-between' } }, h('h3', null, 'Convert an image to 3D'), h('span', { class: 'chip accent' }, 'One click')),
-    h('p', { class: 'hint' }, 'Any object photo or render: it is reconstructed by the configured engine (TripoSR by default; the engine badge at the top shows what is active), prepared (cleaned, scaled, textured, with collision and LODs) and exported as a verified GLB — one step at a time, so a problem is reported where it happens.'),
+    h('p', { class: 'hint' }, 'Any object photo or render: it is reconstructed by the engine chosen at the top right (TripoSR runs locally; TRELLIS.2 and TripoSG run on a GPU worker when one is connected), prepared (cleaned, scaled, textured, with collision and LODs) and exported as a verified GLB — one step at a time, so a problem is reported where it happens.'),
     drop, input, preview,
     h('div', { class: 'row2', style: { marginTop: '10px' } }, field('Asset name', nameInput), field('Asset category', categoryInput)),
     h('div', { class: 'row2' }, field('Real length, front to back (m) — optional', lengthInput, 'A single image cannot tell the true size. Leave empty and the model keeps a 1 m placeholder, marked for review.'), field('Quality preset', presetInput)),

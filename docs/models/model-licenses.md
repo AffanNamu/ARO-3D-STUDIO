@@ -61,6 +61,20 @@ How the Studio enforces this: `engines/registry.py::license_gate` (explicit lice
 
 Runtime Python dependencies of the Studio itself are audited from installed metadata in [../dependency-licenses.md](../dependency-licenses.md).
 
+## 2b. Engines on the GPU worker (candidates, none verified)
+
+Read from each project's own README/LICENSE files on 2026-10 (see `docs/architecture/product-reassessment.md` section 4). The model
+cards on huggingface.co were **not reachable**, so every status below is **claimed**, and `RemoteEngine` records them as such.
+
+| Engine | Code licence | Weights / outputs | Cautions for ARO | Status |
+|---|---|---|---|---|
+| TRELLIS.2 (`microsoft/TRELLIS.2`) | MIT | read `huggingface.co/microsoft/TRELLIS.2-4B` | `nvdiffrec` (non-commercial) is not installed or imported; `nvdiffrast` is NVIDIA's one-way commercial licence; DINOv3 conditioning is gated (Meta terms, token required); upstream's own background removal must not run (we send a cut-out) | claimed |
+| TripoSG (`VAST-AI-Research/TripoSG`) | MIT | read `huggingface.co/VAST-AI/TripoSG` | upstream script uses BRIA RMBG-1.4 (non-commercial): bypassed, cut-out supplied; geometry only | claimed |
+| Hunyuan3D-2.1 (Tencent) | Tencent community licence | same licence text | excludes the EU, UK and South Korea including use of outputs there; separate licence above 1 M monthly active users; outputs may not be used to improve other AI models | **not integrated; needs legal review** |
+| Step1X-3D (StepFun) | Apache-2.0 | read its model card | heavy (27-29 GB) | not integrated |
+
+Nothing here is set to `verified`: only a person who read the exact model card may attest it (`ARO_VERIFIED_MODEL_LICENSES`).
+
 ## 3. NVIDIA Lyra 2.0 — BLOCKED
 
 | Field | Record |

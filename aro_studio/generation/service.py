@@ -284,6 +284,7 @@ class GenerationService:
                     workdir=gdir,
                     cancel=ctx.cancel,
                     progress=lambda f, m: ctx.progress(0.35 + 0.4 * f, m),
+                    cutout=pre.rgba,
                 )
             )
         self._unload_if_low(device)

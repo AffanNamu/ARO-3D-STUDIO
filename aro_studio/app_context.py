@@ -12,6 +12,7 @@ from aro_studio.core.errors import StudioError
 from aro_studio.db.database import Database
 from aro_studio.engines.manager import ModelManager
 from aro_studio.engines.registry import EngineRegistry
+from aro_studio.engines.remote import remote_engines
 from aro_studio.engines.triposr import TripoSREngine
 from aro_studio.export.service import ExportService
 from aro_studio.generation.service import GenerationService
@@ -71,11 +72,14 @@ def build_context(
         db, layout, max_bytes=s.max_upload_mb * 1_000_000, max_pixels=s.max_image_pixels, min_side=s.min_image_side
     )
     registry = EngineRegistry()
-    for e in (
-        engines
-        if engines is not None
-        else [TripoSREngine(s.triposr_model_path, s.hf_token.get_secret_value() if s.hf_token else None)]
-    ):
+    if engines is None:
+        engines = [TripoSREngine(s.triposr_model_path, s.hf_token.get_secret_value() if s.hf_token else None)]
+        if (
+            s.worker_url
+        ):  # heavy engines (TRELLIS.2, TripoSG) run on the GPU worker; availability is checked when one is used
+            token = s.worker_token.get_secret_value() if s.worker_token else ""
+            engines += remote_engines(s.worker_url, token, s.worker_engines.split(","))
+    for e in engines:
         registry.register(e)
         _record_model(db, e)
     models = ModelManager(registry, db, s.model_idle_unload_s)

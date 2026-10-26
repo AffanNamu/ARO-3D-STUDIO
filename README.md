@@ -16,6 +16,16 @@ The internal **3D asset factory** for [African Online Roads](#relationship-to-af
 
 Zero-budget by design (₦0): open-source stack, no paid APIs, no paid hosting, no paid GPU. Nothing is faked: where something cannot run, the Studio says exactly why and how to activate it.
 
+## Direction (reassessed 2026-10-26)
+
+TripoSR alone cannot deliver the target (measured: all three baselines fail the proportion floor, see
+[the reassessment](docs/architecture/product-reassessment.md)). The plan is a hybrid: this Studio stays the light product layer
+(upload, settings, progress, viewport, game-ready preparation, LODs, collision, validation, Unity export) and generation moves to
+swappable engines on a **GPU worker** ([docs/architecture/gpu-worker.md](docs/architecture/gpu-worker.md)): TRELLIS.2 first, TripoSG
+second, TripoSR kept as the free local draft engine. **No TRELLIS.2 / TripoSG output exists yet**: they need a 24 GB-class GPU session,
+which is outside the zero-budget envelope below unless you already have one. Every result is measured against its reference image
+(`scripts/score_model.py`, `scripts/engine_bakeoff.py`).
+
 ## Current status (read this first)
 
 | Area | Status |
@@ -25,6 +35,7 @@ Zero-budget by design (₦0): open-source stack, no paid APIs, no paid hosting, 
 | Validation / production-readiness engine (50 rules; scores never override critical failures) | ✅ implemented and tested |
 | Export: GLB, glTF, OBJ, Unity package + independent verification (Khronos glTF-Validator: 0 errors/0 warnings on the TITAN 480 GLB) | ✅ implemented and tested |
 | **TripoSR licence & supply chain** | ✅ MIT evidence recorded ([model-licenses](docs/models/model-licenses.md)); weights revision + SHA-256 + sizes **pinned in the lock** (recorded from a Colab run on 2026-10-11 by `scripts/pin_triposr_weights.py`; not re-fetched by the author of this note); loader verifies SHA-256 before deserialising, uses `weights_only`, class allow-list. `ModelLock.missing()` is empty, so the licence gate opens from the lock. A complete lock proves artefact identity — **not** that inference works. |
+| **GPU worker + remote engines** (TRELLIS.2, TripoSG) | ⛔ **BLOCKED on hardware.** Worker protocol, Studio `RemoteEngine`, engine picker, fidelity metrics and bake-off harness are implemented and tested with a labelled test double; the two real engines were written from upstream docs and **never run** (needs a 24 GB-class GPU). See [gpu-worker](docs/architecture/gpu-worker.md). |
 | **One-click “Convert to 3D”** (Generation page, `POST /api/convert`) | ✅ implemented: one image → reconstruct → prepare → export a verified GLB as a single job with per-step status; unit- and browser-tested **with a labelled test-double engine only**. It fails fast, creating nothing, if the real engine cannot run. Not yet run with the real model. |
 | **AI reconstruction (TripoSR)** | ⚠️ **Not yet proven through the Studio.** The adapter, licence gate and weights verification are in place and unit-tested with stand-ins. The committed evidence contains **no real inference run**; the build sandbox has no GPU and cannot reach Hugging Face. Reproduce with [docs/verification/real-inference-smoke.md](docs/verification/real-inference-smoke.md) (`notebooks/aro_real_inference_colab.ipynb`). |
 | **Unity 6 import** | ⛔ **BLOCKED — never run.** Package is generated and integrity-verified; a Unity batch-mode verifier ships in every package but has only been syntax-checked. See [docs/verification/unity-verification-runbook.md](docs/verification/unity-verification-runbook.md). |

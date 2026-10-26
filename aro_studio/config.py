@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     verified_model_licenses: str = ""
     triposr_model_path: str = "stabilityai/TripoSR"  # HF repo id or local directory
     hf_token: SecretStr | None = None  # never logged
+    # Remote GPU worker (aro_worker): heavy engines run there, the Studio stays light. Empty URL = no remote engines.
+    worker_url: str = ""
+    worker_token: SecretStr | None = None  # never logged
+    worker_engines: str = "trellis2,triposg"
 
     # Budgets
     tri_budget_lod0: int = 150_000

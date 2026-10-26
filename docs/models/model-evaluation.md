@@ -1,6 +1,10 @@
 # Model evaluation plan and candidate screen
 
-**Decision: do not add or swap an engine yet.** No real TripoSR output has been inspected, so there is no evidence that it is
+> **Superseded 2026-10-26.** Real TripoSR output has since been inspected and measured: it fails the proportion floor on a car and
+> two trucks. The decision, engine matrix and roadmap are now in [../architecture/product-reassessment.md](../architecture/product-reassessment.md).
+> The text below is kept as the original screening protocol.
+
+**Original decision (superseded): do not add or swap an engine yet.** No real TripoSR output had been inspected, so there was no evidence that it is
 too crude for ARO's use cases. First run the smoke test ([../verification/real-inference-smoke.md](../verification/real-inference-smoke.md)),
 look at the renders, and attribute any poor result to its cause *before* considering another model:
 

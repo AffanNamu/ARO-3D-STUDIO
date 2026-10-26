@@ -1,0 +1,50 @@
+{
+  "silhouette_iou": 0.9063,
+  "aspect_error": 0.0042,
+  "best_azimuth_deg": 32.0,
+  "best_elevation_deg": 8.0,
+  "proportions": {
+    "ratios": {
+      "width_over_length": 0.759,
+      "height_over_length": 0.77
+    },
+    "class": "heavy_truck",
+    "bands_are_heuristic": true,
+    "bands": {
+      "width_over_length": [
+        0.25,
+        0.46
+      ],
+      "height_over_length": [
+        0.4,
+        0.66
+      ]
+    },
+    "inside": {
+      "width_over_length": false,
+      "height_over_length": false
+    },
+    "verdict": "implausible"
+  },
+  "mesh": {
+    "triangles": 23998,
+    "vertices": 17307,
+    "watertight": false,
+    "components": 659,
+    "has_uv": true,
+    "extents": [
+      0.759,
+      0.7698,
+      1.0001
+    ]
+  },
+  "meets_floor": false,
+  "notes": [
+    "orthographic silhouette vs a perspective photo: compare engines on the SAME image, not against 1.0",
+    "surface detail, colour and texture are not measured by this score"
+  ],
+  "model": "improved-prepared.glb",
+  "reference": "01-ARO African Roads Sunset Hauler.png",
+  "label": "tripoSR-truck-sunsethauler",
+  "category": "heavy_truck"
+}

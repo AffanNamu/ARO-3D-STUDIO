@@ -17,13 +17,13 @@ from tests.support import PlumbingEngine
 
 
 def make_client(tmp_path, engines=None, **kw):
-    s = Settings(
-        data_dir=tmp_path / "data",
-        verified_model_licenses="plumbing_test_double",
-        default_engine="plumbing_test_double",
-        job_timeout_s=60,
+    opts = {
+        "verified_model_licenses": "plumbing_test_double",
+        "default_engine": "plumbing_test_double",
+        "job_timeout_s": 60,
         **kw,
-    )
+    }
+    s = Settings(data_dir=tmp_path / "data", **opts)
     ctx = build_context(s, engines=engines if engines is not None else [PlumbingEngine()])
     ctx.jobs.backoff_base_s = 0.02
     return TestClient(create_app(ctx)), ctx

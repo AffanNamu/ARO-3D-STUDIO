@@ -1,5 +1,9 @@
 # Implementation report — general-purpose image-to-3D milestone
 
+> **2026-10-26:** the product direction was reassessed after real TripoSR output was measured against its reference images. This report
+> describes the TripoSR-based milestone only; the current plan, engine decision and roadmap are in
+> [architecture/product-reassessment.md](architecture/product-reassessment.md).
+
 Code verified at `b1b6a8a` — **CI run 44: all 7 jobs green**; the report-only commit `10c1c3f` — **CI run 45: green**
 (lint/format/types/security, Python 3.10 / 3.11 / 3.12 tests, browser e2e, Docker build, reference-asset acceptance).
 The evidence-completion commit that follows is listed in the changelog below with its own CI result.

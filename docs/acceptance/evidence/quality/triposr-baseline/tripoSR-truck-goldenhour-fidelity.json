@@ -1,0 +1,50 @@
+{
+  "silhouette_iou": 0.9162,
+  "aspect_error": 0.0209,
+  "best_azimuth_deg": 62.0,
+  "best_elevation_deg": 1.0,
+  "proportions": {
+    "ratios": {
+      "width_over_length": 0.85,
+      "height_over_length": 0.856
+    },
+    "class": "heavy_truck",
+    "bands_are_heuristic": true,
+    "bands": {
+      "width_over_length": [
+        0.25,
+        0.46
+      ],
+      "height_over_length": [
+        0.4,
+        0.66
+      ]
+    },
+    "inside": {
+      "width_over_length": false,
+      "height_over_length": false
+    },
+    "verdict": "implausible"
+  },
+  "mesh": {
+    "triangles": 23992,
+    "vertices": 19696,
+    "watertight": false,
+    "components": 1055,
+    "has_uv": true,
+    "extents": [
+      0.8488,
+      0.8542,
+      0.9981
+    ]
+  },
+  "meets_floor": false,
+  "notes": [
+    "orthographic silhouette vs a perspective photo: compare engines on the SAME image, not against 1.0",
+    "surface detail, colour and texture are not measured by this score"
+  ],
+  "model": "01-prepared.glb",
+  "reference": "01-ARO 480 Truck at Golden Hour.png",
+  "label": "tripoSR-truck-goldenhour",
+  "category": "heavy_truck"
+}

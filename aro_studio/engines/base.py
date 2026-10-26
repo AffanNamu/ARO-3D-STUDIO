@@ -68,6 +68,9 @@ class GenerationRequest:
     workdir: Path
     cancel: CancellationToken | None = None
     progress: Callable[[float, str], None] | None = None
+    cutout: Image.Image | None = (
+        None  # the subject as RGBA (Studio matting): engines that do their own conditioning start from this
+    )
 
 
 @dataclass

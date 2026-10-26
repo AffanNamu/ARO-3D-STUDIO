@@ -18,8 +18,8 @@ jobs:
       - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
       - run: ruff check .
       - run: ruff format --check .
-      - run: mypy aro_studio app.py
-      - run: bandit -q -r aro_studio -x aro_studio/ui -ll
+      - run: mypy aro_studio aro_worker app.py
+      - run: bandit -q -r aro_studio aro_worker -x aro_studio/ui -ll
       - run: pip-audit -r requirements.txt
       - run: python scripts/audit_licenses.py --check
 

@@ -1,0 +1,50 @@
+{
+  "silhouette_iou": 0.9405,
+  "aspect_error": 0.0234,
+  "best_azimuth_deg": 70.0,
+  "best_elevation_deg": 8.0,
+  "proportions": {
+    "ratios": {
+      "width_over_length": 0.643,
+      "height_over_length": 0.5
+    },
+    "class": "car",
+    "bands_are_heuristic": true,
+    "bands": {
+      "width_over_length": [
+        0.34,
+        0.5
+      ],
+      "height_over_length": [
+        0.27,
+        0.45
+      ]
+    },
+    "inside": {
+      "width_over_length": false,
+      "height_over_length": false
+    },
+    "verdict": "implausible"
+  },
+  "mesh": {
+    "triangles": 23992,
+    "vertices": 16163,
+    "watertight": false,
+    "components": 415,
+    "has_uv": true,
+    "extents": [
+      0.6425,
+      0.5001,
+      0.9994
+    ]
+  },
+  "meets_floor": false,
+  "notes": [
+    "orthographic silhouette vs a perspective photo: compare engines on the SAME image, not against 1.0",
+    "surface detail, colour and texture are not measured by this score"
+  ],
+  "model": "improved-prepared.glb",
+  "reference": "01-Premium Blue SUV Studio Render.png",
+  "label": "tripoSR-suv",
+  "category": "suv"
+}

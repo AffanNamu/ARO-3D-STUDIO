@@ -6,17 +6,22 @@ import { batchPanel } from './batch.js';
 import { convertPanel } from './convert.js';
 
 let timer;
+let chosenEngine = null; // the engine picked in this browser session (module state survives re-mounting the view)
 const PRESET_HELP = { LOW_RESOURCE: 'Smaller marching-cubes grid and chunk size: lower VRAM/RAM, lower detail.', BALANCED: 'TripoSR defaults (256³ grid): the only configuration with a published VRAM figure.', HIGH_QUALITY: 'Finer 320³ grid: more detail and more VRAM/time. Not benchmarked here.' };
 
 export async function mount(root, [assetId]) {
   const [projects, engines, categories, system] = await Promise.all([api.get('/api/projects'), api.get('/api/engines'), categoryOptions(), api.get('/api/system')]);
-  const eng = engines.items.find((e) => e.runnable) || engines.items[0];
+  const eng = engines.items.find((e) => e.info.id === chosenEngine) || engines.items.find((e) => e.runnable) || engines.items[0];
+  const presetNames = Object.keys(eng?.presets || { BALANCED: 1 });
+  const defaultPreset = ['BALANCED', 'STANDARD'].find((p) => presetNames.includes(p)) || presetNames[0];
+  const engineSel = select(engines.items.map((e) => [e.info.id, `${e.info.name}${e.runnable ? '' : ' — not available'}`]), eng?.info.id, { 'aria-label': 'Engine' });
   const st = { project: null, asset: null, sha: null };
   const projSel = select([['', '— choose project —'], ...projects.items.filter((p) => p.status === 'active').map((p) => [p.project_id, p.name])], '', { 'aria-label': 'Project' });
   const assetSel = select([['', '— choose asset —']], '', { 'aria-label': 'Asset' });
   const srcBox = h('div'); const preview = h('div'); const assetInfo = h('div', { class: 'hint' });
-  const presetSel = select(Object.keys(eng?.presets || { BALANCED: 1 }), 'BALANCED', { 'aria-label': 'Preset' });
-  const presetHelp = h('div', { class: 'hint' }, PRESET_HELP.BALANCED);
+  const isTriposr = eng?.info.id === 'triposr';
+  const presetSel = select(presetNames, defaultPreset, { 'aria-label': 'Preset' });
+  const presetHelp = h('div', { class: 'hint' }, isTriposr ? PRESET_HELP[defaultPreset] || '' : eng?.info.description || '');
   const bg = select([['auto', 'Automatic (recommended)'], ['none', 'Keep original background'], ['border_color_matte', 'Plain-background matte (classical)'], ['rembg', 'Neural matting (rembg, if installed)']], 'auto', { 'aria-label': 'Background removal' });
   const fg = h('input', { type: 'range', min: 0.5, max: 1, step: 0.01, value: 0.85, 'aria-label': 'Foreground ratio' }); const fgv = h('span', { class: 'mono' }, '0.85');
   const mc = h('input', { type: 'number', min: 32, max: 512, placeholder: 'preset default', 'aria-label': 'Marching cubes resolution' }); const chunk = h('input', { type: 'number', min: 0, placeholder: 'preset default', 'aria-label': 'Chunk size' });
@@ -46,11 +51,12 @@ export async function mount(root, [assetId]) {
   };
   projSel.onchange = () => { st.project = projSel.value || null; st.asset = null; st.sha = null; batchUi?.refresh(); loadAssets(); drawPreview(); };
   assetSel.onchange = () => { st.asset = assetSel.value || null; update(); };
-  presetSel.onchange = () => { presetHelp.textContent = PRESET_HELP[presetSel.value] || ''; };
+  presetSel.onchange = () => { if (isTriposr) presetHelp.textContent = PRESET_HELP[presetSel.value] || ''; };
+  engineSel.onchange = () => { chosenEngine = engineSel.value; unmount(); root.replaceChildren(); mount(root, [assetId]); };
   bg.onchange = drawPreview; fg.oninput = () => { fgv.textContent = fg.value; }; fg.onchange = drawPreview;
   go.onclick = async () => {
     try {
-      const settings = {}; if (mc.value) settings.mc_resolution = Number(mc.value); if (chunk.value) settings.chunk_size = Number(chunk.value);
+      const settings = {}; if (isTriposr && mc.value) settings.mc_resolution = Number(mc.value); if (isTriposr && chunk.value) settings.chunk_size = Number(chunk.value);
       const job = await api.post(`/api/assets/${st.asset}/generate`, { image_sha256: st.sha, engine_id: eng.info.id, preset: presetSel.value, settings, preprocess: { remove_background: bg.value, foreground_ratio: Number(fg.value) }, use_cache: cache.checked, force: force.checked, priority: Number(prio.value) });
       trackJob(job, { label: 'Generation', onDone: (j) => { drawHist(); if (j.state === 'COMPLETED') toast('Raw asset saved', 'Open it in the 3D Studio to inspect and process.', 'ok'); } }); drawHist();
     } catch (e) { errorToast(e); }
@@ -68,16 +74,16 @@ export async function mount(root, [assetId]) {
     }))) : empty('No generation jobs yet.'));
   };
 
-  convertUi = convertPanel({ categories, getEngine: () => eng, getLimits: () => system.limits, presets: eng?.presets });
+  convertUi = convertPanel({ categories, getEngine: () => eng, getLimits: () => system.limits, presets: eng?.presets, defaultPreset });
   batchUi = batchPanel({
     categories, getProject: () => st.project, getEngine: () => eng, getLimits: () => system.limits,
     getSettings: () => {
-      const settings = {}; if (mc.value) settings.mc_resolution = Number(mc.value); if (chunk.value) settings.chunk_size = Number(chunk.value);
+      const settings = {}; if (isTriposr && mc.value) settings.mc_resolution = Number(mc.value); if (isTriposr && chunk.value) settings.chunk_size = Number(chunk.value);
       return { settings, preprocess: { remove_background: bg.value, foreground_ratio: Number(fg.value) }, preset: presetSel.value, engineId: eng.info.id, useCache: cache.checked, force: force.checked, priority: Number(prio.value) };
     },
     onJobsChanged: () => drawHist().catch(() => {}),
   });
-  root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Generation'), h('p', { class: 'sub' }, 'Single-image 3D reconstruction as a queued job. The model runs for real or the job fails — there is never placeholder geometry.'))));
+  root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Generation'), h('p', { class: 'sub' }, 'Single-image 3D reconstruction as a queued job. The model runs for real or the job fails — there is never placeholder geometry.')), h('div', { class: 'spacer' }), field('Engine', engineSel)));
   if (eng && !eng.runnable) root.append(notice('warn', h('b', null, `${eng.info.name} cannot run in this environment, so generation is disabled.`), h('ul', null, ...eng.availability.reasons.map((r) => h('li', null, r)), !eng.license_verified_by_deployer ? h('li', null, `Weights licence not yet verified by the deployer (ARO_VERIFIED_MODEL_LICENSES=${eng.info.id}).`) : null), eng.availability.activation.length ? h('div', { class: 'hint' }, 'Activate: ' + eng.availability.activation.join(' · ')) : null,
     h('div', { style: { marginTop: '6px' } }, 'You can still import a mesh generated elsewhere or use the TITAN 480 reference in the ', h('a', { href: '#/studio' }, '3D Studio'), '.')));
   root.append(convertUi.el);
@@ -88,7 +94,7 @@ export async function mount(root, [assetId]) {
     h('div', { class: 'card' }, h('h3', null, '3 · Engine & settings'), kv({ Engine: eng ? `${eng.info.name} (${eng.info.license.spdx})` : '—', Device: eng?.device || '—' }),
       h('div', { style: { marginTop: '10px' } }), field('Preset', presetSel, null), presetHelp,
       h('div', { class: 'row2', style: { marginTop: '10px' } }, field('Background removal', bg), field('Foreground ratio', h('div', { class: 'btn-row' }, fg, fgv))),
-      h('details', null, h('summary', { class: 'hint' }, 'Advanced overrides'), h('div', { class: 'row2', style: { marginTop: '8px' } }, field('Marching-cubes resolution', mc), field('Chunk size (0 = none)', chunk))),
+      isTriposr ? h('details', null, h('summary', { class: 'hint' }, 'Advanced overrides (TripoSR)'), h('div', { class: 'row2', style: { marginTop: '8px' } }, field('Marching-cubes resolution', mc), field('Chunk size (0 = none)', chunk))) : null,
       h('label', { class: 'check', style: { marginTop: '10px' } }, cache, 'Reuse an identical previous generation (saves GPU time)'), h('label', { class: 'check' }, force, 'Force a fresh run'), field('Priority', prio), go,
       h('p', { class: 'hint', style: { marginTop: '8px' } }, 'The cache key is input-image hash + model version + all settings. Estimated needs: ', eng ? `${eng.estimate_default.vram_mb ?? '–'} MB VRAM (${eng.estimate_default.measured ? 'published' : 'estimate'})` : '—'))),
     h('div', { class: 'card', style: { marginTop: '14px' } }, h('h3', null, 'Generation jobs'), histBox));
