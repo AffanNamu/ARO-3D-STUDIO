@@ -192,3 +192,14 @@ def test_omitted_boolean_form_fields_keep_their_documented_defaults(api):
     q = post(c, length_m="1", use_cache="false", lod="0", force="true").json()["job"]["params"]
     assert q["use_cache"] is False and q["lod"] is False and q["force"] is True
     assert post(c, length_m="1", lod="maybe").status_code == 400
+
+
+def test_an_unsupplied_size_blocks_production_ready_and_a_supplied_size_clears_that_rule(api):
+    """Real runs labelled a placeholder-scaled chair PRODUCTION_READY: the pipeline now tells the validator the size is assumed."""
+    c, _ = api
+    assumed = wait(c, post(c, category="furniture").json()["job"]["job_id"], timeout=180)["result"]["validation"]
+    u008 = next(x for x in assumed["checks"] if x["id"] == "U008")
+    assert u008["status"] == "failed" and assumed["status"] == "NEEDS_REVIEW"
+    given = wait(c, post(c, category="furniture", length_m="0.9", name="Given").json()["job"]["job_id"], timeout=180)
+    checks = {x["id"]: x["status"] for x in given["result"]["validation"]["checks"]}
+    assert checks["U008"] == "passed"

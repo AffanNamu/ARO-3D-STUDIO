@@ -22,7 +22,7 @@ Zero-budget by design (₦0): open-source stack, no paid APIs, no paid hosting, 
 |---|---|
 | Studio platform (projects, library, versioning, jobs, security, observability, UI + 3D viewer) | ✅ implemented and tested |
 | Geometry inspection/repair, materials, textures, vehicle setup, rig, collision, LOD | ✅ implemented and tested |
-| Validation / production-readiness engine (46 rules; scores never override critical failures) | ✅ implemented and tested |
+| Validation / production-readiness engine (50 rules; scores never override critical failures) | ✅ implemented and tested |
 | Export: GLB, glTF, OBJ, Unity package + independent verification (Khronos glTF-Validator: 0 errors/0 warnings on the TITAN 480 GLB) | ✅ implemented and tested |
 | **TripoSR licence & supply chain** | ✅ MIT evidence recorded ([model-licenses](docs/models/model-licenses.md)); weights revision + SHA-256 + sizes **pinned in the lock** (recorded from a Colab run on 2026-10-11 by `scripts/pin_triposr_weights.py`; not re-fetched by the author of this note); loader verifies SHA-256 before deserialising, uses `weights_only`, class allow-list. `ModelLock.missing()` is empty, so the licence gate opens from the lock. A complete lock proves artefact identity — **not** that inference works. |
 | **One-click “Convert to 3D”** (Generation page, `POST /api/convert`) | ✅ implemented: one image → reconstruct → prepare → export a verified GLB as a single job with per-step status; unit- and browser-tested **with a labelled test-double engine only**. It fails fast, creating nothing, if the real engine cannot run. Not yet run with the real model. |

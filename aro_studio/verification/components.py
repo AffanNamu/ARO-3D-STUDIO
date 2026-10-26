@@ -70,6 +70,17 @@ def compute(root: Path, procedural: dict | None = None) -> list[dict]:
     smoke = read_smoke_evidence(ev / "ai" / "smoke" / "smoke-evidence.json")
     if smoke.status != BLOCKED:  # the Studio-level smoke test is the stronger evidence when it exists
         ai_real = smoke
+        if smoke.status == PASS and ai_prod.status == BLOCKED:
+            # "TripoSR has never been run" would be false here. What is true: real assets exist, but none is a validated production asset.
+            n = len(smoke.facts.get("items", []))
+            reviewed = smoke.facts.get("human_reviewed_items", 0)
+            ai_prod = Evidence(
+                PARTIAL,
+                f"the real engine produced and prepared {n} assets (component 3), but none is a validated production asset: no real-world size "
+                f"has been confirmed (single image = 1 m placeholder), vehicle metadata is artist work, and {reviewed}/{n} have a human visual review",
+                smoke.source,
+                {"items": n, "human_reviewed_items": reviewed},
+            )
     unity = read_unity_evidence(ev / "unity" / "unity-verification.json")
     docker = read_docker_evidence(ev / "docker" / "docker-verification.json")
 

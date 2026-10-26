@@ -10,12 +10,12 @@ The evidence-completion commit that follows is listed in the changelog below wit
 |---|---|
 | Baseline CI green (format failure fixed) | **PASS** (`de73a8d`, runs 38–39; run 44 on the final code) |
 | Batch upload UI works, no browser errors | **PASS** — browser test with a labelled test-double engine; **now runs in CI** |
-| Real image-to-3D proven through the Studio with the real engine | **PARTIAL.** Real TripoSR inference ran through the Studio on a Colab T4 for single images (truck Sunset Hauler twice, same raw hash; a second truck, Golden Hour, at `9540e801` with the per-node audit; SUV once): [`partial-runs/`](acceptance/evidence/ai/partial-runs/README.md). Each run is PARTIAL by the coverage rule. The complete ≥ 3-image run is **outstanding** |
-| Real raw outputs from ≥ 3 non-procedural images | **NOT YET** (truck + SUV exist, from separate runs; no non-vehicle, no single run with ≥ 3) |
+| Real image-to-3D proven through the Studio with the real engine | **PASS (inference).** One complete four-image run on a Colab T4 at `92570513` (owner truck + chair + teapot + robot, all real TripoSR, no cache hit, per-node audit and Khronos clean): [`smoke/`](acceptance/evidence/ai/smoke/README.md); the evidence reader returns PASS. **Visual quality is PENDING human review; nothing is production-ready** |
+| Real raw outputs from ≥ 3 non-procedural images | **PRODUCED** (4 distinct raw meshes; hashes verified against the evidence) |
 | Generic preparation preserves raw, reports steps, versions outputs | **PASS on a synthetic mesh** (not AI output) |
 | Verified GLB export reopened and checked | **PASS** (checksum + re-open + Khronos in CI) |
 | Limitations documented | **PASS** ([audit](architecture/image-to-3d-audit.md), [evaluation plan](models/model-evaluation.md)) |
-| Production-ready | **NOT CLAIMED** |
+| Production-ready | **NOT CLAIMED.** The truck is NEEDS_REVIEW (75.3 %); every size is a 1 m placeholder; no human review; Unity import never run |
 
 ## What changed (this milestone)
 
@@ -53,11 +53,11 @@ The evidence-completion commit that follows is listed in the changelog below wit
 | Batch: independent jobs/assets, per-image name+category, partial failure | ✅ (API) | ✅ (test-double engine, labelled in the UI) | ❌ not run | ❌ | verified for plumbing only |
 | TripoSR adapter, licence gate, weight SHA-256 verification, safe load, class allow-list | ✅ (stand-ins that record call order) | n/a | ✅ **executed on real weights** (T4, Colab, evidence in `partial-runs/`); a first run failed honestly on a `transformers` 5.x key mismatch (see below) | ✅ truck: prepared + exported | verified on the Colab stack named below; single-image runs |
 | Model lock (revision `5b521936…`, checksums) | ✅ | n/a | recorded from a Colab run (`587a0b6`); not re-fetched by the author | n/a | identity pin only |
-| Real inference through the Studio, ≥ 3 different images (one run) | harness + tests (`--double`, BLOCKED path) | n/a | ❌ **OUTSTANDING** (needs the 4-image notebook run: truck + chair + teapot + robot) | ❌ | **PARTIAL: only single-image runs so far** |
+| Real inference through the Studio, ≥ 3 different images (one run) | harness + tests (`--double`, BLOCKED path) | n/a | ✅ one run, four images, evidence PASS (`smoke/`) | ✅ prepared + exported + audited for all four | **verified**; visual review pending |
 | Automatic preparation: raw immutable, steps reported, texture failure honest | ✅ synthetic mesh | n/a | n/a | ✅ on the real truck mesh (7 steps PASS, raw unchanged); validation NEEDS_REVIEW | verified on one real output |
 | Verified GLB export reopened; **every LOD and the collision mesh audited** | ✅ (procedural + synthetic; `tests/test_glb_audit.py`) | n/a | n/a | ✅ truck: 5 nodes, all finite, LOD ladder 24k/12k/6k/2.4k, manifold, collider convex + closed + 252 ≤ 255 tris, Khronos 0 errors | verified on one real output |
 | Unity 6 import | script syntax-checked only | n/a | n/a | n/a | **never executed** |
-| Human visual review of real outputs | script + schema (refuses empty/unknown) | n/a | ❌ nothing to review yet | ❌ | pending |
+| Human visual review of real outputs | script + schema (refuses empty/unknown) | n/a | outputs exist | n/a | **pending a person** (`human_review` is still PENDING for all four) |
 
 ## Quality work on the real truck output (this iteration)
 
@@ -87,6 +87,13 @@ estimate (too stubby: 0.76 wide for 1.0 long after alignment). A higher marching
 add detail on the GPU; it has **not been run**. A stronger model or multi-view input is the real fix
 (see [model evaluation](models/model-evaluation.md)).
 
+### What the four-image run revealed
+The chair, teapot and robot were labelled `PRODUCTION_READY (99.6 %)` by the Studio's validator although their size was a 1 m placeholder
+(the chair came out 1.81 m tall): the only scale rule applies to vehicles. New rule **U008** (major): an assumed size makes the asset
+`NEEDS_REVIEW`. Re-preparing the real chair raw mesh now gives NEEDS_REVIEW 95.8 % with U008 as the single major failure. The committed
+JSON is left as recorded. Component 4 of the verification report ("validated production asset from real AI output") is PARTIAL, not
+"never run".
+
 ### Bugs the real runs exposed (all fixed, each with a test)
 `transformers` 5.x renamed the ViT parameters → "Missing key(s) in state_dict" (availability check now fails fast; notebook installs
 4.46.3); rembg's default model silently became BRIA RMBG-2.0 (≈ 1 GB, believed non-commercial) → explicit allow-list, `bria*` blocked;
@@ -97,8 +104,7 @@ turns an absent `bool = Form(True)` into `False` → cache and LOD were silently
 
 **Real inference has been executed (by the project owner, on a Colab T4) for single images; the complete ≥ 3-image run has not.**
 The agent environment has no GPU and cannot reach `huggingface.co`, `cdn-lfs`, GitHub git/codeload or PyTorch wheels (only PyPI,
-npm and `raw.githubusercontent.com`), so every inference here was run by the owner and returned as evidence zips; **this milestone
-is not complete until the 4-image run (truck + chair + teapot + robot) finishes and its evidence is committed under `smoke/`.**
+npm and `raw.githubusercontent.com`), so every inference here was run by the owner and returned as evidence zips; **the four-image run has now completed and its JSON is committed under `smoke/`; what remains is the human visual review, real sizes, the Unity 6 import and the artist-side vehicle data.**
 Colab stack of the successful runs: Python 3.13.15, torch 2.11.0+cu130, **transformers 4.46.3** (TripoSR pins 4.35.0, which has no
 Python 3.13 wheels), tokenizers 0.20.3, huggingface-hub 0.36.2, torchmcubes `a9ac95aa` (CUDA kernels), rembg 2.0.86 with `u2net`.
 

@@ -1,6 +1,6 @@
 # Validation and production readiness
 
-`validation/engine.py` runs **46 explicit rules** (each individually tested). A rule returns `passed / failed / warning / skipped / not_applicable`; a crashing rule becomes a *failed check*, never a crashed validation. Only evaluated rules count towards scores (a flat-colour asset has no "textures %", it is shown as n/a — not faked as 100 %).
+`validation/engine.py` runs **50 explicit rules** (each individually tested). A rule returns `passed / failed / warning / skipped / not_applicable`; a crashing rule becomes a *failed check*, never a crashed validation. Only evaluated rules count towards scores (a flat-colour asset has no "textures %", it is shown as n/a — not faked as 100 %).
 
 | Category (weight) | Rules |
 |---|---|
@@ -32,3 +32,10 @@ Category weights: geometry 20, materials 10, textures 10, LOD 15, collision 10, 
 ## Where results go
 
 `validation_results` (full JSON report), the Validation page, the Studio inspector, and the Unity package (`Metadata/validation_report.json`, README). Validation is per **version**; any change creates a new version that must be re-validated before it can be designated the production version.
+
+
+## U008 — real-world size confirmed (added after the first real four-image run)
+An AI reconstruction has no real size: the pipeline scales it to a 1 m PLACEHOLDER. The first four-image run labelled a chair that came out
+1.81 m tall `PRODUCTION_READY (99.6 %)` because nothing checked that the size was ever confirmed (the 2–25 m vehicle rule only catches vehicles).
+`ValidationConfig.size_confirmed` is `None` for authored assets (rule not applicable), `False` when the AI pipeline had to assume the size
+(rule **fails**, major, so the asset is `NEEDS_REVIEW`), `True` when a person supplied the length.

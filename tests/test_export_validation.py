@@ -439,3 +439,14 @@ def test_unity_expectations_match_the_exported_glb_and_ship_with_the_verifier(pk
         and exp["colliders"]
         and "boundsMin" in next(c for c in exp["colliders"] if c["kind"] in ("convex_hull", "vehicle_mesh"))
     )
+
+
+def test_an_assumed_size_can_never_be_production_ready(full):
+    """Real runs: a chair/teapot/robot scaled to a 1 m placeholder was labelled PRODUCTION_READY (99.6 %)."""
+    assumed = report(full, size_confirmed=False)
+    assert status(assumed, "U008") == "failed"
+    assert assumed["status"] == "NEEDS_REVIEW" and assumed["major_failures"] >= 1
+    assert any("U008" in r for r in assumed["blocking_reasons"])
+    assert status(report(full, size_confirmed=True), "U008") == "passed"
+    unset = report(full)  # authored assets make no claim either way
+    assert status(unset, "U008") == "not_applicable" and unset["status"] == "PRODUCTION_READY"

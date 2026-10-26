@@ -121,3 +121,15 @@ def test_smoke_evidence_rules(tmp_path):
     assert ev.read_smoke_evidence(_w(tmp_path, few)).status == ev.FAIL
     assert ev.read_smoke_evidence(_w(tmp_path, _smoke_doc(coverage_problems=["no vehicle image"]))).status == ev.FAIL
     assert ev.read_smoke_evidence(_w(tmp_path, _smoke_doc(status={"real_inference": "PARTIAL"}))).status == ev.PARTIAL
+
+
+def test_a_real_smoke_pass_does_not_make_the_validated_production_asset_component_pass(tmp_path):
+    """Real four-image run: the engine HAS run (component 3 PASS) but no asset is a validated production asset (component 4)."""
+    d = tmp_path / "docs" / "acceptance" / "evidence" / "ai" / "smoke"
+    d.mkdir(parents=True)
+    (d / "smoke-evidence.json").write_text(json.dumps(_smoke_doc()))
+    comps = {c["component"][0]: c for c in compute(tmp_path)}
+    assert comps["3"]["status"] == "PASS"
+    assert comps["4"]["status"] == "PARTIAL" and "never been run" not in comps["4"]["detail"]
+    assert "none is a validated production asset" in comps["4"]["detail"]
+    assert not production_ready(list(comps.values()))

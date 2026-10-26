@@ -262,6 +262,7 @@ def run_ai_pipeline(
                 cur,
                 ValidationConfig(
                     check_intersections=opts.validation_intersections,
+                    size_confirmed=opts.length_supplied,
                     **({"tri_budget_lod0": opts.tri_budget} if opts.tri_budget else {}),
                 ),
             )

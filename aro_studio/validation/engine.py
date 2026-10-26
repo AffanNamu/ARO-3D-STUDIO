@@ -48,6 +48,9 @@ class ValidationConfig:
     required_lods: int = 3  # LOD levels above 0 that must exist for vehicles
     min_lod_reduction: float = 0.10  # each LOD must have >=10% fewer triangles than the previous
     ready_threshold: float = READY_THRESHOLD
+    # None = nobody asserted anything (an authored asset); False = the size is an ASSUMED placeholder (e.g. an AI reconstruction whose real
+    # size nobody supplied); True = a person confirmed the real-world size.
+    size_confirmed: bool | None = None
 
 
 @dataclass
@@ -713,6 +716,18 @@ def u001(c: Ctx):
         (P, f"largest extent {longest:.2f} m")
         if 0.01 <= longest <= 500
         else (F, f"largest extent {longest:.4f} m is implausible")
+    )
+
+
+@rule("U008", "unity", Severity.MAJOR, "Real-world size is confirmed")
+def u008(c: Ctx):
+    if c.config.size_confirmed is None:
+        return NA, "no claim about the size was made for this asset"
+    if c.config.size_confirmed:
+        return P, "the real-world size was supplied by a person"
+    return F, (
+        "the size is an ASSUMED placeholder (a single image cannot tell the real size): a plausible-looking scale is not a verified scale, "
+        "so this asset cannot be PRODUCTION_READY until the real dimensions are entered"
     )
 
 
