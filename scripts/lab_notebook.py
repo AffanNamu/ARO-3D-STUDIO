@@ -46,6 +46,9 @@ def show_results(out: Path) -> None:
     for sheet in sorted(out.glob("*/sheet.png")):
         print("=====", sheet.parent.name)
         display(IPImage(filename=str(sheet), width=1100))
+    for img in sorted(out.glob("*/blender/blender-3q.png")):
+        print("===== Blender render (independent reader, real texture and lighting):", img.parent.parent.name)
+        display(IPImage(filename=str(img), width=520))
     for f in sorted(out.glob("*/prepared.glb")):
         print(f.parent.name, "prepared.glb", round(f.stat().st_size / 1e6, 2), "MB")
 

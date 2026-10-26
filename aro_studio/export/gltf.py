@@ -191,7 +191,12 @@ class GltfBuilder:
         }
         has_tex = bool(material and material.textures.get("base_color"))
         if s.uv is not None:
-            attrs["TEXCOORD_0"] = self.buf.accessor(s.uv, g.FLOAT, g.VEC2, g.ARRAY_BUFFER)
+            # The Studio's UVs have V pointing UP (v = 0 is the bottom of the image, like OBJ and the baker's `(1 - v) * size` row). glTF's
+            # origin is the TOP-left of the image (v grows downward), so V is flipped here. Without this every exported texture is
+            # mirrored vertically in any glTF reader (found by re-importing the export into Blender).
+            gltf_uv = s.uv.copy()
+            gltf_uv[:, 1] = 1.0 - gltf_uv[:, 1]
+            attrs["TEXCOORD_0"] = self.buf.accessor(gltf_uv, g.FLOAT, g.VEC2, g.ARRAY_BUFFER)
         if s.colors is not None and not has_tex:
             attrs["COLOR_0"] = self.buf.accessor(s.colors, g.UNSIGNED_BYTE, g.VEC4, g.ARRAY_BUFFER, normalized=True)
         idx = s.indices.reshape(-1)

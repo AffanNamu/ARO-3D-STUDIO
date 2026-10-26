@@ -279,11 +279,23 @@ function valBody() {
 }
 
 function expBody() {
-  const c = h('div'); const fm = { glb: h('input', { type: 'checkbox', checked: true }), gltf: h('input', { type: 'checkbox' }), obj: h('input', { type: 'checkbox' }), unity: h('input', { type: 'checkbox' }) };
+  const c = h('div');
+  const fm = { glb: h('input', { type: 'checkbox', checked: true }), gltf: h('input', { type: 'checkbox' }), obj: h('input', { type: 'checkbox' }), unity: h('input', { type: 'checkbox' }), fbx: h('input', { type: 'checkbox' }), usd: h('input', { type: 'checkbox' }), blend: h('input', { type: 'checkbox' }) };
+  const target = select([['unity', 'Unity (-Z forward, Y up, FBX scale: all)'], ['unreal', 'Unreal Engine (-Y forward, Z up, FBX units scale)'], ['generic', 'Generic']], 'unity', { 'aria-label': 'FBX target application' });
+  const rows = [['glb', 'GLB (single file, all LODs + collision + rig)'], ['gltf', 'glTF (separate .gltf/.bin/textures)'], ['obj', 'OBJ + MTL (LOD0)'], ['unity', 'Unity 6 package (Models, Materials, Textures, LOD, Collision, Metadata, README)'], ['fbx', 'FBX (Blender backend: Unity / Unreal conventions)'], ['usd', 'USD (Blender backend)'], ['blend', 'Blender .blend (Blender backend)']];
+  const labels = {};
   c.append(h('div', { class: 'btn-row', style: { marginBottom: '8px' } }, h('button', { class: 'btn', onclick: () => op('finalize', {}, 'Finalise version') }, 'Save as FINAL version')), h('h3', null, 'Export current version'),
-    ...[['glb', 'GLB (single file, all LODs + collision + rig)'], ['gltf', 'glTF (separate .gltf/.bin/textures)'], ['obj', 'OBJ + MTL (LOD0)'], ['unity', 'Unity 6 package (Models, Materials, Textures, LOD, Collision, Metadata, README)']].map(([k, l]) => h('label', { class: 'check' }, fm[k], l)),
-    h('button', { class: 'btn primary', onclick: async () => { const formats = Object.keys(fm).filter((k) => fm[k].checked); if (!formats.length) return; try { const j = await api.post(`/api/versions/${S.cur.version_id}/export`, { formats }); await trackJob(j, { label: 'Export' }); reloadStudio(S.cur.version_id); } catch (e) { errorToast(e); } } }, icon('download'), 'Export'),
-    h('p', { class: 'hint', style: { marginTop: '8px' } }, 'Every export is re-opened and verified after writing. The Unity package has NOT been imported into Unity by the Studio — see its README for import steps (glTFast) and the status note.'));
+    ...rows.map(([k, l]) => { const lab = h('label', { class: 'check' }, fm[k], l); labels[k] = lab; return lab; }),
+    field('FBX target', target),
+    h('button', { class: 'btn primary', onclick: async () => { const formats = Object.keys(fm).filter((k) => fm[k].checked && !fm[k].disabled); if (!formats.length) return; try { const j = await api.post(`/api/versions/${S.cur.version_id}/export`, { formats, target: target.value }); await trackJob(j, { label: 'Export' }); reloadStudio(S.cur.version_id); } catch (e) { errorToast(e); } } }, icon('download'), 'Export'),
+    h('p', { class: 'hint', style: { marginTop: '8px' } }, 'Every export is re-opened and verified after writing (FBX, USD and .blend are re-imported by Blender). The Unity package has NOT been imported into Unity by the Studio — see its README for import steps (glTFast) and the status note. Opening a file in Unreal Engine or Unity is never done by the Studio.'));
+  api.get('/api/export-formats').then(({ formats }) => {
+    for (const [k, st] of Object.entries(formats)) {
+      if (!fm[k] || st.available) continue;
+      fm[k].disabled = true; fm[k].checked = false;
+      labels[k]?.append(h('span', { class: 'hint', style: { marginLeft: '6px' }, title: (st.how || []).join(' ') }, ` — not available: ${(st.reasons || [])[0] || st.needs}`));
+    }
+  }).catch(() => {});
   return c;
 }
 

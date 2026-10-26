@@ -88,5 +88,6 @@ class AutoProcessBody(BaseModel):
 
 
 class ExportBody(BaseModel):
-    formats: list[str] = Field(default_factory=lambda: ["glb"], min_length=1, max_length=4)
+    formats: list[str] = Field(default_factory=lambda: ["glb"], min_length=1, max_length=8)
+    target: str = "unity"  # FBX conventions: unity | unreal | generic (only used by the Blender formats)
     priority: int = Field(5, ge=1, le=9)

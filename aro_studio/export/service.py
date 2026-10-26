@@ -12,6 +12,7 @@ from aro_studio.core.errors import InvalidInputError, NotFoundError
 from aro_studio.core.hashing import sha256_file
 from aro_studio.core.ids import new_id, require_id
 from aro_studio.db.database import Database, dumps, loads
+from aro_studio.export.blender import BLENDER_FORMATS, TARGETS, BlenderBackend
 from aro_studio.export.gltf import ExportOptions, export_glb, export_gltf
 from aro_studio.export.obj import export_obj
 from aro_studio.export.unity import build_unity_package
@@ -20,12 +21,32 @@ from aro_studio.security.audit import AuditLog
 from aro_studio.security.filenames import slugify
 from aro_studio.storage.layout import StorageLayout, remove_tree
 
-FORMATS = ("glb", "gltf", "obj", "unity")
+FORMATS = ("glb", "gltf", "obj", "unity", *BLENDER_FORMATS)
 
 
 class ExportService:
-    def __init__(self, db: Database, layout: StorageLayout, assets: AssetService, audit: AuditLog | None = None):
+    def __init__(
+        self,
+        db: Database,
+        layout: StorageLayout,
+        assets: AssetService,
+        audit: AuditLog | None = None,
+        blender: BlenderBackend | None = None,
+    ):
         self.db, self.layout, self.assets, self.audit = db, layout, assets, audit
+        self.blender = blender or BlenderBackend.from_env()
+
+    def format_status(self) -> dict[str, dict]:
+        """Every export format and whether it can be written here (the optional ones say exactly why not and how to enable them)."""
+        av = self.blender.availability()
+        native: dict[str, dict] = {
+            f: {"available": True, "reasons": [], "how": [], "needs": None} for f in ("glb", "gltf", "obj", "unity")
+        }
+        optional: dict[str, dict] = {
+            f: {"available": av["ok"], "reasons": av["reasons"], "how": av["how"], "needs": "Blender backend"}
+            for f in BLENDER_FORMATS
+        }
+        return {**native, **optional}
 
     def latest_validation(self, version_id: str) -> dict | None:
         r = self.db.query_one(
@@ -42,7 +63,41 @@ class ExportService:
             "categories": rep.get("categories"),
         }
 
-    def export(self, version_id: str, fmt: str) -> dict:
+    def _export_with_blender(self, scene, v: dict, slug: str, out: Path, fmt: str, target: str):
+        """GLB from the Studio's own writer, converted by Blender, then RE-IMPORTED by Blender and compared with the source."""
+        if target not in TARGETS:
+            raise InvalidInputError(f"Unknown export target '{target}'.", recommended_action=f"Use one of {TARGETS}.")
+        data, rep = export_glb(scene, ExportOptions(root_name=slug))
+        src = out / f"{slug}-source.glb"
+        src.write_bytes(data)
+        ddir = out / fmt
+        ddir.mkdir(parents=True, exist_ok=True)
+        dst = ddir / f"{slug}.{fmt}"
+        res = self.blender.convert(src, dst, fmt, target)
+        src.unlink(missing_ok=True)
+        files = [f for f in sorted(ddir.rglob("*")) if f.is_file()]
+        main = out / f"{slug}-{v['label']}-{fmt}.zip"
+        with zipfile.ZipFile(main, "w", zipfile.ZIP_DEFLATED) as zf:
+            for f in files:
+                zf.write(f, f.relative_to(ddir).as_posix())
+        verification = {
+            "ok": bool(res["ok"]),
+            "checks": res["checks"],
+            "verified_by": "Blender " + str(res["source"]["blender"]),
+        }
+        report = {
+            **rep,
+            "target": target,
+            "blender": {k: res[k] for k in ("format", "target", "output_bytes", "skipped_options")},
+            "source_in_blender": {
+                k: res["source"][k] for k in ("triangles_total", "triangles_lod0", "extents_studio_m", "materials")
+            },
+            "verification": verification,
+            "not_verified": "Opening the file in the target application (Unreal Engine, Unity, ...) has not been done by the Studio.",
+        }
+        return main, report, verification["ok"]
+
+    def export(self, version_id: str, fmt: str, target: str = "unity") -> dict:
         if fmt not in FORMATS:
             raise InvalidInputError(f"Unknown export format '{fmt}'.", recommended_action=f"Use one of {FORMATS}.")
         v = self.assets.get_version(version_id)
@@ -142,6 +197,8 @@ class ExportService:
                     for f in sorted(odir.rglob("*")):
                         if f.is_file():
                             zf.write(f, f.relative_to(odir).as_posix())
+            elif fmt in BLENDER_FORMATS:
+                main, report, ok = self._export_with_blender(scene, v, slug, out, fmt, target)
             else:  # unity
                 main, rep = build_unity_package(
                     scene,

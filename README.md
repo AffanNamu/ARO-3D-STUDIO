@@ -24,7 +24,7 @@ TripoSR alone cannot deliver the target (measured: all three baselines fail the 
 swappable engines on a **GPU worker** ([docs/architecture/gpu-worker.md](docs/architecture/gpu-worker.md)): TRELLIS.2 first, TripoSG
 second, TripoSR kept as the free local draft engine. **No TRELLIS.2 / TripoSG output exists yet**: they need a 24 GB-class GPU session,
 which is outside the zero-budget envelope below unless you already have one. Every result is measured against its reference image
-(`scripts/score_model.py`, `scripts/engine_bakeoff.py`).
+(`scripts/score_model.py`, `scripts/engine_bakeoff.py`). The wider product vision and work packages are in [docs/architecture/platform-roadmap.md](docs/architecture/platform-roadmap.md); the next experiment is the Colab engine lab ([notebooks/aro_engine_lab_colab.ipynb](notebooks/aro_engine_lab_colab.ipynb): TripoSG on a free T4, compared with the TripoSR results already measured); the conditional fine-tuning plan is [docs/architecture/fine-tuning-plan.md](docs/architecture/fine-tuning-plan.md).
 
 ## Current status (read this first)
 

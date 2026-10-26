@@ -26,13 +26,13 @@
       "unity_package": {
         "status": "COMPLETED",
         "file": "improved-unity-package.zip",
-        "bytes": 7547750,
-        "sha256": "89384df0f8e8187a2170de2785d4014b1664987474c50b5644800875cbb7e674",
+        "bytes": 7548537,
+        "sha256": "6cc99336c55809113a42333e83882e9bb3d91873c5989d0d10e7f740d9ae0062",
         "note": "integrity-verified by the Studio; NOT imported into Unity (no editor here): see docs/verification/unity-verification-runbook.md"
       },
       "glb": "improved-prepared.glb",
       "glb_bytes": 1976908,
-      "glb_sha256": "0f1fd355ad957cd152c2a78fc59ed077231c26da7543ba49df1f212a4d7d8a6c",
+      "glb_sha256": "89985541b74cb5231ffecca6f448014e213739c96b07b3125e451c11a8c63adf",
       "views": [
         "improved-front.png",
         "improved-rear.png",
@@ -194,37 +194,37 @@
         {
           "step": "geometry: orient + scale + pivot + cleanup + fill holes + smooth",
           "status": "PASS",
-          "seconds": 11.55
+          "seconds": 18.49
         },
         {
           "step": "geometry: decimate for texturing",
           "status": "PASS",
-          "seconds": 6.64
+          "seconds": 13.32
         },
         {
           "step": "textures: unwrap + bake colour from the cleaned full-resolution mesh (which carries the raw vertex colours)",
           "status": "PASS",
-          "seconds": 8.17
+          "seconds": 14.06
         },
         {
           "step": "collision",
           "status": "PASS",
-          "seconds": 0.08
+          "seconds": 0.17
         },
         {
           "step": "LOD generation",
           "status": "PASS",
-          "seconds": 0.3
+          "seconds": 0.56
         },
         {
           "step": "validation",
           "status": "PASS",
-          "seconds": 0.33
+          "seconds": 0.59
         },
         {
           "step": "finalize",
           "status": "PASS",
-          "seconds": 0.07
+          "seconds": 0.11
         }
       ],
       "final_extents_m": [

@@ -115,6 +115,8 @@ def run_one(
     eng = RemoteEngine(worker_url, token, engine_id, timeout_s=float(timeout_s))
     ctx = build_context(s, engines=[eng])
     row: dict[str, Any] = {"engine": engine_id, "image": image.name, "category": category, "preset": preset}
+    blender_av = ctx.exports.blender.availability()
+    blender_ok = bool(blender_av["ok"])
     try:
         client = TestClient(create_app(ctx))
         t0 = time.time()
@@ -123,7 +125,8 @@ def run_one(
             "preset": preset,
             "engine_id": engine_id,
             "name": image.stem,
-            "formats": "glb,unity",  # the Unity package is what gets imported into Unity 6 for the verification
+            # the Unity package is what gets imported into Unity 6 for the verification; FBX only when Blender can verify it by re-import
+            "formats": "glb,unity" + (",fbx" if blender_ok else ""),
         }
         if length_m:
             form["length_m"] = str(length_m)
@@ -161,6 +164,31 @@ def run_one(
             if u.status_code == 200:
                 (out / "unity-package.zip").write_bytes(u.content)
                 row["unity_package_sha256"] = hashlib.sha256(u.content).hexdigest()
+        fbx = next((e for e in res.get("exports", []) if e.get("format") == "fbx" and e.get("export_id")), None)
+        if fbx:
+            meta = client.get(f"/api/exports/{fbx['export_id']}").json()
+            row["fbx_blender_verification"] = {
+                "status": meta["status"],
+                "checks": [
+                    {k: c[k] for k in ("id", "ok")}
+                    for c in (meta["report"].get("verification") or {}).get("checks", [])
+                ],
+            }
+            f = client.get(f"/api/exports/{fbx['export_id']}/download")
+            if f.status_code == 200:
+                (out / "fbx-package.zip").write_bytes(f.content)
+        if (
+            blender_ok
+        ):  # independent beauty renders: real texture sampling, normal map, PBR lighting (Blender Cycles on the CPU)
+            try:
+                imgs = ctx.exports.blender.render(
+                    prepared, out / "blender", views=("3q", "side", "front", "rear", "top"), size=640, samples=32
+                )
+                row["blender_renders"] = [p.name for p in imgs]
+            except Exception as e:  # noqa: BLE001 - a nice-to-have must not fail a good run
+                row["blender_renders_error"] = f"{type(e).__name__}: {str(e)[:200]}"
+        else:
+            row["blender_renders"] = "not available: " + "; ".join(blender_av["reasons"])[:200]
         try:  # what the engine and the Studio recorded about this run: timing, memory, detected frame, texture route
             gen = ctx.assets.load_scene(res["raw_version_id"]).reports.get("generation", {})
             det = gen.get("engine_details") or {}

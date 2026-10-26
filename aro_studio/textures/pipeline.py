@@ -10,6 +10,7 @@ from aro_studio.scene.model import TextureDef
 from aro_studio.scene.store import Scene
 from aro_studio.textures import process as tp
 from aro_studio.textures.bake import ALLOWED_RESOLUTIONS, bake_color_texture
+from aro_studio.textures.normal_bake import bake_normal_map
 from aro_studio.textures.uv import DEFAULT_MAX_FACES, unwrap_jointly
 
 
@@ -42,11 +43,13 @@ def bake_scene_textures(
     source: Scene | None = None,
     padding: int = 4,
     max_faces: int = DEFAULT_MAX_FACES,
+    bake_normals: bool = False,
 ) -> dict:
     """Unwrap parts (grouped by material → one atlas each) and bake vertex colours into base-colour textures.
 
-    ``source`` (typically the raw reconstruction) supplies high-resolution vertex colours to project from;
-    without it the scene's own vertex colours are used.
+    ``source`` (typically the full-resolution mesh the budget mesh was decimated from, in the same frame) supplies the colours to project;
+    without it the scene's own vertex colours are used. With ``bake_normals`` the source's fine surface detail is also baked into a
+    tangent-space normal map, when the source has at least twice the triangles of the targets (otherwise there is no detail to transfer).
     """
     if resolution not in ALLOWED_RESOLUTIONS:
         raise InvalidInputError(f"Resolution must be one of {ALLOWED_RESOLUTIONS}.")
@@ -72,6 +75,18 @@ def bake_scene_textures(
         source_mesh = as_mesh(trimesh.util.concatenate(src_meshes)) if len(src_meshes) > 1 else src_meshes[0]
         unwrapped = unwrap_jointly({m: scene.meshes[m] for m in members}, max_faces=max_faces)
         png, stats = bake_color_texture(list(unwrapped.values()), source_mesh, resolution, padding)
+        normal_png: bytes | None = None
+        target_faces = sum(len(m.faces) for m in unwrapped.values())
+        if bake_normals and len(source_mesh.faces) >= 2 * target_faces:
+            normal_png, normal_stats = bake_normal_map(list(unwrapped.values()), source_mesh, resolution, padding)
+            stats = {**stats, "normal_map": normal_stats}
+        elif bake_normals:
+            stats = {
+                **stats,
+                "normal_map": {
+                    "skipped": "the source has fewer than twice the triangles of the target: no detail to transfer"
+                },
+            }
         tex_name = f"{mat_name}_basecolor" if mat_name != "unassigned" else f"baked_{gi}_basecolor"
         _set_texture(scene, tex_name, png, "base_color", "srgb")
         base = man.material(mat_name)
@@ -85,6 +100,10 @@ def bake_scene_textures(
 
             mat = make_material(baked_name, "generic", base_color=(1.0, 1.0, 1.0, 1.0))
         mat.textures = {**mat.textures, "base_color": tex_name}
+        if normal_png is not None:
+            normal_name = f"{baked_name}_normal"
+            _set_texture(scene, normal_name, normal_png, "normal", "linear")
+            mat.textures["normal"] = normal_name
         man.materials = [m for m in man.materials if m.name != baked_name] + [mat]
         for m in members:
             scene.meshes[m] = unwrapped[m]

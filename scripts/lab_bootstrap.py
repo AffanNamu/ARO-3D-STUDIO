@@ -208,6 +208,30 @@ def setup(engines: list[str], root: Path) -> dict[str, Any]:
     return info
 
 
+def setup_blender(root: Path) -> str | None:
+    """Optional: an isolated Python 3.11 with the ``bpy`` module (Blender as a library, a few hundred MB). Gives independent beauty renders and
+    the FBX/USD re-import check. Returns the interpreter path, or None (with the reason printed) if it could not be set up: never fatal."""
+    log = root / "setup-blender.log"
+    try:
+        uv = ensure_uv(log)
+        py = root / "blender-venv" / "bin" / "python"
+        if not py.exists():
+            print("creating an isolated Python 3.11 environment for Blender ...", flush=True)
+            sh([uv, "venv", "--python", "3.11", str(root / "blender-venv")], log=log)
+        print("installing bpy (Blender as a Python module, several minutes) ...", flush=True)
+        sh([uv, "pip", "install", "--python", str(py), "bpy", "numpy"], log=log)
+        probe = subprocess.run(
+            [str(py), "-c", "import bpy; print(bpy.app.version_string)"], capture_output=True, text=True, timeout=300
+        )
+        if probe.returncode != 0:
+            raise SystemExit("bpy installed but cannot be imported: " + probe.stderr[-300:])
+        print("Blender", probe.stdout.strip(), "ready:", py, flush=True)
+        return str(py)
+    except SystemExit as e:  # noqa: PERF203
+        print("Blender is optional and could not be set up:", str(e)[:400], flush=True)
+        return None
+
+
 def worker_env(root: Path, token: str, engines: list[str]) -> dict[str, str]:
     env = {
         **os.environ,
@@ -302,7 +326,7 @@ def stop(root: Path, quiet: bool = False) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("action", choices=["setup", "start", "status", "stop", "plan"])
+    ap.add_argument("action", choices=["setup", "setup-blender", "start", "status", "stop", "plan"])
     ap.add_argument("--engines", default="triposg")
     ap.add_argument("--root", type=Path, default=Path("/content/lab"))
     ap.add_argument("--port", type=int, default=8000)
@@ -313,6 +337,8 @@ def main() -> int:
         print(json.dumps(plan(engines, gpu_memory_mb()), indent=2))
     elif a.action == "setup":
         setup(engines, a.root)
+    elif a.action == "setup-blender":
+        print(setup_blender(a.root) or "")
     elif a.action == "start":
         r = start(engines, a.root, a.port, a.token or None)
         print(json.dumps({**r, "token": "(printed once below; never put it in a notebook cell's source)"}, indent=2))

@@ -154,6 +154,7 @@ class ProcessingService:
                 parts=params.get("parts"),
                 source=source,
                 max_faces=int(params.get("max_faces", 25000)),
+                bake_normals=bool(params.get("bake_normals", False)),
             )
             return new, rep, Stage.PROCESSED, f"Textures baked at {params.get('resolution', 1024)}px"
         if action == "project_reference":

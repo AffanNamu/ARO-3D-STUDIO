@@ -19,9 +19,18 @@ now fails with the old behaviour and passes with the fix.
 
 **Second defect, found while verifying the first fix on the real truck:** closing holes (`fill_holes`) rebuilt the mesh without its vertex colours, so any real reconstruction (they always have openings) reached the bake with no colours and the step reported PASS while baking nothing. Colours now survive hole filling, and a bake that produces no texture is reported as SKIPPED with a reason. (Meshes that had no openings, such as the synthetic test spheres, never showed it.)
 
+**Third defect (the largest in effect), found by importing the exports into Blender:** the GLB writer wrote the Studio's texture
+coordinates unchanged. The Studio keeps V pointing up (like OBJ); glTF puts the origin at the TOP-left of the image. Every textured GLB the
+Studio ever exported (and every Unity package, which contains the GLB) therefore showed its texture **mirrored vertically** in any
+glTF-conforming reader: Blender, Unity, three.js, so also the Studio's own viewer. It went unnoticed because every colour check used a field
+that varies only horizontally and our renderer shares the writer's convention. Fixed in `export/gltf.py`; regression tests:
+`tests/test_gltf_uv_orientation.py` (decodes the written GLB) and `tests/test_blender_export.py::test_the_texture_lands_where_the_asset_says_not_mirrored`
+(Blender samples the texture at each UV corner; both fail on the old writer, the Blender one with a correlation of 0.58 instead of > 0.9).
+OBJ was always correct (its V points up as well).
+
 **Fix:** the bake now samples the cleaned full-resolution mesh (`cleaned_version_id`), which carries the raw vertex colours and is in
 the same frame as the target.
 
-**To correct the committed assets:** re-prepare the preserved raw meshes (`scripts/reprepare_raw_mesh.py --raw <raw>.glb ...`). The raw
+**To correct the committed assets:** re-export (the V flip lives in the writer) or re-prepare the preserved raw meshes (`scripts/reprepare_raw_mesh.py --raw <raw>.glb ...`). The raw
 meshes are not committed (size policy); they are in the evidence zips returned from the Colab runs. Until then treat the textures of
 those GLBs as wrong.

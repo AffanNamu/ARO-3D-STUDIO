@@ -48,6 +48,9 @@ class AIPipelineOptions:
     validation_intersections: bool = False
     reference: Any = None  # PIL RGBA cut-out of the source image: geometry-only engines get their colour projected from it (never serialised)
     symmetric_projection: bool | None = None  # mirror the seen side onto the unseen one; None = yes for vehicles only
+    bake_normals: bool = (
+        False  # transfer the dense mesh's fine detail into a normal map (for engines with accurate dense geometry)
+    )
 
 
 @dataclass
@@ -250,6 +253,7 @@ def run_ai_pipeline(
                 "resolution": opts.texture_resolution,
                 "source_version_id": cleaned,
                 "max_faces": 25_000,
+                "bake_normals": opts.bake_normals,
             },
         )
         ok = textured

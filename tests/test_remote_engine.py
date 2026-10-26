@@ -13,6 +13,7 @@ import threading
 import time
 
 import httpx
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -169,6 +170,12 @@ def test_a_cutout_is_mandatory_so_no_non_commercial_matting_model_ever_runs():
     with pytest.raises(ValueError, match="empty"):
         require_cutout(Image.new("RGBA", (8, 8), (0, 0, 0, 0)))
     assert require_cutout(Image.open(io.BytesIO(png()))).mode == "RGBA"
+    # a real cut-out whose subject fills its frame (almost nothing transparent) is padded, not rejected
+    full = Image.new("RGBA", (200, 100), (10, 20, 30, 255))
+    full.putpixel((0, 0), (0, 0, 0, 0))
+    padded = require_cutout(full)
+    assert padded.width > full.width and padded.height > full.height
+    assert (np.asarray(padded.getchannel("A")) < 13).mean() > 0.01
 
 
 # ---- Studio side: RemoteEngine ---------------------------------------------------------------

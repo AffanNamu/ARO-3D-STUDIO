@@ -191,3 +191,28 @@ the owner's evidence.
 * **Unknowns that may change this plan:** TRELLIS.2's real output on ARO vehicles (the whole plan hinges on it), whether the
   24 GB path is affordable for the team, and whether the installer works unchanged on your host. If TRELLIS.2 disappoints, the
   fallbacks are TripoSG with texture projection, then Step1X-3D, then the fine-tuning gate.
+
+## 11. Addendum (later on 2026-10-26): what changed after the owner widened the goal
+
+The owner asked for a platform (generation, viewport, refinement, materials, LODs, collision, reliable exports for Unity, Blender, Unreal)
+and for the next milestone to be real stronger-engine results on a Colab T4, compared with TripoSR. What was built, and what it found:
+
+* **Colab engine lab** (`notebooks/aro_engine_lab_colab.ipynb`): TripoSG on a free T4 (the Hunyuan3D shape model only if switched on, as an
+  evaluation yardstick under a restricted licence), in an isolated Python 3.10 environment, through the Studio, compared with the
+  committed TripoSR numbers for the same image. The environment was rehearsed on CPU here ([lab-environment-rehearsal.md](../verification/lab-environment-rehearsal.md)):
+  the pinned stack resolves and installs, every third-party import of TripoSG and of Hunyuan3D's shape stage resolves, the `diso` stand-in
+  works with real torch, the worker runs under Python 3.10. **Not rehearsed:** weights, GPU inference, speed, memory. **Still no result from
+  any stronger engine.**
+* **Independent verification with Blender** (`aro_studio/export/blender*.py`): Blender 5.0.1 re-imports what the Studio exports. This found
+  a defect no earlier check could see: **the GLB writer mirrored every texture vertically** (also in Unity packages and, by implication,
+  the in-app viewer). Fixed, with two regression tests that fail on the old writer. Details in `evidence/ai/ERRATUM-texture-alignment.md`.
+* **FBX (Unity and Unreal conventions), USD, .blend export**, each re-imported by Blender and compared; 12 of 12 round trips of the three
+  real vehicles pass (triangles, size in metres, materials, base-colour map). Opening them in Unreal or Unity: not done.
+* **Normal-map transfer** from a dense engine mesh to the game mesh (P1): built and tested on synthetic surfaces (analytic normals recovered
+  within 3 degrees); on by default for every engine except TripoSR; not yet seen on a real dense mesh.
+* **Up-axis detection** from the reference image and **photo projection texturing** for geometry-only engines: built, tested against known
+  answers; not yet seen on real TripoSG output.
+* A bigger vision document (`platform-roadmap.md`) and a conditional fine-tuning plan with a gate (`fine-tuning-plan.md`).
+
+The decision in section 1 stands: the quality ceiling is the generator, and the evidence that would move it is the lab run.
+

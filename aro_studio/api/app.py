@@ -45,6 +45,7 @@ from aro_studio.core.errors import (
 )
 from aro_studio.core.ids import require_id
 from aro_studio.export.gltf import ExportOptions, export_glb
+from aro_studio.export.service import FORMATS as EXPORT_FORMATS
 from aro_studio.geometry.pipeline import combined_report, known_operations
 from aro_studio.imaging.preprocess import PreprocessOptions, preprocess
 from aro_studio.observability.logging import get_logger
@@ -477,8 +478,8 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         if texture_resolution not in (512, 1024, 2048):
             raise InvalidInputError("texture_resolution must be 512, 1024 or 2048.")
         fmts = [f for f in (x.strip() for x in formats.split(",")) if f]
-        if not fmts or len(fmts) > 4 or any(f not in ("glb", "gltf", "obj", "unity") for f in fmts):
-            raise InvalidInputError("formats must be a comma-separated list of glb, gltf, obj, unity.")
+        if not fmts or len(fmts) > 8 or any(f not in EXPORT_FORMATS for f in fmts):
+            raise InvalidInputError(f"formats must be a comma-separated list of {', '.join(EXPORT_FORMATS)}.")
         category_def = taxonomy.require_creatable(category)
         try:
             settings_value = json.loads(settings_json)
@@ -864,11 +865,16 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         v = c.assets.get_version(vid)
         return c.jobs.submit(
             "export",
-            {"version_id": vid, "formats": b.formats},
+            {"version_id": vid, "formats": b.formats, "target": b.target},
             project_id=v["project_id"],
             asset_id=v["asset_id"],
             priority=b.priority,
         )
+
+    @app.get("/api/export-formats")
+    def export_formats(c: StudioContext = C):
+        """Every export format and whether it can be written here (the optional Blender formats explain why not and how to enable them)."""
+        return {"formats": c.exports.format_status()}
 
     @app.get("/api/exports")
     def list_exports(asset_id: str | None = None, project_id: str | None = None, c: StudioContext = C):

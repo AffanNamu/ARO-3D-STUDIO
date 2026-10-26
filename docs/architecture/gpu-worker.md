@@ -67,6 +67,14 @@ Real lengths in the `--case` suffix (metres) are optional; without them the prep
 The output (raw GLB as the engine returned it with its SHA-256, prepared GLB, `fidelity.json`, an inspection sheet per run, and
 `bakeoff-summary.md`) is what the next step needs. Visual quality stays PENDING until a person has looked at the sheets.
 
+### Google Colab (free T4): the lab notebook
+
+`notebooks/aro_engine_lab_colab.ipynb` does all of the above in a Colab runtime: it builds an isolated Python 3.10 environment with `uv`
+(`scripts/lab_bootstrap.py setup`), starts the worker on `127.0.0.1`, uploads your images, runs TripoSG (and, only if you switch it on,
+the evaluation-only Hunyuan3D-2 mini) through the Studio, prints the table with the earlier TripoSR numbers for the same images and
+packages the evidence. A T4 cannot run TRELLIS.2 (24 GB class), so it is not offered there. The CPU marching-cubes stand-in replaces
+TripoSG's `diso` CUDA extension, so no compiler is needed.
+
 ### No GPU of your own: try a hosted demo first
 
 If you can open a hosted TRELLIS.2 demo (for example a Hugging Face Space from Microsoft; I could not confirm one from the authoring

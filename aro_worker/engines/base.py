@@ -46,22 +46,26 @@ def require_cutout(image: Image.Image, min_ratio: float = 0.01) -> Image.Image:
     network (BRIA RMBG / RMBG-2.0 are non-commercial licences), or crash trying: refuse instead.
 
     "Real cut-out" mirrors the upstream validity test (TripoSG's ``is_valid_alpha``): at least ``min_ratio`` of the pixels fully
-    transparent AND at least ``min_ratio`` fully opaque. Anything else (all opaque, all clear, a faint vignette) is not a cut-out.
+    transparent AND at least ``min_ratio`` fully opaque. A genuine cut-out whose subject fills its frame (a box truck in side view) has
+    almost no transparent pixels: it is given a transparent margin (the engines crop to the subject anyway) instead of being rejected.
     """
     rgba = image.convert("RGBA")
     alpha = np.asarray(rgba.getchannel("A"))
     n = alpha.size
     clear = float((alpha < 13).sum()) / n
     solid = float((alpha > 242).sum()) / n
-    if clear < min_ratio and solid >= min_ratio:
+    if solid < min_ratio:
+        raise ValueError("the cut-out is empty or almost fully transparent")
+    if int(alpha.min()) >= 250:
         raise ValueError(
             "the image has no transparent background: send the Studio's matted RGBA cut-out (the worker never runs its own "
             "background-removal model, whose licence is non-commercial)"
         )
-    if solid < min_ratio:
-        raise ValueError("the cut-out is empty or almost fully transparent")
-    if clear < min_ratio:
-        raise ValueError("the cut-out has no clearly transparent pixels")
+    if clear < min_ratio:  # some transparency, but the subject fills the frame
+        pad = max(4, round(0.08 * max(rgba.size)))
+        canvas = Image.new("RGBA", (rgba.width + 2 * pad, rgba.height + 2 * pad), (0, 0, 0, 0))
+        canvas.paste(rgba, (pad, pad))
+        rgba = canvas
     return rgba
 
 

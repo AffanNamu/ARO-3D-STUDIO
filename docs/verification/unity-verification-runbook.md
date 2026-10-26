@@ -1,5 +1,11 @@
 # Unity 6 import verification (Phase 3)
 
+> **Re-export before you import (2026-10-26).** Every textured GLB and Unity package exported before commit "fix(export): glTF texture V
+> orientation" showed its texture **mirrored vertically** in glTF-conforming readers, Unity included (the writer left V pointing up; glTF
+> counts from the top). If you already imported a package and the paint looked scrambled, that was the cause, not Unity. Re-export from the
+> Studio (or re-run the lab notebook) and import the new package. The fix was verified by importing the GLB into Blender
+> (`tests/test_blender_export.py`), not by Unity.
+
 **Status in this repository: BLOCKED.** No Unity editor is available where this project is built, so nothing has been
 imported into Unity. The exported package is *integrity-verified* (checksums, glTF structure, Khronos validator) – that is
 **not** an import verification, and `Metadata/asset.json` keeps `"unity_import_verified": false`.

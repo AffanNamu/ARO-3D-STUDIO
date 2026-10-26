@@ -57,6 +57,18 @@ jobs:
         if: always()
         with: { name: e2e-screenshots, path: e2e-shots }
 
+  blender:
+    name: Blender export round trip (FBX / USD / .blend re-imported by Blender)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libsm6 libxkbcommon0 libegl1
+      - run: pip install -r requirements-dev.txt && pip install -e . --no-deps && pip install bpy
+      # ARO_BLENDER_REQUIRED=1: a missing Blender is a FAILURE here, so this job can never be green without having run the round trips
+      - run: ARO_BLENDER_PYTHON="$(which python)" ARO_BLENDER_REQUIRED=1 pytest tests/test_blender_export.py -q -rs
+
   asset-validation:
     name: Reference asset acceptance (post-reconstruction stages)
     runs-on: ubuntu-latest

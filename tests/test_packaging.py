@@ -22,6 +22,8 @@ OPTIONAL = {
     "torchmcubes",
     "onnxruntime",
     "playwright",
+    "bpy",  # only imported by export/blender_worker.py, which runs inside a separate Blender process (optional backend)
+    "mathutils",
 }
 # libraries trimesh/fastapi/uvicorn load at runtime without us importing them
 RUNTIME_IMPLIED = {"mapbox-earcut", "rtree", "networkx", "scipy", "shapely", "python-multipart", "uvicorn", "pygltflib"}

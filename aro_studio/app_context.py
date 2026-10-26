@@ -14,6 +14,7 @@ from aro_studio.engines.manager import ModelManager
 from aro_studio.engines.registry import EngineRegistry
 from aro_studio.engines.remote import remote_engines
 from aro_studio.engines.triposr import TripoSREngine
+from aro_studio.export.blender import BlenderBackend
 from aro_studio.export.service import ExportService
 from aro_studio.generation.service import GenerationService
 from aro_studio.jobs.queue import JobQueue
@@ -86,7 +87,7 @@ def build_context(
     validation = ValidationService(s, db, assets)
     processing = ProcessingService(s, assets, validation)
     generation = GenerationService(s, db, layout, assets, sources, registry, models, metrics)
-    exports = ExportService(db, layout, assets, audit)
+    exports = ExportService(db, layout, assets, audit, BlenderBackend.from_env(s.blender_python, s.blender_bin))
     jobs = JobQueue(
         db,
         workers=s.workers,
@@ -178,6 +179,10 @@ def _auto_process_handler(
         raw_version_id = ctx.params["raw_version_id"]
         raw_scene = assets.load_scene(raw_version_id)
         provenance = raw_scene.manifest.provenance
+        dense_is_noisy = getattr(provenance, "engine_id", None) in (
+            None,
+            "triposr",
+        )  # imports and TripoSR keep the old behaviour
         opts = AIPipelineOptions(
             up=ctx.params.get("up") or default_up_axis(provenance),
             forward=ctx.params.get("forward"),
@@ -185,7 +190,10 @@ def _auto_process_handler(
             length_supplied=bool(ctx.params.get("length_supplied", False)),
             width_m=float(ctx.params["width_m"]) if ctx.params.get("width_m") is not None else None,
             height_m=float(ctx.params["height_m"]) if ctx.params.get("height_m") is not None else None,
-            smooth_iterations=int(ctx.params.get("smooth_iterations", 40)),
+            # TripoSR's surface is noisy (heavy smoothing helps); the stronger engines' dense geometry is accurate, so its detail is kept
+            # (light smoothing) and transferred into a normal map instead
+            smooth_iterations=int(ctx.params.get("smooth_iterations", 40 if dense_is_noisy else 4)),
+            bake_normals=bool(ctx.params.get("bake_normals", not dense_is_noisy)),
             auto_align_yaw=bool(ctx.params.get("auto_align_yaw", True)),
             target_triangles=int(ctx.params.get("target_triangles", 24_000)),
             texture_resolution=int(ctx.params.get("texture_resolution", 1024)),
@@ -247,7 +255,7 @@ def _export_handler(exports: ExportService):
         for i, f in enumerate(fmts):
             ctx.check()
             ctx.progress(i / len(fmts), f"Exporting {f}")
-            rec = exports.export(ctx.params["version_id"], f)
+            rec = exports.export(ctx.params["version_id"], f, ctx.params.get("target") or "unity")
             out.append(
                 {"export_id": rec["export_id"], "format": f, "status": rec["status"], "size_bytes": rec["size_bytes"]}
             )

@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     worker_url: str = ""
     worker_token: SecretStr | None = None  # never logged
     worker_engines: str = "trellis2,triposg"
+    # Optional Blender backend (FBX / USD / .blend export and an independent re-import check): see aro_studio/export/blender.py
+    blender_python: str = ""  # interpreter with the bpy module (env ARO_BLENDER_PYTHON), or...
+    blender_bin: str = ""  # ...a Blender executable (env ARO_BLENDER_BIN)
 
     # Budgets
     tri_budget_lod0: int = 150_000
