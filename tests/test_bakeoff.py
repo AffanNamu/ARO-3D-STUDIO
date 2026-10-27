@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import importlib.util
+import io
+import json
+import socket
+import threading
+import time
 from pathlib import Path
 
 import pytest
+import uvicorn
+from PIL import Image
+
+from aro_worker.app import create_app as create_worker
+from aro_worker.engines.fake import FakeEngine
 
 SPEC = importlib.util.spec_from_file_location(
     "engine_bakeoff", Path(__file__).resolve().parents[1] / "scripts" / "engine_bakeoff.py"
@@ -56,3 +66,85 @@ def test_summary_table_never_hides_a_failure():
     assert (
         "| trellis2 | b.png | **PASS** | 0.90 | 0.40 | 0.35 | plausible | yes | 30000 | 1 | NEEDS_REVIEW | 90.0 |" in md
     )
+
+
+class Response:
+    """What describe_http_error needs from an HTTP response."""
+
+    def __init__(self, status_code: int, body=None, text: str = ""):
+        self.status_code, self._body, self.text = status_code, body, text
+
+    def json(self):
+        if self._body is None:
+            raise ValueError("not json")
+        return self._body
+
+
+def test_the_studios_structured_refusal_is_described_not_sliced():
+    """REGRESSION (Colab, 2026-10-27): the error field is a dict; slicing it as text raised KeyError and hid the real reason."""
+    err = {"code": "ENGINE_UNAVAILABLE", "message": "licence not verified", "recommended_action": "read the model card"}
+    d = bakeoff.describe_http_error(Response(409, {"error": err}))
+    assert d == {"http_status": 409, **err}
+    text = bakeoff.reason_text(d)
+    assert "HTTP 409 ENGINE_UNAVAILABLE" in text and "licence not verified" in text and "read the model card" in text
+
+
+@pytest.mark.parametrize(
+    "response, expected",
+    [
+        (Response(400, {"error": "plain string"}), "plain string"),
+        (Response(422, {"detail": "field required"}), "field required"),
+        (Response(422, {"detail": [{"loc": ["body", "file"], "msg": "field required"}]}), "field required"),
+        (Response(502, None, text="<html>Bad gateway</html>"), "Bad gateway"),
+        (Response(500, {"unexpected": 1}), "unexpected"),
+    ],
+)
+def test_any_error_body_becomes_text_instead_of_crashing(response, expected):
+    d = bakeoff.describe_http_error(response)
+    assert d["http_status"] == response.status_code and expected in d["message"]
+    assert len(bakeoff.reason_text(d)) < 1500
+
+
+def serve(app):
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    t = threading.Thread(target=server.run, daemon=True)
+    t.start()
+    end = time.time() + 10
+    while not server.started and time.time() < end:
+        time.sleep(0.05)
+    assert server.started
+    return f"http://127.0.0.1:{port}", server, t
+
+
+def test_run_one_reports_a_licence_refusal_as_blocked_with_the_reason(tmp_path, capsys):
+    """The path the Colab user hit: the licence gate refuses before any inference. It must come back as a BLOCKED row that says why."""
+    token = "t" * 24
+    app = create_worker(
+        [FakeEngine()], token, workdir=tmp_path / "w"
+    )  # labelled test double, never counted as an engine result
+    url, server, thread = serve(app)
+    try:
+        image = tmp_path / "truck.png"
+        im = Image.new("RGBA", (96, 64), (200, 40, 40, 255))
+        im.paste((0, 0, 0, 0), (0, 0, 20, 64))
+        buf = io.BytesIO()
+        im.save(buf, "PNG")
+        image.write_bytes(buf.getvalue())
+        row = bakeoff.run_one(url, token, "fake", image, "heavy_truck", None, "DRAFT", "", 60, tmp_path / "out", {})
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        app.state.shutdown()
+    assert row["status"] == "BLOCKED"
+    assert (
+        "has not been verified by the deployer" in row["reason"]
+        and "ARO_VERIFIED_MODEL_LICENSES=fake" in row["error"]["recommended_action"]
+    )
+    assert "I_HAVE_READ_THE_MODEL_CARDS" in row["hint"]
+    assert "BLOCKED before any inference" in capsys.readouterr().out
+    json.dumps(row)  # the row goes into bakeoff-summary.json
+    md = bakeoff.markdown([row])
+    assert "**BLOCKED**" in md and "has not been verified" in md

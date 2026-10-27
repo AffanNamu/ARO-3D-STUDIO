@@ -499,11 +499,20 @@ def create_app(ctx: StudioContext | None = None) -> FastAPI:
         if status is None:
             raise InvalidInputError(f"Unknown engine '{want}'.", recommended_action="See GET /api/engines.")
         if not status["runnable"]:
-            reasons = status["availability"]["reasons"] or [f"licence status '{status['info']['license']['status']}'"]
+            reasons = list(status["availability"]["reasons"])
+            actions = list(status["availability"]["activation"])
+            if not status["license_verified_by_deployer"]:
+                lic = status["info"]["license"]
+                reasons.append(
+                    f"The weights licence ({lic['spdx']}) is '{lic['status']}' and has not been verified by the deployer."
+                )
+                actions.append(
+                    f"Read the model card at {lic['source_url']}; if it permits your use, set "
+                    f"ARO_VERIFIED_MODEL_LICENSES={want}. That attestation is yours: the Studio never sets it."
+                )
             raise EngineUnavailableError(
                 f"{status['info']['name']} cannot run in this environment: " + " ".join(reasons),
-                recommended_action=" | ".join(status["availability"]["activation"])
-                or "See docs/models/model-requirements.md.",
+                recommended_action=" | ".join(actions) or "See docs/models/model-requirements.md.",
                 details=status,
             )
 

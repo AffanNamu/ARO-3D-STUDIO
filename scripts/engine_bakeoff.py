@@ -37,6 +37,37 @@ sys.path.insert(0, str(ROOT))
 TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "RESOURCE_LIMIT", "MODEL_ERROR", "INVALID_INPUT"}
 
 
+def describe_http_error(response: Any) -> dict[str, Any]:
+    """The Studio answers refusals with ``{"error": {"code", "message", "recommended_action"}}`` (FastAPI's own validation errors use
+    ``{"detail": ...}``); anything else, or a body that is not JSON, is shown as text. Never assumes the field is a string."""
+    try:
+        body = response.json()
+    except ValueError:
+        body = None
+    err = body.get("error") if isinstance(body, dict) else None
+    if err is None and isinstance(body, dict):
+        err = body.get("detail")
+    if isinstance(err, dict):
+        return {
+            "http_status": response.status_code,
+            "code": str(err.get("code", "")),
+            "message": str(err.get("message", ""))[:600],
+            "recommended_action": str(err.get("recommended_action", ""))[:600],
+        }
+    if isinstance(err, str):
+        text = err
+    elif err is not None:
+        text = json.dumps(err)
+    else:  # no error/detail field at all: show whatever the body was
+        text = json.dumps(body) if body is not None else response.text
+    return {"http_status": response.status_code, "code": "", "message": str(text)[:600], "recommended_action": ""}
+
+
+def reason_text(err: dict[str, Any]) -> str:
+    head = f"HTTP {err['http_status']}" + (f" {err['code']}" if err["code"] else "")
+    return f"{head}: {err['message']}" + (f" -> {err['recommended_action']}" if err["recommended_action"] else "")
+
+
 def parse_case(text: str) -> tuple[Path, str, float | None]:
     head, _, tail = text.rpartition(":")
     try:
@@ -133,7 +164,17 @@ def run_one(
         form.update(axes or {})
         r = client.post("/api/convert", files={"file": (image.name, image.read_bytes(), "image/png")}, data=form)
         if r.status_code >= 400:
-            row.update(status="BLOCKED", reason=r.json().get("error", r.text)[:600])
+            err = describe_http_error(r)
+            row.update(status="BLOCKED", reason=reason_text(err), error=err)
+            print(f"  BLOCKED before any inference: {row['reason']}", flush=True)
+            attested = {v.strip().lower() for v in verified.split(",")}
+            if engine_id.lower() not in attested and "licence" in (err["message"] + err["recommended_action"]).lower():
+                row["hint"] = (
+                    f"This is the licence gate working as designed, not a fault. After you have read the {engine_id} model card, "
+                    f"pass --verified-licences {engine_id} (in the lab notebook: I_HAVE_READ_THE_MODEL_CARDS = True) and run again. "
+                    "That attestation is yours; nothing sets it for you."
+                )
+                print(f"  HINT: {row['hint']}", flush=True)
             return row
         jid = r.json()["job"]["job_id"]
         while True:
@@ -259,7 +300,9 @@ def markdown(rows: list[dict[str, Any]], baselines: dict[str, dict[str, Any]] | 
     for r in rows:
         if r.get("status") in ("BLOCKED", "FAIL"):
             lines.append(f"| {r['engine']} | {r['image']} | **{r['status']}** | - | - | - | - | - | - | - | - | - |")
-            lines.append(f"|  | | {r.get('reason', '')[:200]} | | | | | | | | | |")
+            lines.append(f"|  | | {r.get('reason', '')[:500]} | | | | | | | | | |")
+            if r.get("hint"):
+                lines.append(f"|  | | {r['hint']} | | | | | | | | | |")
             continue
         ra = r["ratios"]
         lines.append(
