@@ -75,7 +75,15 @@ the evaluation-only Hunyuan3D-2 mini) through the Studio, prints the table with 
 packages the evidence. A T4 cannot run TRELLIS.2 (24 GB class), so it is not offered there. The CPU marching-cubes stand-in replaces
 TripoSG's `diso` CUDA extension, so no compiler is needed.
 
-**A cell that stops (`^C`).** Colab can interrupt a running cell (stop button, `Ctrl+M I`, a reconnect), and a plain `!python ...` cell dies
+**The first `^C` on Colab was an out-of-memory kill, not an interrupt (2026-10-29).** The kernel log read `Memory cgroup out of memory: Killed
+process ... (python3) anon-rss:9299292kB`. The bake-off's own scoring step (`quality/fidelity.mesh_summary`) counted loose fragments with
+`mesh.split()`, which copies the model's texture once per fragment: about 16 MB each, so roughly 570 fragments exhausted Colab's 12.7 GB.
+It printed no progress line, so "Exporting fbx" looked like where it stopped. Fixed by counting components on the face-adjacency graph
+(0.14 GB instead of 2.96 GB on a 24k-triangle test model; a regression test measures this in a fresh process and a negative control
+confirms the old code fails it), and the post-job phase now prints what it is doing and its peak memory. Measured on a 398k-face mesh of
+the size the worker produced (7.2 MB GLB), the whole bake-off now peaks at 1.2 GB (Blender 0.4 GB); at 742k faces, 2.5 GB.
+
+**A cell that stops (`^C`).** Colab can also interrupt a running cell (stop button, `Ctrl+M I`, a reconnect), and a plain `!python ...` cell dies
 with it. So the bake-off runs *detached* (`lab_notebook.run_detached`): its own process, `/content/lab/bakeoff.log`, an exit-code file; the
 cell only follows the log, and running it again re-attaches instead of starting a second GPU run. The worker keeps every finished job's raw
 GLB for an hour in `/content/lab/worker-jobs`, and the bake-off copies the raw mesh out before it deletes its working folder, so an

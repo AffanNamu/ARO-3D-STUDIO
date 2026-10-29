@@ -37,6 +37,16 @@ sys.path.insert(0, str(ROOT))
 TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "RESOURCE_LIMIT", "MODEL_ERROR", "INVALID_INPUT"}
 
 
+def peak_gb() -> float:
+    """Peak resident memory of this process so far (Linux: ru_maxrss is in kB); 0 where the OS cannot say."""
+    try:
+        import resource
+
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
+    except (ImportError, ValueError):
+        return 0.0
+
+
 def describe_http_error(response: Any) -> dict[str, Any]:
     """The Studio answers refusals with ``{"error": {"code", "message", "recommended_action"}}`` (FastAPI's own validation errors use
     ``{"detail": ...}``); anything else, or a body that is not JSON, is shown as text. Never assumes the field is a string."""
@@ -190,6 +200,17 @@ def run_one(
                 last = row["last_progress"] = line
             time.sleep(3)
         row["total_seconds"] = round(time.time() - t0, 1)
+
+        def phase(
+            what: str,
+        ) -> None:  # the job prints no more progress after this: say what is happening and how much memory it has used
+            print(
+                f"  [{engine_id}] +{time.time() - t0:.0f}s after the job: {what} (peak memory {peak_gb():.1f} GB)",
+                flush=True,
+            )
+            row["last_progress"] = f"after the job: {what}"
+
+        phase(f"job {j['state']}")
         if j["state"] != "COMPLETED":
             err = j.get("error") or {}
             row.update(
@@ -197,6 +218,7 @@ def run_one(
             )
             return row
         res = j["result"]
+        phase("downloading the prepared GLB, Unity package and FBX")
         glb = client.get(res["download"]).content
         prepared = out / "prepared.glb"
         prepared.write_bytes(glb)
@@ -228,10 +250,12 @@ def run_one(
             blender_ok
         ):  # independent beauty renders: real texture sampling, normal map, PBR lighting (Blender Cycles on the CPU)
             try:
+                phase("Blender beauty renders (CPU, a minute or two)")
                 imgs = ctx.exports.blender.render(
                     prepared, out / "blender", views=("3q", "side", "front", "rear", "top"), size=640, samples=32
                 )
                 row["blender_renders"] = [p.name for p in imgs]
+                phase("Blender turntable")
                 ctx.exports.blender.turntable(prepared, out / "blender" / "turntable.gif")
                 row["turntable"] = "blender/turntable.gif"
             except Exception as e:  # noqa: BLE001 - a nice-to-have must not fail a good run
@@ -255,9 +279,11 @@ def run_one(
             row["engine_details_error"] = f"{type(e).__name__}: {e}"
         ref = Image.open(image).convert("RGB")
         mesh = load_lod0(prepared)
+        phase("scoring against the reference (silhouette search)")
         rep = fd.score_model(mesh, ref, category)
         d = rep.to_dict()
         (out / "fidelity.json").write_text(json.dumps(d, indent=2) + "\n")
+        phase("contact sheet")
         make_sheet(mesh, ref, rep, out / "sheet.png")
         stages = {x["stage"]: x["status"] for x in res.get("stages", [])}
         row.update(
@@ -279,6 +305,8 @@ def run_one(
             glb_sha256=hashlib.sha256(glb).hexdigest(),
             human_review="PENDING",
         )
+        row["peak_memory_gb"] = round(peak_gb(), 2)
+        phase("done")
         return row
     except (
         KeyboardInterrupt

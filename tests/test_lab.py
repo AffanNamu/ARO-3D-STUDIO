@@ -261,3 +261,21 @@ def test_the_notebook_runs_the_bakeoff_detached_and_has_the_recovery_cells():
     assert "ln.run_detached(" in code and "!cd /content/aro && python scripts/engine_bakeoff.py" not in code
     assert "ln.diagnose(" in code and "ln.rescue_raw_meshes(" in code
     assert "lab/bakeoff.log" in code  # in the failure bundle
+
+
+def test_a_killed_bakeoff_leaves_files_the_rescue_collects(tmp_path, monkeypatch):
+    """An out-of-memory kill is SIGKILL: no cleanup runs, so the Studio's working folder survives. The rescue must find its GLBs and zips."""
+    work = tmp_path / "tmp" / "aro_bakeoff_abc123" / "data" / "projects" / "p1" / "exports" / "e1"
+    work.mkdir(parents=True)
+    (work / "truck-v1.glb").write_bytes(b"glTF" + bytes(64))
+    (work / "truck-unity.zip").write_bytes(b"PK" + bytes(64))
+    (work / "notes.txt").write_text("not a deliverable")
+    found = nb.bakeoff_leftover_files(tmp_path / "tmp")
+    assert sorted(f.name for f in found) == ["truck-unity.zip", "truck-v1.glb"]
+    monkeypatch.setattr(nb, "bakeoff_leftover_files", lambda: found)
+    z = nb.rescue_raw_meshes(tmp_path / "lab", tmp_path / "lab" / "rescued")
+    assert z is not None
+    with zipfile.ZipFile(z) as zf:
+        names = zf.namelist()
+    assert any(n.startswith("bakeoff-leftovers/aro_bakeoff_abc123/") and n.endswith("truck-v1.glb") for n in names)
+    assert not any(n.endswith("notes.txt") for n in names)

@@ -227,6 +227,24 @@ def worker_job_files(lab_root: Path) -> list[Path]:
     return sorted(set(found), key=lambda f: f.stat().st_mtime)
 
 
+def bakeoff_leftover_files(tmp_root: Path = Path("/tmp")) -> list[Path]:  # noqa: S108
+    """Files an interrupted or killed bake-off left behind. An out-of-memory kill is SIGKILL: no cleanup runs, so the Studio's working
+    folder (the prepared GLB, the Unity package, the FBX, the raw mesh) is still on disk."""
+    found = []
+    for d in tmp_root.glob("aro_bakeoff_*"):
+        for pattern in ("*.glb", "*.zip"):
+            found += [f for f in d.rglob(pattern) if f.is_file()]
+    return sorted(set(found), key=lambda f: f.stat().st_mtime)
+
+
+def _leftover_name(f: Path) -> str:
+    """``bakeoff-leftovers/aro_bakeoff_xxx/...`` whatever the temp root was."""
+    for i, part in enumerate(f.parts):
+        if part.startswith("aro_bakeoff_"):
+            return "bakeoff-leftovers/" + Path(*f.parts[i:]).as_posix()
+    return "bakeoff-leftovers/" + f.name
+
+
 def _tail(path: Path, n: int) -> str:
     if not path.exists():
         return "(no such file)"
@@ -272,6 +290,9 @@ def diagnose(
         }
         for f in worker_job_files(lab_root)
     ]
+    info["bakeoff_leftovers"] = [
+        {"file": str(f), "mb": round(f.stat().st_size / 1e6, 1)} for f in bakeoff_leftover_files()
+    ]
     dm = _run(["dmesg"])
     info["kernel_kills"] = [
         ln for ln in dm.splitlines() if "out of memory" in ln.lower() or "killed process" in ln.lower()
@@ -300,9 +321,10 @@ def diagnose(
         )
     elif not info["worker_alive"]:
         out("The worker is NOT running (the runtime may have been recycled): its in-memory jobs are gone.")
-    if info["worker_job_files"]:
+    if info["worker_job_files"] or info["bakeoff_leftovers"]:
         out(
-            f"{len(info['worker_job_files'])} raw engine mesh(es) are still on this VM: run rescue_raw_meshes() before anything else."
+            f"{len(info['worker_job_files'])} raw engine mesh(es) and {len(info['bakeoff_leftovers'])} bake-off file(s) "
+            "(GLB / zip) are still on this VM: run rescue_raw_meshes() before anything else."
         )
     return info
 
@@ -311,7 +333,8 @@ def rescue_raw_meshes(lab_root: Path = Path("/content/lab"), dest: Path = Path("
     """Zip the raw GLBs the worker still holds (one per finished job) so they can be downloaded. Raw engine meshes are large and
     stay out of git; this is only so a GPU run is never lost."""
     files = worker_job_files(lab_root)
-    if not files:
+    leftovers = bakeoff_leftover_files()
+    if not files and not leftovers:
         print("No raw meshes found on this VM (the worker keeps them for an hour; a recycled runtime loses them).")
         return None
     dest.mkdir(parents=True, exist_ok=True)
@@ -329,8 +352,14 @@ def rescue_raw_meshes(lab_root: Path = Path("/content/lab"), dest: Path = Path("
                     "modified_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(f.stat().st_mtime)),
                 }
             )
+        for f in (
+            leftovers
+        ):  # the prepared GLB, Unity package, FBX zip of a run that was killed before it could copy them out
+            rel = _leftover_name(f)
+            zf.write(f, rel)
+            listing.append({"file": rel, "bytes": f.stat().st_size})
         zf.writestr("listing.json", json.dumps(listing, indent=2) + "\n")
-    print("rescued", len(files), "mesh(es):", json.dumps(listing))
+    print("rescued", len(files), "mesh(es) and", len(leftovers), "bake-off file(s):", json.dumps(listing))
     return z
 
 

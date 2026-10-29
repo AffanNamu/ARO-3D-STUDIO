@@ -123,3 +123,58 @@ def test_up_axis_keeps_the_hint_when_the_shape_is_ambiguous():
     ref = reference_mask_from(ball, 0.0, 10.0)
     res = fd.detect_up_axis(ball, ref, hint="+Z")
     assert not res["confident"] and res["up"] == "+Z" and res["used_hint"]
+
+
+def fragmented_textured(n: int = 60, texture: int = 1024) -> trimesh.Trimesh:
+    """n disjoint boxes sharing one large texture: what a real engine mesh with loose fragments looks like after UV baking."""
+    boxes = [trimesh.creation.box((0.2, 0.2, 0.2)).apply_translation((i * 0.5, 0, 0)) for i in range(n)]
+    m: trimesh.Trimesh = trimesh.util.concatenate(boxes)  # type: ignore[assignment]
+    img = Image.fromarray(np.random.default_rng(0).integers(0, 255, (texture, texture, 3), dtype=np.uint8))
+    m.visual = trimesh.visual.TextureVisuals(
+        uv=np.random.default_rng(1).random((len(m.vertices), 2)),
+        material=trimesh.visual.material.PBRMaterial(baseColorTexture=img),
+    )
+    return m
+
+
+def test_component_count_matches_split_but_never_builds_a_submesh_per_fragment(monkeypatch):
+    """REGRESSION (Colab, 2026-10-29): mesh_summary used mesh.split(), which copies the texture once per fragment: 9.3 GB, killed by the
+    12.7 GB limit. The count must be the same number without creating submeshes."""
+    m = fragmented_textured(40, 256)
+    expected = len(m.split(only_watertight=False))
+    assert expected == 40
+    monkeypatch.setattr(
+        trimesh.Trimesh, "split", lambda *a, **k: (_ for _ in ()).throw(AssertionError("split() copies the texture"))
+    )
+    assert fd.component_count(m) == 40
+    assert fd.mesh_summary(m)["components"] == 40
+    assert fd.component_count(trimesh.Trimesh()) == 0
+    one = trimesh.creation.icosphere()
+    assert fd.component_count(one) == 1
+
+
+def test_scoring_a_fragmented_textured_model_stays_within_a_small_memory_budget(tmp_path):
+    """Measured in a fresh process (peak resident memory is per process): 120 fragments x a 2048 px texture was 2 GB+ with split()."""
+    import subprocess
+    import sys
+    import textwrap
+
+    code = textwrap.dedent(
+        f"""
+        import resource, sys
+        sys.path.insert(0, {str(__import__("pathlib").Path(__file__).resolve().parents[1])!r})
+        sys.path.insert(0, {str(__import__("pathlib").Path(__file__).resolve().parent.parent)!r})
+        from tests.test_fidelity import fragmented_textured
+        from aro_studio.quality import fidelity as fd
+        m = fragmented_textured(120, 2048)
+        base = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e3
+        s = fd.mesh_summary(m)
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e3
+        print(s["components"], round(peak - base))
+        """
+    )
+    r = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=300)  # noqa: S603
+    assert r.returncode == 0, r.stderr[-800:]
+    components, extra_mb = (int(x) for x in r.stdout.split()[-2:])
+    assert components == 120
+    assert extra_mb < 300, f"summarising used {extra_mb} MB on top of the model"

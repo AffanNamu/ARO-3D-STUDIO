@@ -282,13 +282,23 @@ def proportion_check(extents_xyz: tuple[float, float, float], category: str) -> 
 
 
 # -- scoring -----------------------------------------------------------------------------------------------------------
+def component_count(mesh: trimesh.Trimesh) -> int:
+    """Face-connected components, counted on the adjacency graph.
+
+    NOT ``len(mesh.split())``: split() builds a submesh per component and every one of them copies the texture image. On a textured
+    model with a few hundred loose fragments that is gigabytes (Colab, 2026-10-29: 9.3 GB, killed by the 12.7 GB limit)."""
+    if len(mesh.faces) == 0:
+        return 0
+    return len(trimesh.graph.connected_components(mesh.face_adjacency, nodes=np.arange(len(mesh.faces)), min_len=1))
+
+
 def mesh_summary(mesh: trimesh.Trimesh) -> dict[str, Any]:
     uv = getattr(mesh.visual, "uv", None)
     return {
         "triangles": int(len(mesh.faces)),
         "vertices": int(len(mesh.vertices)),
         "watertight": bool(mesh.is_watertight),
-        "components": int(len(mesh.split(only_watertight=False))) if len(mesh.faces) < 400_000 else None,
+        "components": component_count(mesh) if len(mesh.faces) < 400_000 else None,
         "has_uv": uv is not None,
         "extents": [round(float(x), 4) for x in mesh.extents],
     }
