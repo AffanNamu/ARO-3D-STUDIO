@@ -351,7 +351,13 @@ def _stop_job(client: Any, jid: str | None, row: dict[str, Any], wait_s: float =
 
 
 def _remove_tree(path: Path, attempts: int = 6) -> None:
+    """Delete the working folder. The Studio makes every saved version directory READ-ONLY on purpose (immutable versions), which root
+    ignores but an unprivileged user cannot delete: CI (user `runner`) silently kept the whole folder, and so would any normal user."""
+    from aro_studio.storage.layout import make_writable
+
     for _ in range(attempts):
+        if path.exists():
+            make_writable(path)
         shutil.rmtree(path, ignore_errors=True)
         if not path.exists():
             return

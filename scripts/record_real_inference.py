@@ -289,6 +289,9 @@ def main() -> int:
     finally:
         poller.stop()
         ctx.close()
+        from aro_studio.storage.layout import make_writable
+
+        make_writable(work)  # saved versions are read-only on purpose; an unprivileged user could not delete them
         shutil.rmtree(work, ignore_errors=True)
 
 

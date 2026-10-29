@@ -233,3 +233,45 @@ def test_an_interrupted_run_waits_for_the_studio_job_before_deleting_its_folder(
     """REGRESSION (CI run 72): ctx.close() waits only 5 s for the job thread. A step that outlives that kept writing into the folder being
     deleted and left a half-deleted /tmp/aro_bakeoff_* behind. The job is now cancelled and awaited first."""
     interrupted_run(tmp_path, monkeypatch, capsys, slow_step_s=8.0)
+
+
+def test_the_working_folder_is_deleted_even_though_saved_versions_are_read_only(tmp_path, monkeypatch):
+    """REGRESSION (CI runs 72-74, user `runner`): the Studio makes saved version directories read-only on purpose. Root ignores that, an
+    unprivileged user cannot delete them, and rmtree(ignore_errors=True) silently left the whole folder behind. Here a non-root rmtree is
+    emulated (a directory without the write bit keeps its entries), so this fails on any machine if the cleanup stops making the tree writable."""
+    import os
+    import shutil
+    import stat
+
+    from aro_studio.storage.layout import make_readonly
+
+    work = tmp_path / "aro_bakeoff_x"
+    version = work / "data" / "projects" / "p1" / "versions" / "v1"
+    (version / "textures").mkdir(parents=True)
+    (version / "scene.json").write_text("{}")
+    (version / "textures" / "base.png").write_bytes(b"png")
+    make_readonly(version)
+
+    def unprivileged_rmtree(path, ignore_errors=False, **_kw):
+        for dirpath, _dirs, files in os.walk(path, topdown=False):
+            if not stat.S_IMODE(os.stat(dirpath).st_mode) & stat.S_IWUSR:
+                continue  # no write bit: its entries cannot be unlinked
+            for f in files:
+                os.unlink(os.path.join(dirpath, f))
+            for d in os.listdir(dirpath):
+                full = os.path.join(dirpath, d)
+                if not os.path.islink(full) and os.path.isdir(full) and not os.listdir(full):
+                    parent_ok = stat.S_IMODE(os.stat(dirpath).st_mode) & stat.S_IWUSR
+                    if parent_ok:
+                        os.rmdir(full)
+            if not os.listdir(dirpath):
+                parent = os.path.dirname(dirpath)
+                if stat.S_IMODE(os.stat(parent).st_mode) & stat.S_IWUSR:
+                    os.rmdir(dirpath)
+
+    monkeypatch.setattr(shutil, "rmtree", unprivileged_rmtree)
+    # the emulation really does fail on a read-only tree (so the test can fail), and passes once the tree is made writable
+    unprivileged_rmtree(work)
+    assert work.exists()
+    bakeoff._remove_tree(work, attempts=2)
+    assert not work.exists()
