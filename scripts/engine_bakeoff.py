@@ -177,11 +177,17 @@ def run_one(
                 print(f"  HINT: {row['hint']}", flush=True)
             return row
         jid = r.json()["job"]["job_id"]
+        last = ""
         while True:
             j = client.get(f"/api/jobs/{jid}").json()
             if j["state"] in TERMINAL:
                 break
-            print(f"  [{engine_id}] {j.get('progress', 0):.0%} {j.get('message', '')}", flush=True)
+            line = f"{j.get('progress', 0):.0%} {j.get('message', '')}"
+            if (
+                line != last
+            ):  # only changes, with the elapsed time: a stopped run shows exactly where and when it stopped
+                print(f"  [{engine_id}] +{time.time() - t0:.0f}s {line}", flush=True)
+                last = row["last_progress"] = line
             time.sleep(3)
         row["total_seconds"] = round(time.time() - t0, 1)
         if j["state"] != "COMPLETED":
@@ -274,9 +280,38 @@ def run_one(
             human_review="PENDING",
         )
         return row
+    except (
+        KeyboardInterrupt
+    ):  # SIGINT: Colab's "interrupt execution", a stop button, or Ctrl+C. Report it, keep what exists.
+        row.update(
+            status="FAIL",
+            interrupted=True,
+            reason="INTERRUPTED (SIGINT, not an engine fault) while: " + row.get("last_progress", "starting"),
+        )
+        print(f"  {row['reason']}", flush=True)
+        return row
     finally:
+        _rescue_raw(
+            ctx, out, row
+        )  # before the working folder is deleted: the engine's mesh is the one irreplaceable file
         ctx.close()
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _rescue_raw(ctx: Any, out: Path, row: dict[str, Any]) -> None:
+    """Copy the engine's raw mesh into the results folder if the run ended (or was interrupted) before that happened."""
+    try:
+        target = out / "raw_output.glb"
+        raws = sorted(ctx.layout.root.rglob("raw_output.glb"))
+        if raws and not target.exists():
+            out.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(raws[0], target)
+            row["raw_sha256"] = hashlib.sha256(raws[0].read_bytes()).hexdigest()
+            row["raw_bytes"] = raws[0].stat().st_size
+            row["raw_rescued"] = True
+            print(f"  raw mesh kept: {target} ({row['raw_bytes']} bytes)", flush=True)
+    except Exception as e:  # noqa: BLE001 - never mask the real outcome
+        row["raw_rescue_error"] = f"{type(e).__name__}: {e}"
 
 
 def markdown(rows: list[dict[str, Any]], baselines: dict[str, dict[str, Any]] | None = None) -> str:
@@ -348,12 +383,16 @@ def main() -> int:
     if not a.token:
         raise SystemExit("--token or ARO_WORKER_TOKEN is required")
     axes = {k: v for k, v in (("up", a.up), ("forward", a.forward)) if v}
-    rows = []
+    rows: list[dict[str, Any]] = []
     for text in a.case:
+        if rows and rows[-1].get("interrupted"):
+            break
         image, category, length = parse_case(text)
         if not image.is_file():
             raise SystemExit(f"{image}: not found")
         for eng in [e.strip() for e in a.engines.split(",") if e.strip()]:
+            if rows and rows[-1].get("interrupted"):
+                break
             print(f"== {eng} / {image.name} ({category})", flush=True)
             rows.append(
                 run_one(
@@ -376,6 +415,9 @@ def main() -> int:
     )
     (a.out / "bakeoff-summary.md").write_text(markdown(rows, baselines))
     print(markdown(rows, baselines))
+    if rows and rows[-1].get("interrupted"):
+        print("The run was interrupted; the rows above are what finished. Nothing else was started.", flush=True)
+        return 130
     return 0 if all(r.get("status") == "PASS" for r in rows) else 1
 
 

@@ -75,6 +75,14 @@ the evaluation-only Hunyuan3D-2 mini) through the Studio, prints the table with 
 packages the evidence. A T4 cannot run TRELLIS.2 (24 GB class), so it is not offered there. The CPU marching-cubes stand-in replaces
 TripoSG's `diso` CUDA extension, so no compiler is needed.
 
+**A cell that stops (`^C`).** Colab can interrupt a running cell (stop button, `Ctrl+M I`, a reconnect), and a plain `!python ...` cell dies
+with it. So the bake-off runs *detached* (`lab_notebook.run_detached`): its own process, `/content/lab/bakeoff.log`, an exit-code file; the
+cell only follows the log, and running it again re-attaches instead of starting a second GPU run. The worker keeps every finished job's raw
+GLB for an hour in `/content/lab/worker-jobs`, and the bake-off copies the raw mesh out before it deletes its working folder, so an
+interrupted run reports `INTERRUPTED (SIGINT, not an engine fault)` and still leaves `raw_output.glb`. Section 11 of the notebook
+(`lab_notebook.diagnose`, `rescue_raw_meshes`) prints what happened on the VM and downloads the raw meshes. Exit code 130 means an interrupt
+signal reached the run; an out-of-memory kill would instead show up in the kernel log lines `diagnose` prints.
+
 ### No GPU of your own: try a hosted demo first
 
 If you can open a hosted TRELLIS.2 demo (for example a Hugging Face Space from Microsoft; I could not confirm one from the authoring

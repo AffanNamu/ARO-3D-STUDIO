@@ -265,6 +265,10 @@ def start(engines: list[str], root: Path, port: int, token: str | None) -> dict[
             "127.0.0.1",
             "--port",
             str(port),
+            "--workdir",
+            str(
+                root / "worker-jobs"
+            ),  # a finished job's raw GLB stays here for an hour, whatever happens to the notebook cell
         ],
         env=worker_env(root, token, ready),
         stdout=logf,

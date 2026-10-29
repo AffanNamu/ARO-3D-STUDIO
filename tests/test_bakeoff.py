@@ -148,3 +148,46 @@ def test_run_one_reports_a_licence_refusal_as_blocked_with_the_reason(tmp_path, 
     json.dumps(row)  # the row goes into bakeoff-summary.json
     md = bakeoff.markdown([row])
     assert "**BLOCKED**" in md and "has not been verified" in md
+
+
+def test_an_interrupted_run_keeps_the_raw_mesh_and_says_it_was_interrupted(tmp_path, monkeypatch, capsys):
+    """Colab, 2026-10-29: SIGINT arrived at 97 % ("Exporting fbx"); the working folder was deleted and the GPU run was lost. The raw mesh
+    must be copied out first, and the row must say the run was interrupted, not that the engine failed."""
+    import glob
+    import hashlib
+    import tempfile
+
+    token = "t" * 24
+    app = create_worker([FakeEngine()], token, workdir=tmp_path / "w")  # labelled test double
+    url, server, thread = serve(app)
+
+    class Clock:
+        time = staticmethod(time.time)
+
+        @staticmethod
+        def sleep(seconds: float) -> None:
+            time.sleep(0.05)
+            if glob.glob(str(Path(tempfile.gettempdir()) / "aro_bakeoff_*" / "**" / "raw_output.glb"), recursive=True):
+                raise KeyboardInterrupt  # the engine's mesh exists; now the cell is "interrupted"
+
+    monkeypatch.setattr(bakeoff, "time", Clock)
+    try:
+        image = tmp_path / "truck.png"
+        im = Image.new("RGBA", (96, 64), (200, 40, 40, 255))
+        im.paste((0, 0, 0, 0), (0, 0, 20, 64))
+        buf = io.BytesIO()
+        im.save(buf, "PNG")
+        image.write_bytes(buf.getvalue())
+        out = tmp_path / "out"
+        row = bakeoff.run_one(url, token, "fake", image, "heavy_truck", None, "STANDARD", "fake", 120, out, {})
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        app.state.shutdown()
+    assert row["status"] == "FAIL" and row["interrupted"] is True
+    assert "INTERRUPTED" in row["reason"] and "not an engine fault" in row["reason"]
+    raw = out / "raw_output.glb"
+    assert raw.exists() and row["raw_rescued"] is True
+    assert hashlib.sha256(raw.read_bytes()).hexdigest() == row["raw_sha256"]
+    assert not glob.glob(str(Path(tempfile.gettempdir()) / "aro_bakeoff_*"))  # the working folder is still cleaned up
+    assert "raw mesh kept" in capsys.readouterr().out

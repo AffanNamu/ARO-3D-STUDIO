@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -173,3 +175,89 @@ def test_notebook_is_valid_json_and_never_contains_a_secret_or_a_fixed_token():
         "I_HAVE_READ_THE_MODEL_CARDS = False" in code and "EVALUATE_RESTRICTED = False" in code
     )  # licence gates default closed
     assert "os.environ['ARO_WORKER_TOKEN'] = info['token']" in code and "print(info" not in code
+
+
+# ---- a cell that stops must not take the GPU run with it -----------------------------------------------
+def _interrupt(_seconds: float) -> None:
+    raise KeyboardInterrupt
+
+
+def test_a_detached_run_survives_an_interrupted_cell_and_is_followed_again_not_restarted(tmp_path):
+    """Colab, 2026-10-29: a cell printed ^C at 97 % of a GPU run that nobody stopped, and the run was lost. The run now lives in its own
+    session; interrupting the cell only stops the watching."""
+    log = tmp_path / "run.log"
+    cmd = [sys.executable, "-c", "import time; print('first', flush=True); time.sleep(2); print('second', flush=True)"]
+    said: list[str] = []
+    assert nb.run_detached(cmd, log, tmp_path, sleep=_interrupt, out=said.append) is None
+    assert any("NOT stopped" in m for m in said)
+    first = nb.run_state(log)
+    assert first["state"] == "running"
+    again: list[str] = []
+    assert nb.run_detached(cmd, log, tmp_path, poll_s=0.1, out=again.append) == 0  # re-attached, ran to the end
+    assert any("already in progress" in m for m in again) and "second" in log.read_text()
+    assert (log.with_suffix(".pid")).read_text() == str(first["pid"])  # the same process: no second GPU run was started
+    # an identical SUCCESSFUL run is shown, not repeated, unless asked
+    pid = log.with_suffix(".pid").read_text()
+    shown: list[str] = []
+    assert nb.run_detached(cmd, log, tmp_path, poll_s=0.1, out=shown.append) == 0
+    assert any("already finished successfully" in m for m in shown) and log.with_suffix(".pid").read_text() == pid
+    assert nb.run_detached(cmd, log, tmp_path, rerun=True, poll_s=0.1, out=shown.append) == 0
+    assert log.with_suffix(".pid").read_text() != pid
+
+
+def test_a_failed_detached_run_reports_its_exit_code_and_is_started_afresh(tmp_path):
+    log = tmp_path / "run.log"
+    bad = [sys.executable, "-c", "print('boom', flush=True); raise SystemExit(3)"]
+    assert nb.run_detached(bad, log, tmp_path, poll_s=0.1, out=lambda _m: None) == 3
+    assert nb.run_state(log) == {"state": "finished", "exit_code": 3, "cmd": json.dumps(bad)}
+    fixed = [sys.executable, "-c", "print('ok')"]
+    assert nb.run_detached(fixed, log, tmp_path, poll_s=0.1, out=lambda _m: None) == 0
+    assert "ok" in log.read_text() and "boom" not in log.read_text()
+
+
+def test_a_detached_run_can_be_stopped_on_purpose(tmp_path):
+    log = tmp_path / "run.log"
+    nb.start_detached([sys.executable, "-c", "import time; time.sleep(60)"], log, tmp_path)
+    assert nb.run_state(log)["state"] == "running"
+    assert nb.stop_detached(log) is True
+    end = time.time() + 10
+    while nb.run_state(log)["state"] == "running" and time.time() < end:
+        time.sleep(0.1)
+    assert nb.run_state(log)["state"] == "finished"
+    assert nb.stop_detached(log) is False
+
+
+def test_diagnose_reports_the_facts_and_rescue_keeps_the_raw_meshes(tmp_path):
+    lab = tmp_path / "lab"
+    (lab / "worker-jobs").mkdir(parents=True)
+    glb = lab / "worker-jobs" / ("ab" * 16 + ".glb")
+    glb.write_bytes(b"glTF" + bytes(100))
+    (lab / "worker.log").write_text("INFO started\nINFO job done\n")
+    log = lab / "bakeoff.log"
+    log.write_text("  [triposg] +300s 97% Exporting fbx\n")
+    log.with_suffix(".pid").write_text("999999")  # no such process
+    log.with_suffix(".exit").write_text("130")
+    said: list[str] = []
+    info = nb.diagnose(lab, log, out=said.append)
+    text = "\n".join(said)
+    assert info["bakeoff_run"]["exit_code"] == 130 and info["worker_alive"] is False
+    assert any(f["file"] == str(glb) for f in info["worker_job_files"])
+    assert (
+        "SIGINT" in text and "not an engine fault" in text and "rescue_raw_meshes" in text and "Exporting fbx" in text
+    )
+    z = nb.rescue_raw_meshes(lab, lab / "rescued")
+    assert z is not None
+    with zipfile.ZipFile(z) as zf:
+        names = zf.namelist()
+        listing = json.loads(zf.read("listing.json"))
+    assert "listing.json" in names and any(n.endswith(".glb") for n in names)
+    mine = [e for e in listing if e["sha256"] == __import__("hashlib").sha256(glb.read_bytes()).hexdigest()]
+    assert len(mine) == 1 and mine[0]["bytes"] == glb.stat().st_size  # other workers' files in /tmp may be listed too
+
+
+def test_the_notebook_runs_the_bakeoff_detached_and_has_the_recovery_cells():
+    nbk = json.loads((ROOT / "notebooks" / "aro_engine_lab_colab.ipynb").read_text())
+    code = "\n".join("".join(c["source"]) for c in nbk["cells"] if c["cell_type"] == "code")
+    assert "ln.run_detached(" in code and "!cd /content/aro && python scripts/engine_bakeoff.py" not in code
+    assert "ln.diagnose(" in code and "ln.rescue_raw_meshes(" in code
+    assert "lab/bakeoff.log" in code  # in the failure bundle

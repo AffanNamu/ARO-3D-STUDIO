@@ -6,6 +6,7 @@ import argparse
 import logging
 import os
 import secrets
+from pathlib import Path
 
 import uvicorn
 
@@ -42,6 +43,11 @@ def main() -> None:
     ap.add_argument("--engines", default="trellis2,triposg")
     ap.add_argument("--host", default="0.0.0.0")  # noqa: S104  # nosec B104 - a GPU worker is meant to be reached; the bearer token protects it
     ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument(
+        "--workdir",
+        default=os.environ.get("ARO_WORKER_WORKDIR", ""),
+        help="where finished jobs' GLBs are kept (about an hour); default: a temporary folder",
+    )
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     token = os.environ.get("ARO_WORKER_TOKEN") or secrets.token_urlsafe(24)
@@ -50,7 +56,11 @@ def main() -> None:
             f"\nARO_WORKER_TOKEN={token}\n(generated for this run: set it in the Studio as ARO_WORKER_TOKEN)\n",
             flush=True,
         )
-    app = create_app(build_engines([x.strip() for x in a.engines.split(",") if x.strip()]), token)
+    app = create_app(
+        build_engines([x.strip() for x in a.engines.split(",") if x.strip()]),
+        token,
+        workdir=Path(a.workdir) if a.workdir else None,
+    )
     uvicorn.run(app, host=a.host, port=a.port, log_level="info")
 
 
