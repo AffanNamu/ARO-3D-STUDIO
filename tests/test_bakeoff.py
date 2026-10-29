@@ -150,7 +150,7 @@ def test_run_one_reports_a_licence_refusal_as_blocked_with_the_reason(tmp_path, 
     assert "**BLOCKED**" in md and "has not been verified" in md
 
 
-def test_an_interrupted_run_keeps_the_raw_mesh_and_says_it_was_interrupted(tmp_path, monkeypatch, capsys):
+def interrupted_run(tmp_path, monkeypatch, capsys, slow_step_s: float = 0.0):
     """Colab, 2026-10-29: SIGINT arrived at 97 % ("Exporting fbx"); the working folder was deleted and the GPU run was lost. The raw mesh
     must be copied out first, and the row must say the run was interrupted, not that the engine failed."""
     import glob
@@ -161,14 +161,42 @@ def test_an_interrupted_run_keeps_the_raw_mesh_and_says_it_was_interrupted(tmp_p
     app = create_worker([FakeEngine()], token, workdir=tmp_path / "w")  # labelled test double
     url, server, thread = serve(app)
 
+    private_tmp = (
+        tmp_path / "private-tmp"
+    )  # this test's own temp root: nothing from another test can trigger or fail it
+    private_tmp.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(private_tmp))
+    fired = {"done": False}
+    in_step = {"now": False}
+    if slow_step_s:  # the Studio's job is still mid-flight (inside a preparation step) when the interrupt arrives
+        from aro_studio.processing.service import ProcessingService
+
+        original_run = ProcessingService.run
+
+        def slow_run(self, *args, **kwargs):
+            if not fired["done"]:
+                return original_run(self, *args, **kwargs)
+            in_step["now"] = True
+            try:
+                time.sleep(slow_step_s)
+                return original_run(self, *args, **kwargs)
+            finally:
+                in_step["now"] = False
+
+        monkeypatch.setattr(ProcessingService, "run", slow_run)
+
     class Clock:
         time = staticmethod(time.time)
 
         @staticmethod
         def sleep(seconds: float) -> None:
             time.sleep(0.05)
-            if glob.glob(str(Path(tempfile.gettempdir()) / "aro_bakeoff_*" / "**" / "raw_output.glb"), recursive=True):
-                raise KeyboardInterrupt  # the engine's mesh exists; now the cell is "interrupted"
+            raw_exists = glob.glob(
+                str(Path(tempfile.gettempdir()) / "aro_bakeoff_*" / "**" / "raw_output.glb"), recursive=True
+            )
+            if raw_exists and not fired["done"]:
+                fired["done"] = True
+                raise KeyboardInterrupt  # the engine's mesh exists, the Studio is still preparing it; now the cell is "interrupted"
 
     monkeypatch.setattr(bakeoff, "time", Clock)
     try:
@@ -189,5 +217,19 @@ def test_an_interrupted_run_keeps_the_raw_mesh_and_says_it_was_interrupted(tmp_p
     raw = out / "raw_output.glb"
     assert raw.exists() and row["raw_rescued"] is True
     assert hashlib.sha256(raw.read_bytes()).hexdigest() == row["raw_sha256"]
+    # no preparation step may still be running once the working folder has been deleted
+    assert not in_step["now"], "run_one returned while a Studio job step was still running"
+    # the Studio's job is cancelled and has ENDED before the folder is deleted (CI run 72: it kept writing into a half-deleted folder)
+    assert row["job_state_after_interrupt"] in bakeoff.TERMINAL
     assert not glob.glob(str(Path(tempfile.gettempdir()) / "aro_bakeoff_*"))  # the working folder is still cleaned up
     assert "raw mesh kept" in capsys.readouterr().out
+
+
+def test_an_interrupted_run_keeps_the_raw_mesh_and_says_it_was_interrupted(tmp_path, monkeypatch, capsys):
+    interrupted_run(tmp_path, monkeypatch, capsys)
+
+
+def test_an_interrupted_run_waits_for_the_studio_job_before_deleting_its_folder(tmp_path, monkeypatch, capsys):
+    """REGRESSION (CI run 72): ctx.close() waits only 5 s for the job thread. A step that outlives that kept writing into the folder being
+    deleted and left a half-deleted /tmp/aro_bakeoff_* behind. The job is now cancelled and awaited first."""
+    interrupted_run(tmp_path, monkeypatch, capsys, slow_step_s=8.0)

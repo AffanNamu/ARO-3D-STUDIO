@@ -158,6 +158,8 @@ def run_one(
     row: dict[str, Any] = {"engine": engine_id, "image": image.name, "category": category, "preset": preset}
     blender_av = ctx.exports.blender.availability()
     blender_ok = bool(blender_av["ok"])
+    client: Any = None
+    jid: str | None = None
     try:
         client = TestClient(create_app(ctx))
         t0 = time.time()
@@ -317,13 +319,43 @@ def run_one(
             reason="INTERRUPTED (SIGINT, not an engine fault) while: " + row.get("last_progress", "starting"),
         )
         print(f"  {row['reason']}", flush=True)
+        _stop_job(client, jid, row)
         return row
     finally:
         _rescue_raw(
             ctx, out, row
         )  # before the working folder is deleted: the engine's mesh is the one irreplaceable file
         ctx.close()
-        shutil.rmtree(tmp, ignore_errors=True)
+        _remove_tree(tmp)
+
+
+def _stop_job(client: Any, jid: str | None, row: dict[str, Any], wait_s: float = 90.0) -> None:
+    """Cancel the Studio's job and wait for it to end. Without this the job's thread keeps writing into the working folder that is about
+    to be deleted (and into a database that is about to be closed): CI left a half-deleted folder behind."""
+    if client is None or jid is None:
+        return
+    state = "unknown"
+    try:
+        client.post(f"/api/jobs/{jid}/cancel")
+        end = time.time() + wait_s
+        while time.time() < end:
+            state = client.get(f"/api/jobs/{jid}").json()["state"]
+            if state in TERMINAL:
+                break
+            time.sleep(0.5)
+        row["job_state_after_interrupt"] = state
+    except KeyboardInterrupt:  # a second interrupt: stop waiting
+        row["job_state_after_interrupt"] = f"{state} (not waited for: second interrupt)"
+    except Exception as e:  # noqa: BLE001 - cleanup must not hide the real outcome
+        row["job_cancel_error"] = f"{type(e).__name__}: {e}"
+
+
+def _remove_tree(path: Path, attempts: int = 6) -> None:
+    for _ in range(attempts):
+        shutil.rmtree(path, ignore_errors=True)
+        if not path.exists():
+            return
+        time.sleep(0.5)
 
 
 def _rescue_raw(ctx: Any, out: Path, row: dict[str, Any]) -> None:
