@@ -72,7 +72,7 @@ Findings:
 | R-03 | High | SQLite, local files and in-process threads limit the system to one node. Fine for a local tool, wrong for a hosted product. | `aro_studio/db/database.py`, `aro_studio/jobs/queue.py` |
 | R-04 | Medium | Rate limiting is in-process and keyed by address or token, not by user, and not shared across processes. | `aro_studio/security/ratelimit.py` |
 | R-05 | Medium | No container image scan and no secret-scanning job in CI. | `.github/workflows/ci.yml` |
-| R-06 | Medium | GPL-licensed components are in use: Blender's `bpy` (GPL-3.0, FBX/USD export) and `pymeshlab` (believed GPL-3.0; confirm) in the worker environment. A hosted service is not distribution, but shipping container images is; needs a licence review before any image is published. | `aro_studio/export/blender.py`, `scripts/lab_bootstrap.py` |
+| R-06 | Medium | GPL-licensed components are in use: Blender's `bpy` (GPL-3.0, FBX/USD export) and `pymeshlab` (GPL-3.0 per PyPI metadata) in the worker environment. A hosted service is not distribution, but shipping container images is; needs a licence review before any image is published. | `aro_studio/export/blender.py`, `scripts/lab_bootstrap.py` |
 | R-07 | Low | The repository is public and no project licence has been chosen (owner's decision, recorded in `docs/repository-safety.md`). Do not commit balances, keys or account identifiers. | README |
 
 ## 7. Technical debt and quality history

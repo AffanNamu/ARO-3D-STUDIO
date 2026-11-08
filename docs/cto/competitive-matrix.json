@@ -3,10 +3,10 @@
   "purpose": "Ongoing competitive development tracker against Meshy AI. A capability is complete only when the whole user workflow works.",
   "evidence_grades": {
     "R": "Verified in this repository.",
-    "G": "Read from a primary source fetched in the audit (for example a LICENSE file on GitHub).",
-    "S": "Search summary that cites an official page which could NOT be opened (network policy); treat as unverified at source.",
+    "G": "Read at the primary source during the audit: Meshy's published OpenAPI file and documentation, RunPod and Google Cloud pricing pages, Hugging Face model-card metadata, GitHub LICENSE and source files.",
+    "S": "Search summary citing an official page that was not opened. No Meshy claim in this file remains at this grade.",
     "T": "Third-party site only; unreliable.",
-    "O": "Owner-reported, not verified."
+    "O": "Owner-reported or owner-provided screenshot; not independently verified."
   },
   "status_definitions": {
     "Not investigated": "Nothing looked at yet.",
@@ -45,13 +45,12 @@
       "acceptance": "20 benchmark prompts each give a GLB that passes output validation; prompt adherence rated blind against Meshy on identical prompts; target set by the owner after the baseline.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en/api/pricing",
-          "https://docs.meshy.ai/api/changelog",
-          "https://docs.meshy.ai/openapi.yaml"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "Preview and refine stages are priced separately."
+        "note": "POST /v2/text-to-3d with mode=preview (geometry) then mode=refine (texture); prompt up to 800 characters, negative_prompt, art_style (realistic), texture_prompt or texture_image_url, seed, pose_mode, texture_resolution 2k/4k/8k, optional moderation. Preview 20 credits (meshy-7.1, meshy-6) or 5 (lite, t2, t2.5); refine 10 (15 at 8K)."
       },
       "priority": "P1"
     },
@@ -70,18 +69,18 @@
       "complexity": "High",
       "cost": "Estimate only: see cost model. TripoSR/TripoSG on Colab cost nothing so far.",
       "aro_status": "Implemented but unverified",
-      "aro_evidence": "Studio pipeline and engine plug-ins exist (aro_studio/engines, aro_worker). Real runs: TripoSR on a Colab T4 (4 images, status PARTIAL; vehicles fail the proportion floor). TripoSG finished one job on a T4 per the owner's pasted worker log (7.2 MB GLB; mesh never inspected by me). TRELLIS.2 and Hunyuan3D never run.",
+      "aro_evidence": "Studio pipeline and engine plug-ins exist (aro_studio/engines, aro_worker). Real runs: TripoSR on a Colab T4 (a four-image run whose evidence reader reports PASS with visual quality PENDING_HUMAN_REVIEW, plus earlier single-image runs recorded as PARTIAL; vehicles fail the proportion floor). TripoSG finished one job on a T4 per the owner's pasted worker log (7.2 MB GLB; mesh never inspected by me). TRELLIS.2 and Hunyuan3D never run.",
       "required_work": "Select the engine by experiment E1; deploy on RunPod; add output gates.",
       "acceptance": "20 images: GLB valid for all; vehicle proportions plausible for at least 90 percent; blind comparison with Meshy on identical images reported with raw ratings.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/image-to-3d.md",
-          "https://docs.meshy.ai/api/changelog",
-          "https://docs.meshy.ai/en/api/pricing"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md",
+          "https://docs.meshy.ai/api/models.md"
         ],
-        "note": "Parameters seen: ai_model, should_texture, enable_pbr, should_remesh, topology, target_polycount."
+        "note": "POST /v1/image-to-3d: image_url or input_task_id, ai_model (meshy-6, 6-lite, 7, 7.1, latest, t2, t2.5), model_type standard or smart-topology, should_texture, enable_pbr, texture_model, geometry_resolution standard/2k/4k, image_enhancement, remove_lighting, auto_size, origin_at. 20 credits mesh only, 30 with textures (meshy-7.1)."
       },
       "priority": "P0"
     },
@@ -105,11 +104,12 @@
       "acceptance": "10 object sets: multi-view output beats the best single-view output on blind rating.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/changelog"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "Official changelog says 1 to 4 input images; a third-party guide says 2 to 8 (conflict)."
+        "note": "POST /v1/multi-image-to-3d takes 1 to 4 images (the official limit; a third-party claim of 8 is wrong); 4K geometry is not supported on this endpoint."
       },
       "priority": "P2"
     },
@@ -133,12 +133,12 @@
       "acceptance": "Every enabled engine has measured time, VRAM and cost on the benchmark set.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/de/api/deprecations",
-          "https://docs.meshy.ai/api/image-to-3d.md"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/models.md"
         ],
-        "note": "meshy-7.1 active, meshy-7 deprecated, meshy-6-lite active, meshy-5 deprecated per the deprecations page."
+        "note": "Geometry models: meshy-7.1 (dense detail, up to about 890k faces in the doc example), meshy-6, meshy-6-lite (30k faces, 5 credits), Smart Topology meshy-t2 and t2.5 (triangle-only, set face count). Texture models: meshy-7 (PBR up to 8K), meshy-n1 (base colour, stylised), meshy-6, meshy-6-lite."
       },
       "priority": "P1"
     },
@@ -162,12 +162,12 @@
       "acceptance": "Requested budget met within 5 percent on 20 models; quad mode produces a valid all-quad-dominant mesh.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/image-to-3d.md",
-          "https://docs.meshy.ai/api/changelog"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/models.md"
         ],
-        "note": "target_polycount, topology triangle/quad, is_a_t_pose seen; symmetry_mode not found."
+        "note": "target_polycount 100 to 300,000 (Smart Topology models: up to 15,000 or 30,000), topology triangle or quad (quad not for t2/t2.5), pose_mode a-pose or t-pose, symmetry_mode deprecated and ignored, origin_at, decimation_mode 1-4."
       },
       "priority": "P1"
     },
@@ -191,11 +191,12 @@
       "acceptance": "Each selected format downloads and re-imports.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": "Export list: GLB, FBX, OBJ, STL, USDZ, 3MF."
+        "note": "target_formats on every task; model URLs returned: glb, fbx, gltf, usdz, obj, mtl, vox, blend, stl, 3mf, pre_remeshed_glb."
       },
       "priority": "P1"
     },
@@ -247,11 +248,11 @@
       "acceptance": "Same seed reproduces within tolerance; different seed differs.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/12618267-meshy-workspace-features-and-navigation"
+          "https://docs.meshy.ai/openapi.yaml"
         ],
-        "note": "Not verified in detail."
+        "note": "seed parameter exists on text-to-3D (0 means random) but not on image-to-3D; input_task_id reuses a previous task's input; the web app gives free retries per task on paid plans."
       },
       "priority": "P1"
     },
@@ -275,13 +276,72 @@
       "acceptance": "10 characters rig successfully with E2 and pose correctly.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/changelog"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/models.md"
         ],
-        "note": "is_a_t_pose parameter exists."
+        "note": "pose_mode a-pose/t-pose; the model guide recommends meshy-t2.5 + meshy-n1 for game characters to rig."
       },
       "priority": "P2"
+    },
+    {
+      "id": "A10",
+      "category": "A. AI 3D generation",
+      "name": "Text-to-image and image-to-image (concept generation)",
+      "kind": "AI",
+      "what": "Generate or edit concept images, including multi-view images prepared for 3D.",
+      "workflow": "Describe or upload, pick a model, get images, send one to image-to-3D.",
+      "inputs": "Prompt or image.",
+      "outputs": "Images.",
+      "technology": "Image diffusion/edit models.",
+      "candidates": "FLUX.1-schnell (Apache-2.0, gated=auto, read on the Hub card 2026-11-08); others unverified.",
+      "gpu": "12-24 GB",
+      "complexity": "Medium",
+      "cost": "Estimate only (a few GPU seconds per image).",
+      "aro_status": "Not investigated",
+      "aro_evidence": "None in the repository.",
+      "required_work": "Needed anyway as the first stage of text-to-3D (A1).",
+      "acceptance": "Images generated within the budget; moderation applied.",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
+        ],
+        "note": "Text to Image 3 to 9 credits and Image to Image 3 to 12 credits depending on the image model."
+      },
+      "priority": "P2"
+    },
+    {
+      "id": "A11",
+      "category": "A. AI 3D generation",
+      "name": "Conversational creation agent",
+      "kind": "AI",
+      "what": "Chat that turns an idea, photo or sketch into a set of concepts and then 3D models.",
+      "workflow": "Chat, pick concepts, generate.",
+      "inputs": "Conversation.",
+      "outputs": "Concept batch and models.",
+      "technology": "LLM orchestration over the generation tools.",
+      "candidates": "Any LLM with tool use.",
+      "gpu": "none (LLM API)",
+      "complexity": "High",
+      "cost": "LLM API cost per conversation (not estimated).",
+      "aro_status": "Not investigated",
+      "aro_evidence": "None.",
+      "required_work": "After the generation journeys work; optional.",
+      "acceptance": "n/a",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://www.meshy.ai/pricing",
+          "https://docs.meshy.ai/llms-full.txt"
+        ],
+        "note": "Marketed as '3D Agent' on every paid plan."
+      },
+      "priority": "P3"
     },
     {
       "id": "B1",
@@ -293,7 +353,7 @@
       "inputs": "Same as A2/A1.",
       "outputs": "GLB with base colour (+ metallic/roughness) maps applied.",
       "technology": "Textured 3D generator.",
-      "candidates": "TRELLIS.2 (PBR per secondary sources, T); Step1X-3D (Apache-2.0, G; textures: unverified).",
+      "candidates": "TRELLIS.2 (PBR; code and weights MIT, but evaluation-only until its nvdiffrast, BRIA RMBG-2.0 and DINOv3 blockers are removed, see 05); Step1X-3D (Apache-2.0 code and weights; texture stage and dependencies not yet read); TRELLIS v1 (MIT; base colour only).",
       "gpu": "24-48 GB",
       "complexity": "High",
       "cost": "Estimate only.",
@@ -303,12 +363,12 @@
       "acceptance": "Rendering the exported GLB in Blender shows the texture on the right surfaces (automated sampling test, as in tests/test_blender_export.py).",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/image-to-3d.md",
-          "https://docs.meshy.ai/en/api/pricing"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "should_texture and enable_pbr parameters; texture adds credits."
+        "note": "should_texture (default true), enable_pbr, texture_richness, texture_resolution 2k/4k/8k, texture_prompt/texture_image_url; texture adds 10 credits (15 at 8K) on top of the mesh."
       },
       "priority": "P1"
     },
@@ -332,12 +392,12 @@
       "acceptance": "Retextured GLB keeps geometry and UVs byte-identical and passes alignment test.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/changelog",
-          "https://docs.meshy.ai/en/api/pricing"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "Retexture API exists, 10 credits per task."
+        "note": "POST /v1/retexture: input_task_id or a GLB model_url (meshes up to 7,999,999 triangles with meshy-n1); exactly one style source: text_style_prompt, image_style_url or 1 to 4 multiview_image_urls; art_style realistic/cartoon; enable_original_uv; 10 credits (15 at 8K)."
       },
       "priority": "P2"
     },
@@ -360,10 +420,12 @@
       "required_work": "Verify on E1 meshes; AI inpainting for occluded regions.",
       "acceptance": "Projected colours match the photo at visible surface points within a set tolerance (existing test) and look right to a human reviewer.",
       "meshy": {
-        "offers": "unknown",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": "Image-style options on Meshy retexture not confirmed."
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/openapi.yaml"
+        ],
+        "note": "Image style via image_style_url (at least 32 px per side) and multi-view texture references on retexture and multi-image generation."
       },
       "priority": "P1"
     },
@@ -387,11 +449,12 @@
       "acceptance": "Blender render shows all maps used; Khronos validator clean.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/image-to-3d.md"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/models.md"
         ],
-        "note": "enable_pbr exists; exact map list not opened."
+        "note": "Texture maps returned: base_color, metallic, roughness, normal, emission, metallic_roughness. meshy-n1 gives base colour only; meshy-6 adds an emission map."
       },
       "priority": "P1"
     },
@@ -415,11 +478,12 @@
       "acceptance": "Each size exports and loads in Blender.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en/webapp/pricing"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "An 8K texture option is priced on the web-app pricing page."
+        "note": "texture_resolution 2k, 4k or 8k (8K costs more: +5 credits; not on meshy-6-lite or meshy-n1)."
       },
       "priority": "P2"
     },
@@ -443,11 +507,12 @@
       "acceptance": "Refined version rated better than original in blind comparison.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en/api/pricing"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "Refine stage priced (10 credits)."
+        "note": "Text-to-3D refine and Retexture re-generate texture on existing geometry; both priced per task."
       },
       "priority": "P2"
     },
@@ -553,11 +618,12 @@
       "acceptance": "Quad ratio and flow quality on 20 meshes.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/image-to-3d.md"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "topology quad."
+        "note": "POST /v1/remesh: topology triangle/quad, target_polycount 100 to 300,000, resize options; 5 credits; typical time about 2 minutes."
       },
       "priority": "P2"
     },
@@ -581,11 +647,12 @@
       "acceptance": "Blender sampling test passes (existing).",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/openapi.yaml"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "UV Unwrap API tag exists."
+        "note": "POST /v1/uv-unwrap (GLB input, availability limited, high-poly must be remeshed first): 5 credits, about 35 s."
       },
       "priority": "P1"
     },
@@ -634,10 +701,13 @@
       "required_work": "Learned orientation check on E1 outputs.",
       "acceptance": "Orientation correct on 20 benchmark models.",
       "meshy": {
-        "offers": "not found in the sources searched",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": "absence in search results is not proof Meshy lacks it"
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
+        ],
+        "note": "POST /v1/resize (resize_height, resize_longest_side or auto_size, origin_at): 1 credit; auto_size flag also on generation endpoints."
       },
       "priority": "P1"
     },
@@ -720,6 +790,35 @@
         "note": "geometry_resolution 2k option and a refine stage appear in the API."
       },
       "priority": "P3"
+    },
+    {
+      "id": "C10",
+      "category": "C. Model refinement",
+      "name": "Format conversion service",
+      "kind": "Conventional",
+      "what": "Convert any model to other formats on request.",
+      "workflow": "Pick formats on an existing asset.",
+      "inputs": "Asset + formats.",
+      "outputs": "Files.",
+      "technology": "Exporters.",
+      "candidates": "Own exporters + Blender.",
+      "gpu": "none",
+      "complexity": "Low",
+      "cost": "CPU only.",
+      "aro_status": "Implemented",
+      "aro_evidence": "Export service converts a stored version to GLB, glTF, OBJ, FBX, USD, .blend and Unity package (aro_studio/export, tests/test_export_validation.py, tests/test_blender_export.py).",
+      "required_work": "Per-user access and STL/USDZ/3MF.",
+      "acceptance": "Existing tests plus new formats.",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
+        ],
+        "note": "POST /v1/convert: 1 credit, about 7 s."
+      },
+      "priority": "P2"
     },
     {
       "id": "D1",
@@ -953,11 +1052,13 @@
       "acceptance": "Bone count, weight sanity, plays an animation in Blender.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/changelog"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md",
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": "Launched 10 June 2025 per changelog; humanoid/quadruped scope from third parties."
+        "note": "POST /v1/rigging: biped or quadruped, height_meters; models above 380,000 triangles are rejected (remesh first); 5 credits, about 40 s. Smart Rig (beta, any model type) exists in the web app but cannot use the animation library."
       },
       "priority": "P3"
     },
@@ -981,11 +1082,13 @@
       "acceptance": "Retargeted clip plays correctly.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/api/changelog"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/en/api/animation-library",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "Library size conflicting (500+, 678, 696) in third-party sources."
+        "note": "POST /v1/animations applies library action_ids (IDs run from 0 to 696; about 655 rows parsed from the reference table in categories DailyActions, WalkAndRun, Fighting, BodyMovements, Dancing, Idle), up to 10 per request at 3 credits per action; Text to Motion (prime 10 credits, swift 3 credits) generates custom clips."
       },
       "priority": "P3"
     },
@@ -1046,6 +1149,35 @@
       "priority": "P3"
     },
     {
+      "id": "E5",
+      "category": "E. Character and animation",
+      "name": "Text-to-motion",
+      "kind": "AI",
+      "what": "Generate a custom animation clip from a text description.",
+      "workflow": "Describe a motion, retarget it onto a rigged character.",
+      "inputs": "Prompt + rigged character.",
+      "outputs": "Animated GLB/FBX.",
+      "technology": "Motion generation model + retargeting.",
+      "candidates": "TBD (licence critical).",
+      "gpu": "TBD",
+      "complexity": "High",
+      "cost": "Estimate only.",
+      "aro_status": "Not investigated",
+      "aro_evidence": "None.",
+      "required_work": "Research after E1/E2.",
+      "acceptance": "Clip plays correctly on 5 characters.",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/api/pricing.md",
+          "https://docs.meshy.ai/llms-full.txt"
+        ],
+        "note": "Text to Motion API: prime mode 10 credits, swift mode 3 credits (not in the OpenAPI file; documented on its own page)."
+      },
+      "priority": "P3"
+    },
+    {
       "id": "F1",
       "category": "F. Export and integration",
       "name": "GLB export",
@@ -1065,11 +1197,12 @@
       "acceptance": "Existing tests + Blender job in CI.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": ""
+        "note": "GLB is the default output format."
       },
       "priority": "P0"
     },
@@ -1092,10 +1225,12 @@
       "required_work": "None.",
       "acceptance": "Existing tests.",
       "meshy": {
-        "offers": "unknown",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": ""
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/openapi.yaml"
+        ],
+        "note": "gltf listed among model URL formats."
       },
       "priority": "P2"
     },
@@ -1119,11 +1254,11 @@
       "acceptance": "Existing tests.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/openapi.yaml"
         ],
-        "note": ""
+        "note": "obj and mtl listed."
       },
       "priority": "P1"
     },
@@ -1147,11 +1282,12 @@
       "acceptance": "Engine import verified by the owner.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": ""
+        "note": "fbx listed; rigged FBX with skeleton templates (default Mixamo) for humanoids."
       },
       "priority": "P1"
     },
@@ -1174,10 +1310,12 @@
       "required_work": "None.",
       "acceptance": "Existing tests.",
       "meshy": {
-        "offers": "unknown",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": "USDZ listed by Meshy, not USD."
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/openapi.yaml"
+        ],
+        "note": "usdz, blend and vox listed (USD proper not listed)."
       },
       "priority": "P2"
     },
@@ -1201,11 +1339,11 @@
       "acceptance": "Opens in a slicer.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/openapi.yaml"
         ],
-        "note": ""
+        "note": "stl listed."
       },
       "priority": "P2"
     },
@@ -1229,11 +1367,11 @@
       "acceptance": "Opens in Quick Look / slicer.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/openapi.yaml"
         ],
-        "note": ""
+        "note": "usdz and 3mf listed."
       },
       "priority": "P3"
     },
@@ -1283,11 +1421,11 @@
       "acceptance": "n/a",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en"
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": "Official plugins and a DCC Bridge for Blender, Unity, Unreal, Maya and more."
+        "note": "Official plug-ins plus a 'DCC Bridge' for Blender, Unreal Engine, Unity, Maya, Godot and 3ds Max (each has dedicated documentation); send animated rigged models at 30 fps."
       },
       "priority": "P3"
     },
@@ -1311,12 +1449,12 @@
       "acceptance": "Slicer accepts without repair.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/12618267-meshy-workspace-features-and-navigation",
-          "https://docs.meshy.ai/en/api/pricing"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/api/pricing.md"
         ],
-        "note": "3D Printing module; multi-colour print priced at 10 credits."
+        "note": "3D Print endpoints: analyze printability (free), repair (10), auto split (10), multi-colour print (10), relief (20); plus Creative Lab physical-product generators (keychain, figure, lamp and others, not in the spec)."
       },
       "priority": "P3"
     },
@@ -1340,11 +1478,11 @@
       "acceptance": "RLS test + filter tests.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have"
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": "Community model library also exists (public)."
+        "note": "Web app library and a community model library (downloads unlimited on paid plans)."
       },
       "priority": "P1"
     },
@@ -1500,13 +1638,41 @@
       "acceptance": "Balance equals ledger sum (property test).",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://help.meshy.ai/en/articles/12062933-what-are-your-prices-and-plans-offered-and-do-you-have-monthly-annual-plans"
+          "https://docs.meshy.ai/openapi.yaml"
         ],
-        "note": "Credits reset monthly; permanent/purchased credits do not expire."
+        "note": "GET /v1/balance and GET /v1/usage/tasks list usage records; every task carries consumed_credits."
       },
       "priority": "P1"
+    },
+    {
+      "id": "G8",
+      "category": "G. Assets and projects",
+      "name": "Mobile capture app",
+      "kind": "Platform",
+      "what": "Photograph an object on a phone and get a 3D model.",
+      "workflow": "Take photo, upload, wait.",
+      "inputs": "Photos.",
+      "outputs": "Model.",
+      "technology": "Mobile client calling the API.",
+      "candidates": "Native or PWA.",
+      "gpu": "none",
+      "complexity": "High",
+      "cost": "Engineering time.",
+      "aro_status": "Not investigated",
+      "aro_evidence": "None.",
+      "required_work": "Only after the web product; a PWA with camera upload is the cheap first step.",
+      "acceptance": "n/a",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://www.meshy.ai/pricing"
+        ],
+        "note": "'Meshy App: snap a photo, get a 3D model right from your phone' on the pricing page."
+      },
+      "priority": "P3"
     },
     {
       "id": "H1",
@@ -1527,10 +1693,12 @@
       "required_work": "Supabase Auth; server-side JWT verification.",
       "acceptance": "Unauthenticated and cross-user requests refused (tests).",
       "meshy": {
-        "offers": "not found in the sources searched",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": "absence in search results is not proof Meshy lacks it"
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/llms-full.txt"
+        ],
+        "note": "Accounts with Free, Pro, Premium, Ultra, Studio and Enterprise plans; team accounts share limits."
       },
       "priority": "P0"
     },
@@ -1554,12 +1722,13 @@
       "acceptance": "Property tests: balance never negative; failed jobs release reserve.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en/webapp/pricing",
-          "https://help.meshy.ai/en/articles/12062933-what-are-your-prices-and-plans-offered-and-do-you-have-monthly-annual-plans"
+          "https://docs.meshy.ai/api/pricing.md",
+          "https://www.meshy.ai/pricing",
+          "https://docs.meshy.ai/en/webapp/pricing"
         ],
-        "note": "Failed generations are not charged; cancelled tasks refunded."
+        "note": "Prepaid credits; failed generations are not charged; paid plans: Pro $20 per month for 1,000 credits, Premium $40 for 3,000, Ultra $100 for 8,000 (Free: 100 credits, 1 concurrent task); credits reset monthly, purchased credits do not expire."
       },
       "priority": "P1"
     },
@@ -1582,10 +1751,13 @@
       "required_work": "Implement per 04-architecture.",
       "acceptance": "Duplicate submit makes one job; timeout never double-spends; killed worker is reconciled.",
       "meshy": {
-        "offers": "not found in the sources searched",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": "absence in search results is not proof Meshy lacks it"
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/llms-full.txt",
+          "https://docs.meshy.ai/openapi.yaml"
+        ],
+        "note": "Task lifecycle PENDING, IN_PROGRESS, SUCCEEDED, FAILED (credits refunded on failure); progress 0-100; poll, SSE stream per task, or webhook; asset retention 3 days for non-Enterprise plans."
       },
       "priority": "P0"
     },
@@ -1609,12 +1781,12 @@
       "acceptance": "Contract tests.",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en",
-          "https://docs.meshy.ai/openapi.yaml"
+          "https://docs.meshy.ai/openapi.yaml",
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": "Async REST API, bearer key, OpenAPI spec."
+        "note": "OpenAPI 3.1 at https://api.meshy.ai/openapi, bearer API keys, 88 operations over 54 paths including per-task SSE streams; do not call from browser JavaScript."
       },
       "priority": "P2"
     },
@@ -1638,11 +1810,11 @@
       "acceptance": "n/a",
       "meshy": {
         "offers": "yes",
-        "evidence_grade": "S",
+        "evidence_grade": "G",
         "sources": [
-          "https://docs.meshy.ai/en"
+          "https://docs.meshy.ai/llms-full.txt"
         ],
-        "note": "MCP server for AI agents mentioned in the docs summary."
+        "note": "MCP server for AI agents (tool-calling access)."
       },
       "priority": "P3"
     },
@@ -1665,10 +1837,12 @@
       "required_work": "Per-user limits, max concurrent jobs.",
       "acceptance": "Load tests.",
       "meshy": {
-        "offers": "not found in the sources searched",
-        "evidence_grade": "none",
-        "sources": [],
-        "note": "absence in search results is not proof Meshy lacks it"
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/llms-full.txt"
+        ],
+        "note": "20 requests per second on all plans (Enterprise 100); concurrent tasks Pro 10, Premium 30, Ultra 100, Studio 60; higher plans get queue priority; HTTP 429 with Retry-After."
       },
       "priority": "P0"
     },
@@ -1723,6 +1897,63 @@
         "note": "absence in search results is not proof Meshy lacks it"
       },
       "priority": "P1"
+    },
+    {
+      "id": "H9",
+      "category": "H. Platform",
+      "name": "Plan-based concurrency and queue priority",
+      "kind": "Platform",
+      "what": "Different concurrent-task limits and queue priority per plan.",
+      "workflow": "Automatic.",
+      "inputs": "n/a",
+      "outputs": "Faster start for higher plans.",
+      "technology": "Per-user concurrency + priority queue.",
+      "candidates": "Postgres.",
+      "gpu": "none",
+      "complexity": "Medium",
+      "cost": "Negligible.",
+      "aro_status": "Planned",
+      "aro_evidence": "Single FIFO queue with priority 1-9 exists inside the single-node Studio (aro_studio/jobs); no plans.",
+      "required_work": "Per-user concurrency (H6) first; priority later.",
+      "acceptance": "A user over the limit gets a clear error; priority is honoured in a test.",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/llms-full.txt",
+          "https://www.meshy.ai/pricing"
+        ],
+        "note": "Concurrent tasks and priority differ by plan."
+      },
+      "priority": "P2"
+    },
+    {
+      "id": "H10",
+      "category": "H. Platform",
+      "name": "Asset retention policy",
+      "kind": "Platform",
+      "what": "How long results are kept.",
+      "workflow": "Automatic; users download what they keep.",
+      "inputs": "n/a",
+      "outputs": "Expiry timestamps.",
+      "technology": "R2 lifecycle + soft delete.",
+      "candidates": "R2.",
+      "gpu": "none",
+      "complexity": "Low",
+      "cost": "Storage only.",
+      "aro_status": "Planned",
+      "aro_evidence": "Local storage keeps everything until deleted.",
+      "required_work": "Retention rules per plan with warnings before deletion.",
+      "acceptance": "Expired objects are purged on schedule and users are warned.",
+      "meshy": {
+        "offers": "yes",
+        "evidence_grade": "G",
+        "sources": [
+          "https://docs.meshy.ai/llms-full.txt"
+        ],
+        "note": "Generated assets are retained for 3 days on non-Enterprise plans; tasks expose expires_at."
+      },
+      "priority": "P2"
     }
   ]
 }

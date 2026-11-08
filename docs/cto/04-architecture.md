@@ -14,7 +14,7 @@ Status: **proposal for owner approval; nothing here is built or deployed.** Evid
 | ADR-6 | **Workers hold no storage credentials.** The API hands them short-lived pre-signed URLs to read inputs and write outputs | Limits blast radius of a compromised worker (directive section 11) | Giving workers R2 keys |
 | ADR-7 | **Credits are a reservation ledger** (reserve, capture, release) in Postgres functions; the frontend never computes billing | Directive sections 9 and 11; matches Meshy's "failed generations are not charged" (S) | Counters updated by application code |
 | ADR-8 | **Frontend: Next.js + React + TypeScript + React Three Fiber**, built beside the current UI (strangler pattern) until parity | Needed for the workspace in section D of the directive | Extending the vanilla-JS UI |
-| ADR-9 | **A second GPU provider is a configuration change, not a rewrite.** Cloud Run now lists NVIDIA L4 and RTX PRO 6000 GPUs billed per second (G); availability and quota for this account are unknown | Cost and capacity hedge; to evaluate after E1 | Betting everything on one GPU marketplace |
+| ADR-9 | **A second GPU provider is a configuration change, not a rewrite.** Cloud Run lists NVIDIA L4 and RTX PRO 6000 GPUs billed per second at lower hourly rates than RunPod Serverless for the same VRAM class (G, section 10); quota and availability for this account are unknown | Cost and capacity hedge; to evaluate after E1 | Betting everything on one GPU marketplace |
 
 ## 2. System overview
 
@@ -154,21 +154,23 @@ All numbers are estimates with their basis stated. They are placeholders until e
 | Supabase | $0 on the free plan while building; $25 per month Pro before real users | S (search summary citing Supabase's pricing page; not opened) |
 | R2 | $0 up to 10 GB-month; then $0.015 per GB-month; egress $0 | S |
 | Redis | $0 (deferred) | ADR-3 |
-| RunPod | $0 idle (scale to zero); network volume or cached-model storage cost not yet researched | S for scale-to-zero |
+| RunPod | $0 idle (scale to zero); weights on a network volume $0.07 per GB-month, container disk $0.10 per GB-month | G (RunPod pricing docs) |
 
-**Per successful 3D generation**
+**Per successful 3D generation.** RunPod rates were read from its own pricing page on 2026-11-08 (G): Serverless, billed per second, **24 GB class $0.75 per hour, 48 GB L40-class $1.75, 80 GB A100 $2.72**; cold start is billed, cached-model downloads are not; container disk $0.10 and network volume $0.07 per GB-month; default account spend limit $80 per hour.
 
 | Part | Estimate | Basis |
 |---|---|---|
-| GPU inference, warm | $0.004 to $0.08 | 10 to 60 s (assumption; a secondary source reports about 3 s at 512 resolution and 17 s at 1024 on an H100, T) times $0.00044 to $0.0013 per second (RunPod flex 4090 and A100 80 GB quotes, S, undated) |
-| GPU cold start (model load) | $0.01 to $0.23 | 30 to 180 s (assumption, unmeasured) at the same rates |
-| CPU processing | about $0.007 | 2 vCPU, 4 GiB, 150 s at $0.000018 per vCPU-s and $0.000002 per GiB-s (G prices, measured memory and time R) |
-| Storage per job | about $0.0003 per month | 20 MB at $0.015 per GB-month |
-| **Total** | **about $0.03 to $0.31** | wide on purpose; experiment E1 narrows it |
+| GPU inference, warm | $0.005 to $0.03 | 10 to 60 s (assumption; TRELLIS.2's README reports about 3 s at 512 and 17 s at 1024 on an H100, G) at $0.000486 per second (48 GB class) |
+| GPU cold start (model load) | $0.015 to $0.09 | 30 to 180 s (assumption, unmeasured) at the same rate |
+| CPU processing | about $0.007 | 2 vCPU, 4 GiB, 150 s at Google's Cloud Run prices of $0.000018 per vCPU-s and $0.000002 per GiB-s (G); time and memory measured on a synthetic mesh of the real size (R) |
+| Storage per job | about $0.0003 per month | 20 MB at $0.015 per GB-month (R2, S) |
+| **Total** | **about $0.01 to $0.13** | wide on purpose; experiment E1 narrows it |
 
-For comparison, a textured Meshy-6 image-to-3D task is about $0.60 at the Pro-plan credit price (derived from S figures in `03-meshy-competitive-audit.md`).
+For comparison, a textured Meshy `meshy-7.1` image-to-3D task is **$0.60 on the Pro plan and $0.375 on Ultra** (30 credits; derived from Meshy's own pricing page, G). Cost is not the product, and Meshy's models are different, but ARO is not priced out.
 
-**Runway** for any prepaid GPU balance: `jobs = balance / cost_per_job`. At $0.03 per job one dollar buys about 33 jobs; at $0.31, about 3. Cold starts dominate, so keep Serverless **max workers 1**, a short idle timeout, and cache models on the worker image or a volume instead of downloading them each time (RunPod's documentation ranks cached models first, then baked images, then network volumes, S).
+**Runway** for any prepaid GPU balance: `jobs = balance / cost_per_job`. At $0.012 per job one dollar buys about 80 jobs; at $0.124, about 8. Cold starts dominate, so keep Serverless **max workers 1**, a short idle timeout, and cache models (RunPod's documentation ranks cached models first, then baked images, then network volumes, G). A 30 GB weights volume costs about $2.10 per month at the network-volume rate.
+
+**GPU alternative to price properly.** Google's Cloud Run page (G) bills **NVIDIA L4 (24 GB) at $0.0001867 per second ($0.67 per hour)** and **RTX PRO 6000 (96 GB) at $0.00036522 per second ($1.31 per hour)**, against RunPod Serverless at $0.75 per hour (24 GB class) and $3.49 per hour (96 GB class). Cloud Run GPU needs quota for the project; whether this account can get it, and cold-start behaviour, are unknown. This is why the provider contract (ADR-5, ADR-9) matters.
 
 ## 11. Frontend
 

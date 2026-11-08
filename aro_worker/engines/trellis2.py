@@ -3,10 +3,17 @@
 UNVERIFIED ON HARDWARE until a GPU run is recorded (docs/architecture/product-reassessment.md). Written from the official README and
 pipeline source (microsoft/TRELLIS.2). Licensing notes that matter for a commercial game studio:
 
-* the repository is MIT; the model weights' licence must be read on the model card (https://huggingface.co/microsoft/TRELLIS.2-4B);
-* ``nvdiffrec`` (installed by the upstream setup script, used only to RENDER previews) is licensed NON-COMMERCIAL: this worker never
-  imports it and the install script does not install it. ``nvdiffrast`` is the "1-way commercial" NVIDIA licence (commercial use ok);
-* image conditioning uses DINOv3, a gated Hugging Face model: accept Meta's terms and give the worker an HF_TOKEN.
+* the repository and the TRELLIS.2-4B weights are MIT (code: LICENSE file; weights: Hugging Face model card, read 2026-11-08);
+* **CORRECTION 2026-11-08:** ``nvdiffrast`` is NOT cleared for commercial use. Its licence ("NVIDIA Source Code License (1-Way
+  Commercial)", section 3.3) limits everyone except NVIDIA to "research or evaluation purposes only and not for any direct or indirect
+  monetary gain". Upstream ``o_voxel.postprocess.to_glb`` imports it (it rasterises into UV space to bake textures), so this engine is
+  EVALUATION ONLY until an nvdiffrast-free export exists (docs/cto/05-models-and-licensing.md). An earlier version of this comment said
+  commercial use was fine; that was wrong;
+* ``nvdiffrec`` (installed by the upstream setup script, used only to RENDER previews) is NON-COMMERCIAL: this worker never imports it and
+  the install script does not install it;
+* the upstream pipeline config loads ``briaai/RMBG-2.0`` (CC BY-NC 4.0) as its background remover in ``from_pretrained``; a cut-out input
+  means it is never RUN, but it is still LOADED. Before any commercial use the config must be replaced (an MIT BiRefNet, or no remover);
+* image conditioning uses DINOv3 (Meta's own gated licence, manual approval): accept Meta's terms, read them, and give the worker an HF_TOKEN.
 """
 
 from __future__ import annotations
@@ -36,8 +43,9 @@ class Trellis2Engine(WorkerEngine):
     license = {
         "spdx": "MIT",
         "source_url": "https://github.com/microsoft/TRELLIS.2/blob/main/LICENSE",
-        "commercial_use": "allowed",
-        "notes": "code MIT; weights licence to be read on the model card; do not use nvdiffrec (non-commercial); DINOv3 weights are gated",
+        "commercial_use": "restricted",
+        "notes": "EVALUATION ONLY: code and weights are MIT, but nvdiffrast (needed by the GLB export) is research/evaluation-only for everyone but NVIDIA; "
+        "RMBG-2.0 (CC BY-NC) is loaded by the upstream pipeline; DINOv3 has Meta's gated licence; never install nvdiffrec",
     }
 
     def __init__(self) -> None:

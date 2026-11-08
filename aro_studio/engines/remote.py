@@ -38,10 +38,11 @@ KNOWN: dict[str, dict[str, Any]] = {
         "license": ModelLicense(
             spdx="MIT",
             source_url="https://github.com/microsoft/TRELLIS.2/blob/main/LICENSE",
-            commercial_use="allowed",
+            commercial_use="restricted",
             status="claimed",
-            notes="Code MIT (read 2026-10). Weights licence: read the model card before setting ARO_VERIFIED_MODEL_LICENSES. nvdiffrec "
-            "(non-commercial) must not be installed on the worker; DINOv3 conditioning weights are gated (Meta licence).",
+            notes="EVALUATION ONLY for now. Code and 4B weights are MIT (checked 2026-11-08), but the upstream GLB export imports nvdiffrast "
+            "(NVIDIA licence: research or evaluation only for everyone but NVIDIA), the pipeline loads BRIA RMBG-2.0 (CC BY-NC) and DINOv3 "
+            "(Meta licence, gated). nvdiffrec (non-commercial) must not be installed. See docs/cto/05-models-and-licensing.md.",
         ),
         "description": "Microsoft TRELLIS.2: 4B-parameter image-to-3D with native PBR materials (up to 1536^3). Needs a 24 GB-class GPU.",
         "source_url": "https://github.com/microsoft/TRELLIS.2",

@@ -55,7 +55,7 @@ if want trellis2; then
     pip install --no-deps xformers==0.0.29.post3 --index-url https://download.pytorch.org/whl/cu124 \
       || { echo "xformers build for torch 2.6 not found: pick the matching version from https://pypi.org/project/xformers/ and re-run"; exit 1; }
   fi
-  [[ -d "$EXT/nvdiffrast" ]] || git clone -b v0.4.0 https://github.com/NVlabs/nvdiffrast.git "$EXT/nvdiffrast"   # NVIDIA 1-way commercial licence
+  [[ -d "$EXT/nvdiffrast" ]] || git clone -b v0.4.0 https://github.com/NVlabs/nvdiffrast.git "$EXT/nvdiffrast"   # LICENCE WARNING: NVIDIA Source Code License (1-Way Commercial) = research/evaluation use only for everyone but NVIDIA (section 3.3). EVALUATION ONLY; see docs/cto/05-models-and-licensing.md
   pip install "$EXT/nvdiffrast" --no-build-isolation
   [[ -d "$EXT/CuMesh" ]]   || git clone --recursive https://github.com/JeffreyXiang/CuMesh.git "$EXT/CuMesh"
   pip install "$EXT/CuMesh" --no-build-isolation

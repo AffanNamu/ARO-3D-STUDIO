@@ -1,6 +1,6 @@
 # 02 · Infrastructure audit (Phase 0, task 2)
 
-Audit date: 2026-11-08 · Status: **BLOCKED for all four providers** (no access from the engineering sandbox). This document records what was verified, what was not and why, and gives the owner a short, read-only way to close the gap **without sharing any secret**.
+Audit date: 2026-11-08 · Status: **RunPod PARTIAL** (one owner-provided console screenshot); **Google Cloud, Supabase and Cloudflare R2 BLOCKED** (no access from the engineering sandbox). This document records what was verified, what was not and why, and gives the owner a short, read-only way to close the gap **without sharing any secret**.
 
 The repository is public. Do not add balances, account identifiers, keys or invoice data to it. This file therefore contains no amounts.
 
@@ -15,15 +15,15 @@ The repository is public. Do not add balances, account identifiers, keys or invo
 
 ## 2. What could not be verified, and why
 
-| Provider | Blocker | Evidence |
+| Provider | Blocker or state | Evidence |
 |---|---|---|
 | Google Cloud | `gcloud` 570.0.0 is installed in the sandbox but has **no credentialed account**; only `cloud.google.com` documentation is reachable | `gcloud auth list` printed "No credentialed accounts" (R) |
-| RunPod | `www.runpod.io`, `docs.runpod.io`, `api.runpod.io` return HTTP 403 from the session proxy (network allow-list) | `curl` through the proxy (R) |
+| RunPod | **Account confirmed by an owner-provided screenshot of the console Home page (2026-11-08, grade O):** it shows a prepaid balance matching what the owner reported (amount withheld here), **no Pods listed** (empty "Deploy Pod" panel), and a banner saying **multi-factor authentication is not enabled**. Not yet seen: Serverless endpoints, Storage volumes, Billing page, API keys, auto-pay setting. The sandbox cannot call RunPod's API (`api.runpod.io` returned 403; only the public site and docs were later allowed) | screenshot (O); `curl` (R) |
 | Supabase | `api.supabase.com` returns 403 | same (R) |
 | Cloudflare R2 | `api.cloudflare.com` returns 403 | same (R) |
 | Meshy and Hugging Face | also 403; only search summaries were available | same (R) |
 
-Two attempts to widen the sandbox's network were made. The proposal to add six research hosts could not be shown for approval because the owner's mobile Claude app is too old to display that request, so nothing changed. A newer app or claude.ai on a computer is needed if direct page reading is wanted.
+**Network:** the first request to widen the sandbox's network could not be shown on the owner's phone app. After the owner opened a computer session the same request was approved (2026-11-08): the public sites and documentation of Meshy and RunPod and Hugging Face became readable, which is how the Meshy audit, the RunPod prices and the model licences were completed. No provider **account** access was granted by that change.
 
 The sandbox also exposes `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_CA_BUNDLE` environment variables. They were **not** identified as belonging to ARO, were not used, and their values were never printed.
 
@@ -94,5 +94,7 @@ Code rules (enforced in the design in `04-architecture.md`): per-job deadline, m
 |---|---|
 | INF-01 | No provider can currently be shown to be in use. All four need owner-run verification (section 4) before Phase 3. |
 | INF-02 | The GPU worker has no RunPod entry point; a RunPod handler plus a CPU-processing worker are new work (Phase 4). |
-| INF-03 | The network policy of this sandbox blocks the sources needed for a complete Meshy and licence audit; a newer Claude app or a computer session is needed to widen it. |
+| INF-03 | **Resolved 2026-11-08:** research hosts are now allowed in a dedicated environment; account-level access (billing, endpoints, keys) is still not granted and should stay read-only if it is. |
+| INF-05 | The RunPod account holds prepaid money **without multi-factor authentication**. Enable MFA before any key is created or any endpoint is deployed. |
+| INF-06 | RunPod's default account spend limit is $80 per hour (RunPod docs, G), which is far above any budget here; set the per-endpoint worker maximum to 1 and keep auto-pay off. |
 | INF-04 | Hosting for ordinary backend traffic can plausibly cost nothing to a few dollars a month (see the cost model); the owner's low monthly hosting budget is workable only if heavy CPU work is kept off that machine. |

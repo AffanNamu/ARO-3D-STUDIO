@@ -64,11 +64,13 @@ Runtime Python dependencies of the Studio itself are audited from installed meta
 ## 2b. Engines on the GPU worker (candidates, none verified)
 
 Read from each project's own README/LICENSE files on 2026-10 (see `docs/architecture/product-reassessment.md` section 4). The model
-cards on huggingface.co were **not reachable**, so every status below is **claimed**, and `RemoteEngine` records them as such.
+cards on huggingface.co were **not reachable** then, so every status below was **claimed**, and `RemoteEngine` records them as such.
+
+> **Update 2026-11-08:** Hugging Face became reachable. The weights licences of the shortlisted models were read from their model-card metadata and the dependency chain of TRELLIS.2 was read from its own `pipeline.json` and source. Results and one **correction to this table** (nvdiffrast is *not* commercially usable) are in [docs/cto/05-models-and-licensing.md](cto/05-models-and-licensing.md). Statuses below stay `claimed` until a person records the attestation.
 
 | Engine | Code licence | Weights / outputs | Cautions for ARO | Status |
 |---|---|---|---|---|
-| TRELLIS.2 (`microsoft/TRELLIS.2`) | MIT | read `huggingface.co/microsoft/TRELLIS.2-4B` | `nvdiffrec` (non-commercial) is not installed or imported; `nvdiffrast` is NVIDIA's one-way commercial licence; DINOv3 conditioning is gated (Meta terms, token required); upstream's own background removal must not run (we send a cut-out) | claimed |
+| TRELLIS.2 (`microsoft/TRELLIS.2`) | MIT | read `huggingface.co/microsoft/TRELLIS.2-4B` | **EVALUATION ONLY (corrected 2026-11-08).** Weights MIT. `nvdiffrast`, imported by the GLB export, is research/evaluation-only for everyone but NVIDIA (the earlier note "one-way commercial, acceptable" was wrong); `nvdiffrec` (non-commercial) is not installed or imported; the pipeline loads BRIA RMBG-2.0 (CC BY-NC) even though a cut-out means it never runs; DINOv3 has Meta's own gated licence | claimed |
 | TripoSG (`VAST-AI-Research/TripoSG`) | MIT | read `huggingface.co/VAST-AI/TripoSG` | upstream script uses BRIA RMBG-1.4 (non-commercial): bypassed, cut-out supplied; geometry only | claimed |
 | Hunyuan3D-2.1 (Tencent) | Tencent community licence | same licence text | excludes the EU, UK and South Korea including use of outputs there; separate licence above 1 M monthly active users; outputs may not be used to improve other AI models | **not integrated; needs legal review** |
 | Step1X-3D (StepFun) | Apache-2.0 | read its model card | heavy (27-29 GB) | not integrated |

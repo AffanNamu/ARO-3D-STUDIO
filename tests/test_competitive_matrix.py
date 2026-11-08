@@ -67,9 +67,9 @@ def test_ai_capabilities_that_were_never_run_are_not_marked_implemented():
 def test_meshy_claims_carry_an_evidence_grade_and_official_sources_are_urls():
     for c in CAPS:
         m = c["meshy"]
-        assert m["evidence_grade"] in {"S", "T", "none"}, c[
+        assert m["evidence_grade"] in {"G", "S", "T", "none"}, c[
             "id"
-        ]  # R, G, O describe ARO-side facts; Meshy pages were never opened
+        ]  # G = read in Meshy's own OpenAPI file or documentation
         if m["evidence_grade"] != "none":
             assert m["sources"], c["id"]
         for u in m["sources"]:

@@ -6,10 +6,10 @@
 ## How to read the evidence
 
 * **R**: Verified in this repository.
-* **G**: Read from a primary source fetched in the audit (for example a LICENSE file on GitHub).
-* **S**: Search summary that cites an official page which could NOT be opened (network policy); treat as unverified at source.
+* **G**: Read at the primary source during the audit: Meshy's published OpenAPI file and documentation, RunPod and Google Cloud pricing pages, Hugging Face model-card metadata, GitHub LICENSE and source files.
+* **S**: Search summary citing an official page that was not opened. No Meshy claim in this file remains at this grade.
 * **T**: Third-party site only; unreliable.
-* **O**: Owner-reported, not verified.
+* **O**: Owner-reported or owner-provided screenshot; not independently verified.
 
 ## Status definitions
 
@@ -33,46 +33,49 @@
 
 | Status | Capabilities |
 |---|---|
-| Not investigated | 7 |
+| Not investigated | 11 |
 | Investigated | 3 |
-| Planned | 21 |
+| Planned | 23 |
 | In development | 0 |
-| Implemented | 21 |
+| Implemented | 22 |
 | Implemented but unverified | 9 |
 | Fully tested | 1 |
 | Production ready | 0 |
 
-Total: 62. **No capability is Production ready; claiming parity with Meshy is not supported by any row.**
+Total: 69. **No capability is Production ready; claiming parity with Meshy is not supported by any row.**
 
 ## Overview
 
 | ID | Capability | Kind | Meshy offers it (evidence) | ARO status | Priority |
 |---|---|---|---|---|---|
-| A1 | Text-to-3D | AI | yes (S) | Investigated | P1 |
-| A2 | Image-to-3D (single image) | AI | yes (S) | Implemented but unverified | P0 |
-| A3 | Multi-image-to-3D | AI | yes (S) | Not investigated | P2 |
-| A4 | Model versions and generation styles | AI | yes (S) | Implemented but unverified | P1 |
-| A5 | Geometry controls (polycount, topology, pose) | Mixed | yes (S) | Implemented but unverified | P1 |
-| A6 | Output format selection | Conventional | yes (S) | Implemented | P1 |
+| A1 | Text-to-3D | AI | yes (G) | Investigated | P1 |
+| A2 | Image-to-3D (single image) | AI | yes (G) | Implemented but unverified | P0 |
+| A3 | Multi-image-to-3D | AI | yes (G) | Not investigated | P2 |
+| A4 | Model versions and generation styles | AI | yes (G) | Implemented but unverified | P1 |
+| A5 | Geometry controls (polycount, topology, pose) | Mixed | yes (G) | Implemented but unverified | P1 |
+| A6 | Output format selection | Conventional | yes (G) | Implemented | P1 |
 | A7 | Generation history and versions | Platform | yes (S) | Implemented | P0 |
-| A8 | Regeneration and variations | AI | yes (S) | Planned | P1 |
-| A9 | Character generation | AI | yes (S) | Not investigated | P2 |
-| B1 | AI texture on a generated shape (PBR) | AI | yes (S) | Planned | P1 |
-| B2 | Retexture an existing mesh from text | AI | yes (S) | Investigated | P2 |
-| B3 | Image-guided texturing | Mixed | unknown (none) | Implemented but unverified | P1 |
-| B4 | PBR map set (base, roughness, metallic, normal, AO) | Mixed | yes (S) | Implemented but unverified | P1 |
-| B5 | Texture resolution control | Conventional | yes (S) | Implemented | P2 |
-| B6 | Texture refinement and regeneration | AI | yes (S) | Planned | P2 |
+| A8 | Regeneration and variations | AI | yes (G) | Planned | P1 |
+| A9 | Character generation | AI | yes (G) | Not investigated | P2 |
+| A10 | Text-to-image and image-to-image (concept generation) | AI | yes (G) | Not investigated | P2 |
+| A11 | Conversational creation agent | AI | yes (G) | Not investigated | P3 |
+| B1 | AI texture on a generated shape (PBR) | AI | yes (G) | Planned | P1 |
+| B2 | Retexture an existing mesh from text | AI | yes (G) | Investigated | P2 |
+| B3 | Image-guided texturing | Mixed | yes (G) | Implemented but unverified | P1 |
+| B4 | PBR map set (base, roughness, metallic, normal, AO) | Mixed | yes (G) | Implemented but unverified | P1 |
+| B5 | Texture resolution control | Conventional | yes (G) | Implemented | P2 |
+| B6 | Texture refinement and regeneration | AI | yes (G) | Planned | P2 |
 | B7 | Material preview and inspection | Conventional | yes (S) | Implemented but unverified | P1 |
 | C1 | Mesh cleanup and repair | Conventional | not found in the sources searched (none) | Implemented | P0 |
 | C2 | Polygon reduction | Conventional | yes (S) | Implemented | P0 |
-| C3 | Quad remesh | Conventional | yes (S) | Not investigated | P2 |
-| C4 | UV generation and correction | Conventional | yes (S) | Implemented | P1 |
+| C3 | Quad remesh | Conventional | yes (G) | Not investigated | P2 |
+| C4 | UV generation and correction | Conventional | yes (G) | Implemented | P1 |
 | C5 | Normals and normal-map transfer | Conventional | not found in the sources searched (none) | Implemented | P1 |
-| C6 | Scale and orientation | Mixed | not found in the sources searched (none) | Implemented | P1 |
+| C6 | Scale and orientation | Mixed | yes (G) | Implemented | P1 |
 | C7 | Model validation | Conventional | not found in the sources searched (none) | Implemented | P0 |
 | C8 | LOD and collision generation | Conventional | not found in the sources searched (none) | Implemented | P1 |
 | C9 | AI geometry refinement / detail upscaling | AI | yes (S) | Not investigated | P3 |
+| C10 | Format conversion service | Conventional | yes (G) | Implemented | P2 |
 | D1 | Interactive viewport (orbit, pan, zoom) | Conventional | yes (S) | Implemented | P0 |
 | D2 | Perspective and orthographic views | Conventional | unknown (none) | Planned | P2 |
 | D3 | Selection and transform gizmos | Conventional | unknown (none) | Planned | P2 |
@@ -81,35 +84,39 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 | D6 | Undo and redo | Conventional | unknown (none) | Planned | P3 |
 | D7 | Save and restore projects | Platform | yes (S) | Implemented | P0 |
 | D8 | Compare versions side by side | Conventional | unknown (none) | Planned | P1 |
-| E1 | Auto-rigging (skeleton and skinning) | AI | yes (S) | Investigated | P3 |
-| E2 | Animation library and motion | AI | yes (S) | Not investigated | P3 |
+| E1 | Auto-rigging (skeleton and skinning) | AI | yes (G) | Investigated | P3 |
+| E2 | Animation library and motion | AI | yes (G) | Not investigated | P3 |
 | E3 | Pose and animation preview | Conventional | yes (S) | Planned | P3 |
 | E4 | Rigged export to game engines | Conventional | yes (S) | Planned | P3 |
-| F1 | GLB export | Conventional | yes (S) | Fully tested | P0 |
-| F2 | glTF (separate files) | Conventional | unknown (none) | Implemented | P2 |
-| F3 | OBJ | Conventional | yes (S) | Implemented | P1 |
-| F4 | FBX (Unity and Unreal conventions) | Conventional | yes (S) | Implemented | P1 |
-| F5 | USD and .blend | Conventional | unknown (none) | Implemented | P2 |
-| F6 | STL | Conventional | yes (S) | Planned | P2 |
-| F7 | USDZ and 3MF | Conventional | yes (S) | Planned | P3 |
+| E5 | Text-to-motion | AI | yes (G) | Not investigated | P3 |
+| F1 | GLB export | Conventional | yes (G) | Fully tested | P0 |
+| F2 | glTF (separate files) | Conventional | yes (G) | Implemented | P2 |
+| F3 | OBJ | Conventional | yes (G) | Implemented | P1 |
+| F4 | FBX (Unity and Unreal conventions) | Conventional | yes (G) | Implemented | P1 |
+| F5 | USD and .blend | Conventional | yes (G) | Implemented | P2 |
+| F6 | STL | Conventional | yes (G) | Planned | P2 |
+| F7 | USDZ and 3MF | Conventional | yes (G) | Planned | P3 |
 | F8 | Unity package with verifier | Conventional | not found in the sources searched (none) | Implemented but unverified | P1 |
-| F9 | Engine and DCC plug-ins | Conventional | yes (S) | Not investigated | P3 |
-| F10 | 3D-printing preparation | Conventional | yes (S) | Planned | P3 |
-| G1 | Personal asset library with search and filter | Platform | yes (S) | Implemented but unverified | P1 |
+| F9 | Engine and DCC plug-ins | Conventional | yes (G) | Not investigated | P3 |
+| F10 | 3D-printing preparation | Conventional | yes (G) | Planned | P3 |
+| G1 | Personal asset library with search and filter | Platform | yes (G) | Implemented but unverified | P1 |
 | G2 | Projects and folders | Platform | yes (S) | Implemented | P1 |
 | G3 | Preview thumbnails | Conventional | not found in the sources searched (none) | Planned | P1 |
 | G4 | Asset metadata and versioning | Platform | not found in the sources searched (none) | Implemented | P0 |
 | G5 | Deletion and restoration policy | Platform | not found in the sources searched (none) | Implemented | P1 |
 | G6 | Download management | Platform | not found in the sources searched (none) | Implemented | P0 |
-| G7 | Usage and credit history | Platform | yes (S) | Planned | P1 |
-| H1 | Authentication and accounts | Platform | not found in the sources searched (none) | Planned | P0 |
-| H2 | Credit ledger and billing | Platform | yes (S) | Planned | P1 |
-| H3 | Production job lifecycle | Platform | not found in the sources searched (none) | Planned | P0 |
-| H4 | Public API with keys | Platform | yes (S) | Planned | P2 |
-| H5 | Agent / MCP integration | Platform | yes (S) | Not investigated | P3 |
-| H6 | Rate limits and per-user concurrency | Platform | not found in the sources searched (none) | Implemented but unverified | P0 |
+| G7 | Usage and credit history | Platform | yes (G) | Planned | P1 |
+| G8 | Mobile capture app | Platform | yes (G) | Not investigated | P3 |
+| H1 | Authentication and accounts | Platform | yes (G) | Planned | P0 |
+| H2 | Credit ledger and billing | Platform | yes (G) | Planned | P1 |
+| H3 | Production job lifecycle | Platform | yes (G) | Planned | P0 |
+| H4 | Public API with keys | Platform | yes (G) | Planned | P2 |
+| H5 | Agent / MCP integration | Platform | yes (G) | Not investigated | P3 |
+| H6 | Rate limits and per-user concurrency | Platform | yes (G) | Implemented but unverified | P0 |
 | H7 | Cost tracking and observability | Platform | not found in the sources searched (none) | Planned | P0 |
 | H8 | Security scanning | Platform | not found in the sources searched (none) | Implemented | P1 |
+| H9 | Plan-based concurrency and queue priority | Platform | yes (G) | Planned | P2 |
+| H10 | Asset retention policy | Platform | yes (G) | Planned | P2 |
 
 ## A. AI 3D generation
 
@@ -129,7 +136,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Design only. No text-to-3D code exists (grep over aro_studio, aro_worker, scripts: 0 matches).
 * **Work required:** Text-to-image provider, prompt safety filter, two-stage job, UI, credit pricing.
 * **Acceptance criteria:** 20 benchmark prompts each give a GLB that passes output validation; prompt adherence rated blind against Meshy on identical prompts; target set by the owner after the baseline.
-* **Meshy:** offers: yes (evidence S). Preview and refine stages are priced separately. Sources: [docs.meshy.ai/en/api/pricing](https://docs.meshy.ai/en/api/pricing), [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog), [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
+* **Meshy:** offers: yes (evidence G). POST /v2/text-to-3d with mode=preview (geometry) then mode=refine (texture); prompt up to 800 characters, negative_prompt, art_style (realistic), texture_prompt or texture_image_url, seed, pose_mode, texture_resolution 2k/4k/8k, optional moderation. Preview 20 credits (meshy-7.1, meshy-6) or 5 (lite, t2, t2.5); refine 10 (15 at 8K). Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### A2 Image-to-3D (single image)
 
@@ -144,10 +151,10 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** TripoSR runs on a 15 GB T4; TripoSG ran on a T4 once; TRELLIS.2 README asks 24 GB+ (T).
 * **Implementation complexity:** High
 * **Estimated operating cost:** Estimate only: see cost model. TripoSR/TripoSG on Colab cost nothing so far.
-* **ARO today (evidence):** Studio pipeline and engine plug-ins exist (aro_studio/engines, aro_worker). Real runs: TripoSR on a Colab T4 (4 images, status PARTIAL; vehicles fail the proportion floor). TripoSG finished one job on a T4 per the owner's pasted worker log (7.2 MB GLB; mesh never inspected by me). TRELLIS.2 and Hunyuan3D never run.
+* **ARO today (evidence):** Studio pipeline and engine plug-ins exist (aro_studio/engines, aro_worker). Real runs: TripoSR on a Colab T4 (a four-image run whose evidence reader reports PASS with visual quality PENDING_HUMAN_REVIEW, plus earlier single-image runs recorded as PARTIAL; vehicles fail the proportion floor). TripoSG finished one job on a T4 per the owner's pasted worker log (7.2 MB GLB; mesh never inspected by me). TRELLIS.2 and Hunyuan3D never run.
 * **Work required:** Select the engine by experiment E1; deploy on RunPod; add output gates.
 * **Acceptance criteria:** 20 images: GLB valid for all; vehicle proportions plausible for at least 90 percent; blind comparison with Meshy on identical images reported with raw ratings.
-* **Meshy:** offers: yes (evidence S). Parameters seen: ai_model, should_texture, enable_pbr, should_remesh, topology, target_polycount. Sources: [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md), [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog), [docs.meshy.ai/en/api/pricing](https://docs.meshy.ai/en/api/pricing)
+* **Meshy:** offers: yes (evidence G). POST /v1/image-to-3d: image_url or input_task_id, ai_model (meshy-6, 6-lite, 7, 7.1, latest, t2, t2.5), model_type standard or smart-topology, should_texture, enable_pbr, texture_model, geometry_resolution standard/2k/4k, image_enhancement, remove_lighting, auto_size, origin_at. 20 credits mesh only, 30 with textures (meshy-7.1). Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md), [docs.meshy.ai/api/models.md](https://docs.meshy.ai/api/models.md)
 
 ### A3 Multi-image-to-3D
 
@@ -165,7 +172,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None in the repository.
 * **Work required:** Research which licensed model supports multi-view conditioning; then as A2.
 * **Acceptance criteria:** 10 object sets: multi-view output beats the best single-view output on blind rating.
-* **Meshy:** offers: yes (evidence S). Official changelog says 1 to 4 input images; a third-party guide says 2 to 8 (conflict). Sources: [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog)
+* **Meshy:** offers: yes (evidence G). POST /v1/multi-image-to-3d takes 1 to 4 images (the official limit; a third-party claim of 8 is wrong); 4K geometry is not supported on this endpoint. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### A4 Model versions and generation styles
 
@@ -183,7 +190,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Engine picker and presets exist in the UI and worker (tests with a test double).
 * **Work required:** Registry with licence/verification fields (see 05), per-engine presets measured in E1.
 * **Acceptance criteria:** Every enabled engine has measured time, VRAM and cost on the benchmark set.
-* **Meshy:** offers: yes (evidence S). meshy-7.1 active, meshy-7 deprecated, meshy-6-lite active, meshy-5 deprecated per the deprecations page. Sources: [docs.meshy.ai/de/api/deprecations](https://docs.meshy.ai/de/api/deprecations), [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md)
+* **Meshy:** offers: yes (evidence G). Geometry models: meshy-7.1 (dense detail, up to about 890k faces in the doc example), meshy-6, meshy-6-lite (30k faces, 5 credits), Smart Topology meshy-t2 and t2.5 (triangle-only, set face count). Texture models: meshy-7 (PBR up to 8K), meshy-n1 (base colour, stylised), meshy-6, meshy-6-lite. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/models.md](https://docs.meshy.ai/api/models.md)
 
 ### A5 Geometry controls (polycount, topology, pose)
 
@@ -201,7 +208,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Triangle budget presets and 5-stage decimation exist (aro_studio/processing/ai_pipeline.py); no quad topology; no pose control.
 * **Work required:** Quad remesh option, pose parameter, expose target polycount per request.
 * **Acceptance criteria:** Requested budget met within 5 percent on 20 models; quad mode produces a valid all-quad-dominant mesh.
-* **Meshy:** offers: yes (evidence S). target_polycount, topology triangle/quad, is_a_t_pose seen; symmetry_mode not found. Sources: [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md), [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog)
+* **Meshy:** offers: yes (evidence G). target_polycount 100 to 300,000 (Smart Topology models: up to 15,000 or 30,000), topology triangle or quad (quad not for t2/t2.5), pose_mode a-pose or t-pose, symmetry_mode deprecated and ignored, origin_at, decimation_mode 1-4. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/models.md](https://docs.meshy.ai/api/models.md)
 
 ### A6 Output format selection
 
@@ -219,7 +226,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** POST /api/convert takes a formats list; GLB/glTF/OBJ/Unity package built in, FBX/USD/.blend via Blender when available (tests/test_convert.py, tests/test_blender_export.py).
 * **Work required:** Add STL/3MF/USDZ (F6, F7).
 * **Acceptance criteria:** Each selected format downloads and re-imports.
-* **Meshy:** offers: yes (evidence S). Export list: GLB, FBX, OBJ, STL, USDZ, 3MF. Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). target_formats on every task; model URLs returned: glb, fbx, gltf, usdz, obj, mtl, vox, blend, stl, 3mf, pre_remeshed_glb. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### A7 Generation history and versions
 
@@ -255,7 +262,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Cache and versions exist; no seed/variation control exposed.
 * **Work required:** Seed in request schema, parent_version link, UI.
 * **Acceptance criteria:** Same seed reproduces within tolerance; different seed differs.
-* **Meshy:** offers: yes (evidence S). Not verified in detail. Sources: [help.meshy.ai/en/articles/12618267-meshy-workspace-features-and-navigation](https://help.meshy.ai/en/articles/12618267-meshy-workspace-features-and-navigation)
+* **Meshy:** offers: yes (evidence G). seed parameter exists on text-to-3D (0 means random) but not on image-to-3D; input_task_id reuses a previous task's input; the web app gives free retries per task on paid plans. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### A9 Character generation
 
@@ -273,7 +280,43 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Research; benchmark set for characters.
 * **Acceptance criteria:** 10 characters rig successfully with E2 and pose correctly.
-* **Meshy:** offers: yes (evidence S). is_a_t_pose parameter exists. Sources: [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog)
+* **Meshy:** offers: yes (evidence G). pose_mode a-pose/t-pose; the model guide recommends meshy-t2.5 + meshy-n1 for game characters to rig. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/models.md](https://docs.meshy.ai/api/models.md)
+
+### A10 Text-to-image and image-to-image (concept generation)
+
+*Kind:* AI · *ARO status:* **Not investigated** · *Priority:* P2
+
+* **What it does:** Generate or edit concept images, including multi-view images prepared for 3D.
+* **User workflow:** Describe or upload, pick a model, get images, send one to image-to-3D.
+* **Inputs:** Prompt or image.
+* **Outputs:** Images.
+* **Technology:** Image diffusion/edit models.
+* **Candidate models / services:** FLUX.1-schnell (Apache-2.0, gated=auto, read on the Hub card 2026-11-08); others unverified.
+* **GPU requirements:** 12-24 GB
+* **Implementation complexity:** Medium
+* **Estimated operating cost:** Estimate only (a few GPU seconds per image).
+* **ARO today (evidence):** None in the repository.
+* **Work required:** Needed anyway as the first stage of text-to-3D (A1).
+* **Acceptance criteria:** Images generated within the budget; moderation applied.
+* **Meshy:** offers: yes (evidence G). Text to Image 3 to 9 credits and Image to Image 3 to 12 credits depending on the image model. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
+
+### A11 Conversational creation agent
+
+*Kind:* AI · *ARO status:* **Not investigated** · *Priority:* P3
+
+* **What it does:** Chat that turns an idea, photo or sketch into a set of concepts and then 3D models.
+* **User workflow:** Chat, pick concepts, generate.
+* **Inputs:** Conversation.
+* **Outputs:** Concept batch and models.
+* **Technology:** LLM orchestration over the generation tools.
+* **Candidate models / services:** Any LLM with tool use.
+* **GPU requirements:** none (LLM API)
+* **Implementation complexity:** High
+* **Estimated operating cost:** LLM API cost per conversation (not estimated).
+* **ARO today (evidence):** None.
+* **Work required:** After the generation journeys work; optional.
+* **Acceptance criteria:** n/a
+* **Meshy:** offers: yes (evidence G). Marketed as '3D Agent' on every paid plan. Sources: [www.meshy.ai/pricing](https://www.meshy.ai/pricing), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 
 ## B. AI texturing and materials
@@ -287,14 +330,14 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **Inputs:** Same as A2/A1.
 * **Outputs:** GLB with base colour (+ metallic/roughness) maps applied.
 * **Technology:** Textured 3D generator.
-* **Candidate models / services:** TRELLIS.2 (PBR per secondary sources, T); Step1X-3D (Apache-2.0, G; textures: unverified).
+* **Candidate models / services:** TRELLIS.2 (PBR; code and weights MIT, but evaluation-only until its nvdiffrast, BRIA RMBG-2.0 and DINOv3 blockers are removed, see 05); Step1X-3D (Apache-2.0 code and weights; texture stage and dependencies not yet read); TRELLIS v1 (MIT; base colour only).
 * **GPU requirements:** 24-48 GB
 * **Implementation complexity:** High
 * **Estimated operating cost:** Estimate only.
 * **ARO today (evidence):** TRELLIS.2 plug-in written from upstream docs, never run (aro_worker/engines/trellis2.py). Studio reads vertex colours only; no ORM/PBR map transfer.
 * **Work required:** Run E1; map engine PBR output onto the game mesh; validate texture-to-geometry alignment.
 * **Acceptance criteria:** Rendering the exported GLB in Blender shows the texture on the right surfaces (automated sampling test, as in tests/test_blender_export.py).
-* **Meshy:** offers: yes (evidence S). should_texture and enable_pbr parameters; texture adds credits. Sources: [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md), [docs.meshy.ai/en/api/pricing](https://docs.meshy.ai/en/api/pricing)
+* **Meshy:** offers: yes (evidence G). should_texture (default true), enable_pbr, texture_richness, texture_resolution 2k/4k/8k, texture_prompt/texture_image_url; texture adds 10 credits (15 at 8K) on top of the mesh. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### B2 Retexture an existing mesh from text
 
@@ -312,7 +355,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Licence survey only (05-models-and-licensing).
 * **Work required:** Spike: find one licensed mesh-conditioned texture model; else build on multi-view diffusion with a clear licence.
 * **Acceptance criteria:** Retextured GLB keeps geometry and UVs byte-identical and passes alignment test.
-* **Meshy:** offers: yes (evidence S). Retexture API exists, 10 credits per task. Sources: [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog), [docs.meshy.ai/en/api/pricing](https://docs.meshy.ai/en/api/pricing)
+* **Meshy:** offers: yes (evidence G). POST /v1/retexture: input_task_id or a GLB model_url (meshes up to 7,999,999 triangles with meshy-n1); exactly one style source: text_style_prompt, image_style_url or 1 to 4 multiview_image_urls; art_style realistic/cartoon; enable_original_uv; 10 credits (15 at 8K). Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### B3 Image-guided texturing
 
@@ -330,7 +373,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Camera-by-silhouette projection with visibility and mirrored unseen side, fill by diffusion (aro_studio/texturing/projection.py, tests). Not yet seen on a real stronger-engine mesh.
 * **Work required:** Verify on E1 meshes; AI inpainting for occluded regions.
 * **Acceptance criteria:** Projected colours match the photo at visible surface points within a set tolerance (existing test) and look right to a human reviewer.
-* **Meshy:** offers: unknown (evidence none). Image-style options on Meshy retexture not confirmed. Sources: none
+* **Meshy:** offers: yes (evidence G). Image style via image_style_url (at least 32 px per side) and multi-view texture references on retexture and multi-image generation. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### B4 PBR map set (base, roughness, metallic, normal, AO)
 
@@ -348,7 +391,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Base colour and tangent-space normal bake implemented and Blender-verified on test meshes (aro_studio/textures); roughness, metallic, AO not produced; material presets exist.
 * **Work required:** Metallic-roughness (ORM) packing, AO bake, import of engine PBR.
 * **Acceptance criteria:** Blender render shows all maps used; Khronos validator clean.
-* **Meshy:** offers: yes (evidence S). enable_pbr exists; exact map list not opened. Sources: [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md)
+* **Meshy:** offers: yes (evidence G). Texture maps returned: base_color, metallic, roughness, normal, emission, metallic_roughness. meshy-n1 gives base colour only; meshy-6 adds an emission map. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/models.md](https://docs.meshy.ai/api/models.md)
 
 ### B5 Texture resolution control
 
@@ -366,7 +409,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** 512/1024/2048 supported and validated by POST /api/convert (tests/test_convert.py); 4096 and 8192 not offered.
 * **Work required:** Add 4096/8192 with memory guard.
 * **Acceptance criteria:** Each size exports and loads in Blender.
-* **Meshy:** offers: yes (evidence S). An 8K texture option is priced on the web-app pricing page. Sources: [docs.meshy.ai/en/webapp/pricing](https://docs.meshy.ai/en/webapp/pricing)
+* **Meshy:** offers: yes (evidence G). texture_resolution 2k, 4k or 8k (8K costs more: +5 credits; not on meshy-6-lite or meshy-n1). Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### B6 Texture refinement and regeneration
 
@@ -384,7 +427,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** After B1/B2.
 * **Acceptance criteria:** Refined version rated better than original in blind comparison.
-* **Meshy:** offers: yes (evidence S). Refine stage priced (10 credits). Sources: [docs.meshy.ai/en/api/pricing](https://docs.meshy.ai/en/api/pricing)
+* **Meshy:** offers: yes (evidence G). Text-to-3D refine and Retexture re-generate texture on existing geometry; both priced per task. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### B7 Material preview and inspection
 
@@ -459,7 +502,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Spike and licence check.
 * **Acceptance criteria:** Quad ratio and flow quality on 20 meshes.
-* **Meshy:** offers: yes (evidence S). topology quad. Sources: [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md)
+* **Meshy:** offers: yes (evidence G). POST /v1/remesh: topology triangle/quad, target_polycount 100 to 300,000, resize options; 5 credits; typical time about 2 minutes. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### C4 UV generation and correction
 
@@ -477,7 +520,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** aro_studio/textures; V-orientation bug found and fixed (all textured GLBs before commit 23ca783 were mirrored); regression tests decode the written GLB.
 * **Work required:** UV quality metrics (stretch, seams) in validation.
 * **Acceptance criteria:** Blender sampling test passes (existing).
-* **Meshy:** offers: yes (evidence S). UV Unwrap API tag exists. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
+* **Meshy:** offers: yes (evidence G). POST /v1/uv-unwrap (GLB input, availability limited, high-poly must be remeshed first): 5 credits, about 35 s. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### C5 Normals and normal-map transfer
 
@@ -513,7 +556,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Up-axis detection recovers all six native frames in tests; forward axis is a heuristic (needs_human flag).
 * **Work required:** Learned orientation check on E1 outputs.
 * **Acceptance criteria:** Orientation correct on 20 benchmark models.
-* **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
+* **Meshy:** offers: yes (evidence G). POST /v1/resize (resize_height, resize_longest_side or auto_size, origin_at): 1 credit; auto_size flag also on generation endpoints. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### C7 Model validation
 
@@ -568,6 +611,24 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **Work required:** Research after E1.
 * **Acceptance criteria:** Blind rating improves on 20 meshes.
 * **Meshy:** offers: yes (evidence S). geometry_resolution 2k option and a refine stage appear in the API. Sources: [docs.meshy.ai/api/image-to-3d.md](https://docs.meshy.ai/api/image-to-3d.md)
+
+### C10 Format conversion service
+
+*Kind:* Conventional · *ARO status:* **Implemented** · *Priority:* P2
+
+* **What it does:** Convert any model to other formats on request.
+* **User workflow:** Pick formats on an existing asset.
+* **Inputs:** Asset + formats.
+* **Outputs:** Files.
+* **Technology:** Exporters.
+* **Candidate models / services:** Own exporters + Blender.
+* **GPU requirements:** none
+* **Implementation complexity:** Low
+* **Estimated operating cost:** CPU only.
+* **ARO today (evidence):** Export service converts a stored version to GLB, glTF, OBJ, FBX, USD, .blend and Unity package (aro_studio/export, tests/test_export_validation.py, tests/test_blender_export.py).
+* **Work required:** Per-user access and STL/USDZ/3MF.
+* **Acceptance criteria:** Existing tests plus new formats.
+* **Meshy:** offers: yes (evidence G). POST /v1/convert: 1 credit, about 7 s. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 
 ## D. Workspace and editing
@@ -735,7 +796,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Only a mechanical vehicle node hierarchy exists (aro_studio/animation/rig.py: pivots for wheels/doors; no skeleton).
 * **Work required:** Spike with UniRig on 10 characters.
 * **Acceptance criteria:** Bone count, weight sanity, plays an animation in Blender.
-* **Meshy:** offers: yes (evidence S). Launched 10 June 2025 per changelog; humanoid/quadruped scope from third parties. Sources: [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog)
+* **Meshy:** offers: yes (evidence G). POST /v1/rigging: biped or quadruped, height_meters; models above 380,000 triangles are rejected (remesh first); 5 credits, about 40 s. Smart Rig (beta, any model type) exists in the web app but cannot use the animation library. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### E2 Animation library and motion
 
@@ -753,7 +814,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Licence-clean motion source.
 * **Acceptance criteria:** Retargeted clip plays correctly.
-* **Meshy:** offers: yes (evidence S). Library size conflicting (500+, 678, 696) in third-party sources. Sources: [docs.meshy.ai/api/changelog](https://docs.meshy.ai/api/changelog)
+* **Meshy:** offers: yes (evidence G). POST /v1/animations applies library action_ids (IDs run from 0 to 696; about 655 rows parsed from the reference table in categories DailyActions, WalkAndRun, Fighting, BodyMovements, Dancing, Idle), up to 10 per request at 3 credits per action; Text to Motion (prime 10 credits, swift 3 credits) generates custom clips. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/en/api/animation-library](https://docs.meshy.ai/en/api/animation-library), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 ### E3 Pose and animation preview
 
@@ -791,6 +852,24 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **Acceptance criteria:** Blender re-import compares bones and weights.
 * **Meshy:** offers: yes (evidence S).  Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
 
+### E5 Text-to-motion
+
+*Kind:* AI · *ARO status:* **Not investigated** · *Priority:* P3
+
+* **What it does:** Generate a custom animation clip from a text description.
+* **User workflow:** Describe a motion, retarget it onto a rigged character.
+* **Inputs:** Prompt + rigged character.
+* **Outputs:** Animated GLB/FBX.
+* **Technology:** Motion generation model + retargeting.
+* **Candidate models / services:** TBD (licence critical).
+* **GPU requirements:** TBD
+* **Implementation complexity:** High
+* **Estimated operating cost:** Estimate only.
+* **ARO today (evidence):** None.
+* **Work required:** Research after E1/E2.
+* **Acceptance criteria:** Clip plays correctly on 5 characters.
+* **Meshy:** offers: yes (evidence G). Text to Motion API: prime mode 10 credits, swift mode 3 credits (not in the OpenAPI file; documented on its own page). Sources: [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
+
 
 ## F. Export and integration
 
@@ -810,7 +889,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Writer tests; Khronos validator in CI; Blender re-import and texture sampling on real vehicle meshes; texture V-flip defect found and fixed with regression tests.
 * **Work required:** Per-user signed URLs.
 * **Acceptance criteria:** Existing tests + Blender job in CI.
-* **Meshy:** offers: yes (evidence S).  Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). GLB is the default output format. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### F2 glTF (separate files)
 
@@ -828,7 +907,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** glTF writer exercised in tests/test_export_validation.py and tests/test_gltf_uv_orientation.py (Khronos validator available in CI); not opened in a third-party tool.
 * **Work required:** None.
 * **Acceptance criteria:** Existing tests.
-* **Meshy:** offers: unknown (evidence none).  Sources: none
+* **Meshy:** offers: yes (evidence G). gltf listed among model URL formats. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### F3 OBJ
 
@@ -846,7 +925,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** OBJ/MTL writer covered by tests/test_export_validation.py; texture V orientation (V up) pinned by tests/test_gltf_uv_orientation.py; not opened in a third-party DCC tool.
 * **Work required:** None.
 * **Acceptance criteria:** Existing tests.
-* **Meshy:** offers: yes (evidence S).  Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). obj and mtl listed. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### F4 FBX (Unity and Unreal conventions)
 
@@ -864,7 +943,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** 12 of 12 round trips of real vehicle meshes verified by Blender; CI job installs bpy. Never opened in Unity or Unreal.
 * **Work required:** Open in Unity/Unreal and record.
 * **Acceptance criteria:** Engine import verified by the owner.
-* **Meshy:** offers: yes (evidence S).  Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). fbx listed; rigged FBX with skeleton templates (default Mixamo) for humanoids. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### F5 USD and .blend
 
@@ -882,7 +961,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** USD and .blend written and re-imported by Blender in tests/test_blender_export.py (CI job installs bpy); not opened in other tools.
 * **Work required:** None.
 * **Acceptance criteria:** Existing tests.
-* **Meshy:** offers: unknown (evidence none). USDZ listed by Meshy, not USD. Sources: none
+* **Meshy:** offers: yes (evidence G). usdz, blend and vox listed (USD proper not listed). Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### F6 STL
 
@@ -900,7 +979,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Not in FORMATS.
 * **Work required:** Add exporter + watertight check.
 * **Acceptance criteria:** Opens in a slicer.
-* **Meshy:** offers: yes (evidence S).  Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). stl listed. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### F7 USDZ and 3MF
 
@@ -918,7 +997,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Add after F6.
 * **Acceptance criteria:** Opens in Quick Look / slicer.
-* **Meshy:** offers: yes (evidence S).  Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). usdz and 3mf listed. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### F8 Unity package with verifier
 
@@ -954,7 +1033,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Decide after the web product works.
 * **Acceptance criteria:** n/a
-* **Meshy:** offers: yes (evidence S). Official plugins and a DCC Bridge for Blender, Unity, Unreal, Maya and more. Sources: [docs.meshy.ai/en](https://docs.meshy.ai/en)
+* **Meshy:** offers: yes (evidence G). Official plug-ins plus a 'DCC Bridge' for Blender, Unreal Engine, Unity, Maya, Godot and 3ds Max (each has dedicated documentation); send animated rigged models at 30 fps. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### F10 3D-printing preparation
 
@@ -972,7 +1051,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** After F6/F7.
 * **Acceptance criteria:** Slicer accepts without repair.
-* **Meshy:** offers: yes (evidence S). 3D Printing module; multi-colour print priced at 10 credits. Sources: [help.meshy.ai/en/articles/12618267-meshy-workspace-features-and-navigation](https://help.meshy.ai/en/articles/12618267-meshy-workspace-features-and-navigation), [docs.meshy.ai/en/api/pricing](https://docs.meshy.ai/en/api/pricing)
+* **Meshy:** offers: yes (evidence G). 3D Print endpoints: analyze printability (free), repair (10), auto split (10), multi-colour print (10), relief (20); plus Creative Lab physical-product generators (keychain, figure, lamp and others, not in the spec). Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md)
 
 
 ## G. Assets and projects
@@ -993,7 +1072,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Library page and asset list API exist (single-tenant); search/filter depth not audited.
 * **Work required:** Per-user, indexed search, pagination.
 * **Acceptance criteria:** RLS test + filter tests.
-* **Meshy:** offers: yes (evidence S). Community model library also exists (public). Sources: [help.meshy.ai/en/articles/9991738-what-features-does-meshy-have](https://help.meshy.ai/en/articles/9991738-what-features-does-meshy-have)
+* **Meshy:** offers: yes (evidence G). Web app library and a community model library (downloads unlimited on paid plans). Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### G2 Projects and folders
 
@@ -1101,7 +1180,25 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Ledger (see 04).
 * **Acceptance criteria:** Balance equals ledger sum (property test).
-* **Meshy:** offers: yes (evidence S). Credits reset monthly; permanent/purchased credits do not expire. Sources: [help.meshy.ai/en/articles/12062933-what-are-your-prices-and-plans-offered-and-do-you-have-monthly-annual-plans](https://help.meshy.ai/en/articles/12062933-what-are-your-prices-and-plans-offered-and-do-you-have-monthly-annual-plans)
+* **Meshy:** offers: yes (evidence G). GET /v1/balance and GET /v1/usage/tasks list usage records; every task carries consumed_credits. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
+
+### G8 Mobile capture app
+
+*Kind:* Platform · *ARO status:* **Not investigated** · *Priority:* P3
+
+* **What it does:** Photograph an object on a phone and get a 3D model.
+* **User workflow:** Take photo, upload, wait.
+* **Inputs:** Photos.
+* **Outputs:** Model.
+* **Technology:** Mobile client calling the API.
+* **Candidate models / services:** Native or PWA.
+* **GPU requirements:** none
+* **Implementation complexity:** High
+* **Estimated operating cost:** Engineering time.
+* **ARO today (evidence):** None.
+* **Work required:** Only after the web product; a PWA with camera upload is the cheap first step.
+* **Acceptance criteria:** n/a
+* **Meshy:** offers: yes (evidence G). 'Meshy App: snap a photo, get a 3D model right from your phone' on the pricing page. Sources: [www.meshy.ai/pricing](https://www.meshy.ai/pricing)
 
 
 ## H. Platform
@@ -1122,7 +1219,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Only an optional single shared bearer token (aro_studio/config.py). API binds 0.0.0.0 by default with no auth unless the token is set.
 * **Work required:** Supabase Auth; server-side JWT verification.
 * **Acceptance criteria:** Unauthenticated and cross-user requests refused (tests).
-* **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
+* **Meshy:** offers: yes (evidence G). Accounts with Free, Pro, Premium, Ultra, Studio and Enterprise plans; team accounts share limits. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### H2 Credit ledger and billing
 
@@ -1140,7 +1237,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** Ledger, reservation/refund tests; payment provider choice.
 * **Acceptance criteria:** Property tests: balance never negative; failed jobs release reserve.
-* **Meshy:** offers: yes (evidence S). Failed generations are not charged; cancelled tasks refunded. Sources: [docs.meshy.ai/en/webapp/pricing](https://docs.meshy.ai/en/webapp/pricing), [help.meshy.ai/en/articles/12062933-what-are-your-prices-and-plans-offered-and-do-you-have-monthly-annual-plans](https://help.meshy.ai/en/articles/12062933-what-are-your-prices-and-plans-offered-and-do-you-have-monthly-annual-plans)
+* **Meshy:** offers: yes (evidence G). Prepaid credits; failed generations are not charged; paid plans: Pro $20 per month for 1,000 credits, Premium $40 for 3,000, Ultra $100 for 8,000 (Free: 100 credits, 1 concurrent task); credits reset monthly, purchased credits do not expire. Sources: [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md), [www.meshy.ai/pricing](https://www.meshy.ai/pricing), [docs.meshy.ai/en/webapp/pricing](https://docs.meshy.ai/en/webapp/pricing)
 
 ### H3 Production job lifecycle
 
@@ -1158,7 +1255,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Single-node persistent queue with retries, cancel, timeouts exists (aro_studio/jobs). No idempotency keys, credit reservation or provider reconciliation.
 * **Work required:** Implement per 04-architecture.
 * **Acceptance criteria:** Duplicate submit makes one job; timeout never double-spends; killed worker is reconciled.
-* **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
+* **Meshy:** offers: yes (evidence G). Task lifecycle PENDING, IN_PROGRESS, SUCCEEDED, FAILED (credits refunded on failure); progress 0-100; poll, SSE stream per task, or webhook; asset retention 3 days for non-Enterprise plans. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt), [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
 
 ### H4 Public API with keys
 
@@ -1176,7 +1273,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** Internal API with 58 routes; no keys, no versioning policy.
 * **Work required:** After H1-H3.
 * **Acceptance criteria:** Contract tests.
-* **Meshy:** offers: yes (evidence S). Async REST API, bearer key, OpenAPI spec. Sources: [docs.meshy.ai/en](https://docs.meshy.ai/en), [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
+* **Meshy:** offers: yes (evidence G). OpenAPI 3.1 at https://api.meshy.ai/openapi, bearer API keys, 88 operations over 54 paths including per-task SSE streams; do not call from browser JavaScript. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### H5 Agent / MCP integration
 
@@ -1194,7 +1291,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** None.
 * **Work required:** After H4.
 * **Acceptance criteria:** n/a
-* **Meshy:** offers: yes (evidence S). MCP server for AI agents mentioned in the docs summary. Sources: [docs.meshy.ai/en](https://docs.meshy.ai/en)
+* **Meshy:** offers: yes (evidence G). MCP server for AI agents (tool-calling access). Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### H6 Rate limits and per-user concurrency
 
@@ -1212,7 +1309,7 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **ARO today (evidence):** In-process sliding window keyed by address/token; not per user, not shared across processes.
 * **Work required:** Per-user limits, max concurrent jobs.
 * **Acceptance criteria:** Load tests.
-* **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
+* **Meshy:** offers: yes (evidence G). 20 requests per second on all plans (Enterprise 100); concurrent tasks Pro 10, Premium 30, Ultra 100, Studio 60; higher plans get queue priority; HTTP 429 with Retry-After. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### H7 Cost tracking and observability
 
@@ -1249,3 +1346,39 @@ Total: 62. **No capability is Production ready; claiming parity with Meshy is no
 * **Work required:** Add trivy/grype and secret scan.
 * **Acceptance criteria:** CI fails on high findings.
 * **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
+
+### H9 Plan-based concurrency and queue priority
+
+*Kind:* Platform · *ARO status:* **Planned** · *Priority:* P2
+
+* **What it does:** Different concurrent-task limits and queue priority per plan.
+* **User workflow:** Automatic.
+* **Inputs:** n/a
+* **Outputs:** Faster start for higher plans.
+* **Technology:** Per-user concurrency + priority queue.
+* **Candidate models / services:** Postgres.
+* **GPU requirements:** none
+* **Implementation complexity:** Medium
+* **Estimated operating cost:** Negligible.
+* **ARO today (evidence):** Single FIFO queue with priority 1-9 exists inside the single-node Studio (aro_studio/jobs); no plans.
+* **Work required:** Per-user concurrency (H6) first; priority later.
+* **Acceptance criteria:** A user over the limit gets a clear error; priority is honoured in a test.
+* **Meshy:** offers: yes (evidence G). Concurrent tasks and priority differ by plan. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt), [www.meshy.ai/pricing](https://www.meshy.ai/pricing)
+
+### H10 Asset retention policy
+
+*Kind:* Platform · *ARO status:* **Planned** · *Priority:* P2
+
+* **What it does:** How long results are kept.
+* **User workflow:** Automatic; users download what they keep.
+* **Inputs:** n/a
+* **Outputs:** Expiry timestamps.
+* **Technology:** R2 lifecycle + soft delete.
+* **Candidate models / services:** R2.
+* **GPU requirements:** none
+* **Implementation complexity:** Low
+* **Estimated operating cost:** Storage only.
+* **ARO today (evidence):** Local storage keeps everything until deleted.
+* **Work required:** Retention rules per plan with warnings before deletion.
+* **Acceptance criteria:** Expired objects are purged on schedule and users are warned.
+* **Meshy:** offers: yes (evidence G). Generated assets are retained for 3 days on non-Enterprise plans; tasks expose expires_at. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)

@@ -6,9 +6,9 @@ Status words: PASS, PARTIAL, BLOCKED, FAIL, NOT STARTED. Audit date 2026-11-08.
 
 | Phase | Name | Status | Note |
 |---|---|---|---|
-| 0 | Repository and infrastructure audit | **PARTIAL** | repository audited; infrastructure BLOCKED (no access; owner checklist in `02-infrastructure-audit.md`) |
-| 1 | Meshy competitive audit | **PARTIAL** | matrix of 62 capabilities delivered; Meshy sources read only through search summaries |
-| 2 | Technical architecture | **PARTIAL** | architecture, schema, model and licence assessment delivered as a proposal; awaiting owner approval; weights licences unverified |
+| 0 | Repository and infrastructure audit | **PARTIAL** | repository audited; RunPod account seen in one owner screenshot; Google Cloud, Supabase and R2 still BLOCKED (owner checklist in `02-infrastructure-audit.md`) |
+| 1 | Meshy competitive audit | **PASS** for the documentation and API audit (Meshy's OpenAPI file and docs read at source); **NOT STARTED** for the product-experience audit and any quality comparison | matrix of 69 capabilities |
+| 2 | Technical architecture | **PARTIAL** | architecture, schema, model and licence assessment delivered as a proposal awaiting owner approval; weights licences read from Hub cards; TRELLIS.2 found **evaluation-only** until its blockers are removed |
 | 3-9 | Infrastructure to hardening | NOT STARTED | below |
 
 ## 2. Phases 3 to 9
@@ -24,7 +24,7 @@ Costs are estimates (basis in `04-architecture.md`). "Owner approval" marks anyt
 
 ### Phase 4 · First real generation pipeline (the first honest milestone)
 
-1. **E1** (`05-models-and-licensing.md`): TRELLIS.2 on one 48 GB Pod, capped. *Owner approval.*
+1. **E1** (`05-models-and-licensing.md`): TRELLIS.2, TRELLIS v1, TripoSG and Step1X-3D on one 48 GB Pod (A6000 or A40 at $0.59 per hour, L40S at $1.09, rates read from RunPod's pricing page), capped; evaluation use only. *Owner approval.*
 2. RunPod handler and a versioned worker image for the winning engine; CPU processing job; job state machine with reconciliation and credit reserve/capture/release.
 3. One image in, one validated GLB out: R2, a Postgres asset record and the viewer.
 
@@ -95,6 +95,7 @@ Nothing has been measured yet; this defines how it will be done so results are r
 |---|---|
 | Open models do not match Meshy's quality | choose by measured evidence; consider fine-tuning only through the gate in `docs/architecture/fine-tuning-plan.md` |
 | TRELLIS.2 needs more VRAM or time than assumed | E1 measures before any endpoint is built; provider abstraction allows another host (ADR-9) |
+| **TRELLIS.2's export depends on a non-commercial package (nvdiffrast) and its pipeline loads a non-commercial matting model** | evaluate first; remediate only if E1 shows it is worth it (own UV bake, config without BRIA, DINOv3 licence read); keep TRELLIS v1 and TripoSG plus our texturing as commercially safer fallbacks |
 | Licence surprise in a hidden dependency | read the full dependency chain (`05` section 3) before a model is enabled; DB constraint blocks unverified models |
 | GPU cold starts and availability | scale-to-zero with one worker, cached model images, measure; alternative provider |
 | Budget overrun | per-experiment caps, per-job deadline and cost record, auto-pay off, budget alerts |
