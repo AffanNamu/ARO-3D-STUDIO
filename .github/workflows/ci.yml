@@ -18,9 +18,9 @@ jobs:
       - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
       - run: ruff check .
       - run: ruff format --check .
-      - run: mypy aro_studio aro_worker app.py
-      - run: bandit -q -r aro_studio aro_worker -x aro_studio/ui -ll
-      - run: pip-audit -r requirements.txt
+      - run: mypy aro_studio aro_worker aro_cloud app.py
+      - run: bandit -q -r aro_studio aro_worker aro_cloud -x aro_studio/ui -ll
+      - run: pip-audit -r requirements.txt -r requirements-cloud.txt
       - run: python scripts/audit_licenses.py --check
 
   tests:
@@ -42,6 +42,31 @@ jobs:
           echo "ARO_GLTF_VALIDATOR_NODE_PATH=$RUNNER_TEMP/gv/node_modules" >> "$GITHUB_ENV"
       - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
       - run: pytest --ignore=tests/e2e -q --cov=aro_studio --cov-report=term-missing:skip-covered
+
+  platform:
+    name: Platform · PostgreSQL 16 · S3 API · API (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres  # throwaway database that exists only for this job
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      ARO_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      ARO_CLOUD_TESTS_REQUIRED: "1"  # a missing database is a failure here, never a skip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}", cache: pip }
+      - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
+      - run: pytest tests/cloud -q -rs
 
   e2e:
     name: Browser end-to-end

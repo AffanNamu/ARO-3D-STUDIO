@@ -32,13 +32,15 @@ dependencies = [
 [project.optional-dependencies]
 # AI reconstruction (TripoSR). Heavy: install only on a GPU/torch-capable host.
 triposr = ["torch", "torchvision", "omegaconf==2.3.0", "einops==0.7.0", "transformers==4.35.0", "huggingface-hub", "torchmcubes", "rembg", "onnxruntime"]
-dev = ["pytest>=8", "pytest-cov", "ruff", "mypy", "httpx", "pip-audit", "bandit", "tree-sitter", "tree-sitter-c-sharp", "scikit-image>=0.22"]
+cloud = ["pg8000>=1.31", "boto3>=1.34", "botocore>=1.34", "PyJWT>=2.8", "cryptography>=42"]
+dev = ["pytest>=8", "pytest-cov", "ruff", "mypy", "httpx", "pip-audit", "bandit", "tree-sitter", "tree-sitter-c-sharp", "scikit-image>=0.22", "moto[server]>=5.0"]
 
 [tool.setuptools.packages.find]
-include = ["aro_studio*", "aro_worker*"]
+include = ["aro_studio*", "aro_worker*", "aro_cloud*"]
 
 [tool.setuptools.package-data]
 aro_studio = ["ui/static/**/*", "py.typed", "export/*.cjs", "engines/locks/*.json"]
+aro_cloud = ["migrations/*.sql", "dev/*.sql"]
 
 [tool.ruff]
 line-length = 120

@@ -1,0 +1,8 @@
+# ARO cloud platform (aro_cloud): the multi-user API in front of Supabase, Cloudflare R2 and RunPod Serverless.
+# Installed IN ADDITION to requirements.txt (pip install -r requirements.txt -r requirements-cloud.txt).
+# Every line was chosen for a permissive licence; scripts/audit_licenses.py checks the whole closure (docs/dependency-licenses.md).
+pg8000>=1.31  # BSD-3-Clause, pure Python PostgreSQL driver (psycopg is LGPL-3.0 and was deliberately not used)
+boto3>=1.34  # Apache-2.0; Cloudflare R2 is reached through its S3-compatible API
+botocore>=1.34  # Apache-2.0; boto3's own client library (its exceptions and Config are imported directly)
+PyJWT>=2.8  # MIT; Supabase access-token verification (HS256 secret or ES256/RS256/EdDSA JWKS)
+cryptography>=42  # Apache-2.0 OR BSD-3-Clause; the crypto backend PyJWT uses for the asymmetric (JWKS) algorithms

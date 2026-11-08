@@ -42,15 +42,19 @@ def declared(path: str) -> set[str]:
     return out
 
 
-def third_party_imports() -> set[str]:
+def third_party_imports(package: str = "aro_studio") -> set[str]:
     mods: set[str] = set()
-    for f in (ROOT / "aro_studio").rglob("*.py"):
+    for f in (ROOT / package).rglob("*.py"):
         for node in ast.walk(ast.parse(f.read_text())):
             if isinstance(node, ast.Import):
                 mods |= {a.name.split(".")[0] for a in node.names}
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                 mods.add(node.module.split(".")[0])
-    return {m for m in mods if m not in sys.stdlib_module_names and m not in {"aro_studio", "__future__"}}
+    return {
+        m
+        for m in mods
+        if m not in sys.stdlib_module_names and m not in {"aro_studio", "aro_cloud", "aro_worker", "__future__"}
+    }
 
 
 def test_every_third_party_import_is_declared_in_requirements():
@@ -82,3 +86,22 @@ def test_no_secrets_or_env_files_committed():
     for f in ("Dockerfile", ".env.example", ".github/workflows/ci.yml"):
         text = (ROOT / f).read_text()
         assert not re.search(r"hf_[A-Za-z0-9]{20,}", text) and "BEGIN PRIVATE KEY" not in text, f
+
+
+def test_cloud_platform_imports_are_declared_and_the_extra_matches_requirements_cloud():
+    dist_map = metadata.packages_distributions()
+    req = declared("requirements.txt") | declared("requirements-cloud.txt")
+    missing = []
+    for m in sorted(third_party_imports("aro_cloud")):
+        dists = {norm(d) for d in dist_map.get(m, [m])}
+        if not dists & req:
+            missing.append(f"{m} (distribution {sorted(dists)})")
+    assert not missing, f"aro_cloud imports not declared in requirements*.txt: {missing}"
+    text = (ROOT / "pyproject.toml").read_text()
+    line = next(x for x in text.splitlines() if x.startswith("cloud = ["))
+    extra = {
+        norm(re.split(r"[<>=!~\[ ]", x.strip().strip('",'))[0])
+        for x in line.split("[", 1)[1].rsplit("]", 1)[0].split(",")
+    }
+    assert extra == declared("requirements-cloud.txt"), extra ^ declared("requirements-cloud.txt")
+    assert "aro_cloud*" in text and "migrations/*.sql" in text

@@ -1,6 +1,7 @@
--- ARO 3D AI STUDIO: DRAFT production schema (Supabase / PostgreSQL 15+).
+-- ARO 3D AI STUDIO: production schema, migration 0001 (Supabase / PostgreSQL 15+).
 --
--- STATUS: design proposal. NOT applied to any database. Syntax-checked with the PostgreSQL parser (pglast); never executed.
+-- Applied by `python -m aro_cloud.migrate`. Exercised in CI against a real PostgreSQL 16 (tests/cloud), with the minimum of Supabase's
+-- `auth` schema stubbed (aro_cloud/dev/supabase_stub.sql, dev/CI only). NOT yet applied to the owner's Supabase project.
 -- Principles (docs/cto/04-architecture.md):
 --   * PostgreSQL is the source of truth for jobs, credits and assets. Redis (if added) only coordinates.
 --   * Every user-owned row carries owner_id and is protected by Row Level Security.
@@ -109,18 +110,47 @@ create table model_registry (
   check (not enabled or licence_status = 'verified')        -- an unverified or restricted model can never be enabled
 );
 
+-- ---------------------------------------------------------------------------------------------------------------- uploads
+-- Input images. The API validates content (magic bytes, decode, pixel limits) before the object is stored; clients never write to storage.
+create table uploads (
+  upload_id    uuid primary key default gen_random_uuid(),
+  owner_id     uuid not null references auth.users (id) on delete cascade,
+  r2_key       text not null unique,
+  content_type text not null check (content_type in ('image/png', 'image/jpeg', 'image/webp')),
+  bytes        integer not null check (bytes > 0),
+  sha256       text not null check (sha256 ~ '^[0-9a-f]{64}$'),
+  width        integer not null check (width > 0),
+  height       integer not null check (height > 0),
+  has_alpha    boolean not null,
+  created_at   timestamptz not null default now()
+);
+create index uploads_owner_idx on uploads (owner_id, created_at desc);
+
+-- Models known to the platform. NOTHING is enabled until a person records the licence attestation (python -m aro_cloud.admin verify-model).
+insert into model_registry (model_id, task, version, provider, code_licence_spdx, weights_licence, weights_licence_url, licence_status, enabled) values
+  ('triposg', 'image_to_3d', 'VAST-AI/TripoSG', 'runpod', 'MIT', 'MIT (Hugging Face card, read 2026-11-08)', 'https://huggingface.co/VAST-AI/TripoSG', 'claimed', false),
+  ('trellis2', 'image_to_3d', 'microsoft/TRELLIS.2-4B', 'runpod', 'MIT', 'MIT; but nvdiffrast (non-commercial) is in the export path', 'https://huggingface.co/microsoft/TRELLIS.2-4B', 'evaluation_only', false),
+  ('hunyuan3d', 'image_to_3d', 'tencent/Hunyuan3D-2', 'runpod', 'Tencent Community Licence', 'Tencent Community Licence (excludes EU, UK, South Korea)', 'https://github.com/Tencent-Hunyuan/Hunyuan3D-2/blob/main/LICENSE', 'evaluation_only', false)
+on conflict (model_id) do nothing;
+
 -- ------------------------------------------------------------------------------------------------------------------ jobs
 create table generation_jobs (
   job_id              uuid primary key default gen_random_uuid(),
   owner_id            uuid not null references auth.users (id) on delete cascade,
   project_id          uuid references projects (project_id) on delete set null,
+  upload_id           uuid references uploads (upload_id) on delete set null,
+  name                text not null default 'Untitled' check (char_length(name) between 1 and 120),
   kind                job_kind not null,
   state               job_state not null default 'created',
+  progress            numeric(4, 3) not null default 0 check (progress between 0 and 1),
+  status_message      text,
   idempotency_key     text not null check (char_length(idempotency_key) between 8 and 128),
   request             jsonb not null,                       -- validated request, including settings and input file ids
   request_sha256      text not null,
   model_id            text references model_registry (model_id),
+  provider            text,
   provider_run_id     text,                                 -- e.g. the RunPod job id; the key for reconciliation
+  dispatch_started_at timestamptz,                          -- set BEFORE the provider is called; a run id may or may not exist after a crash
   attempt             integer not null default 0 check (attempt >= 0),
   max_attempts        integer not null default 1 check (max_attempts between 1 and 3),
   credits_reserved    integer not null default 0 check (credits_reserved >= 0),
@@ -208,6 +238,12 @@ begin
   if exists (select 1 from credit_ledger where job_id = p_job and kind = 'reserve') then
     return (select balance from credit_accounts where user_id = p_user);  -- idempotent
   end if;
+  if exists (select 1 from credit_ledger where job_id = p_job and kind in ('capture', 'release')) then
+    raise exception 'job already settled';  -- credits can never be held for a job whose accounting is closed
+  end if;
+  if not exists (select 1 from generation_jobs where job_id = p_job and owner_id = p_user) then
+    raise exception 'unknown job';
+  end if;
   update credit_accounts
      set balance = balance - p_amount, reserved = reserved + p_amount, updated_at = now()
    where user_id = p_user and balance >= p_amount
@@ -239,6 +275,9 @@ begin
   if exists (select 1 from credit_ledger where job_id = p_job and kind in ('capture', 'release')) then
     return;  -- already settled
   end if;
+  if not exists (select 1 from credit_ledger where job_id = p_job and kind = 'reserve') then
+    raise exception 'no reservation for this job';  -- capturing credits that were never held would be a bug, not a no-op
+  end if;
   update credit_accounts set reserved = greatest(reserved - held, 0), updated_at = now() where user_id = p_user;
   insert into credit_ledger (user_id, kind, amount, balance_after, job_id)
   select p_user, 'capture', 0, balance, p_job from credit_accounts where user_id = p_user;
@@ -264,6 +303,9 @@ begin
   if exists (select 1 from credit_ledger where job_id = p_job and kind in ('capture', 'release')) then
     return;  -- already settled
   end if;
+  if not exists (select 1 from credit_ledger where job_id = p_job and kind = 'reserve') then
+    return;  -- nothing was ever held, so there is nothing to give back (and nothing is written)
+  end if;
   update credit_accounts
      set balance = balance + held, reserved = greatest(reserved - held, 0), updated_at = now()
    where user_id = p_user
@@ -273,6 +315,41 @@ begin
 end;
 $$;
 
+-- Make sure a user has a profile and a credit account (idempotent; called by the API on first authenticated request).
+create or replace function ensure_user(p_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into profiles (user_id) values (p_user) on conflict (user_id) do nothing;
+  insert into credit_accounts (user_id) values (p_user) on conflict (user_id) do nothing;
+end;
+$$;
+
+-- Grant credits (owner decision, via python -m aro_cloud.admin grant-credits). Appends to the ledger; never edits it.
+create or replace function grant_credits(p_user uuid, p_amount integer, p_note text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_balance integer;
+begin
+  if p_amount <= 0 then
+    raise exception 'amount must be positive';
+  end if;
+  perform ensure_user(p_user);
+  update credit_accounts set balance = balance + p_amount, updated_at = now() where user_id = p_user returning balance into new_balance;
+  insert into credit_ledger (user_id, kind, amount, balance_after, note) values (p_user, 'grant', p_amount, new_balance, p_note);
+  return new_balance;
+end;
+$$;
+
+revoke all on function ensure_user(uuid) from public, anon, authenticated;
+revoke all on function grant_credits(uuid, integer, text) from public, anon, authenticated;
 revoke all on function reserve_credits(uuid, uuid, integer) from public, anon, authenticated;
 revoke all on function capture_credits(uuid, uuid) from public, anon, authenticated;
 revoke all on function release_credits(uuid, uuid) from public, anon, authenticated;
@@ -283,6 +360,7 @@ alter table profiles        enable row level security;
 alter table credit_accounts enable row level security;
 alter table credit_ledger   enable row level security;
 alter table usage_records   enable row level security;
+alter table uploads         enable row level security;
 alter table projects        enable row level security;
 alter table assets          enable row level security;
 alter table asset_versions  enable row level security;
@@ -299,6 +377,7 @@ create policy profiles_update_own on profiles for update using (user_id = (selec
 create policy credit_accounts_read on credit_accounts for select using (user_id = (select auth.uid()));
 create policy credit_ledger_read   on credit_ledger   for select using (user_id = (select auth.uid()));
 create policy usage_records_read   on usage_records   for select using (user_id = (select auth.uid()));
+create policy uploads_read         on uploads         for select using (owner_id = (select auth.uid()));
 create policy jobs_read            on generation_jobs for select using (owner_id = (select auth.uid()));
 create policy job_events_read      on job_events      for select using (
   exists (select 1 from generation_jobs j where j.job_id = job_events.job_id and j.owner_id = (select auth.uid()))

@@ -1,4 +1,5 @@
 -r requirements.txt
+-r requirements-cloud.txt
 pytest>=8
 pytest-cov
 ruff
@@ -10,3 +11,4 @@ playwright
 tree-sitter
 tree-sitter-c-sharp
 scikit-image>=0.22  # the CPU marching-cubes stand-in for diso (aro_worker/shims) is tested against the real thing
+moto[server]>=5.0  # Apache-2.0; S3-compatible server standing in for Cloudflare R2 in tests/cloud (test-only)
