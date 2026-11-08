@@ -40,6 +40,8 @@ from aro_cloud.providers.base import (
 from aro_cloud.schemas import CreateGeneration, WorkerResult
 from aro_cloud.settings import CloudSettings
 from aro_cloud.storage import ObjectStore, ObjectTooLarge, StorageError
+from aro_studio.assets import taxonomy
+from aro_studio.core.errors import InvalidInputError
 
 log = logging.getLogger("aro_cloud.orchestrator")
 
@@ -105,6 +107,12 @@ class Orchestrator:
                 details={"offered": self.s.engines},
                 code="engine_not_offered",
             )
+        try:
+            taxonomy.require_creatable(
+                body.settings.category
+            )  # fail before any credit is held, not after a GPU has been paid for
+        except InvalidInputError as e:
+            raise InvalidRequest(str(e), recommended_action=e.recommended_action, code="invalid_category") from None
         request = body.model_dump(mode="json")
         sha = hashlib.sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         price = self.s.price_image_to_3d

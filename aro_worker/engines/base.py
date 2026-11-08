@@ -72,6 +72,10 @@ def require_cutout(image: Image.Image, min_ratio: float = 0.01) -> Image.Image:
 class WorkerEngine(ABC):
     id: str
     name: str
+    test_double: bool = (
+        False  # True only for engines that produce NON-AI placeholder output (never offered in production)
+    )
+    resident: bool = False  # weights are loaded in memory (a warm serverless worker keeps them between jobs)
     version: str  # what actually ran (resolved model revision when known)
     vram_mb: int  # documented minimum for the default preset
     license: dict[

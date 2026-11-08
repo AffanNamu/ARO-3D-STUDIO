@@ -18,6 +18,7 @@ from aro_worker.engines.base import Cancelled, WorkerEngine, WorkerResult
 class FakeEngine(WorkerEngine):
     id = "fake"
     name = "TEST DOUBLE (procedural, NOT AI)"
+    test_double = True
     version = "fake-1"
     vram_mb = 0
     license = {"spdx": "MIT", "source_url": "https://github.com/", "commercial_use": "allowed", "notes": "test double"}

@@ -76,7 +76,7 @@ def body(**over):
 
 def test_a_minimal_request_gets_safe_defaults():
     r = CreateGeneration.model_validate(body())
-    assert r.engine == "triposg" and r.settings.preset == "STANDARD" and r.settings.target_faces == 30_000
+    assert r.engine == "triposg" and r.settings.preset == "STANDARD" and r.settings.target_faces == 24_000
 
 
 @pytest.mark.parametrize(

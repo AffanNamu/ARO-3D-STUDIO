@@ -6,7 +6,9 @@ import re
 import uuid
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from aro_cloud.keys import JOB_FILES
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
@@ -21,7 +23,7 @@ class GenerationSettings(BaseModel):
     seed: int | None = Field(
         None, ge=0, le=2**31 - 1
     )  # None: the engine's default; same seed + same image reproduces the shape
-    target_faces: int = Field(30_000, ge=2_000, le=200_000)  # triangle budget of LOD0 after preparation
+    target_faces: int = Field(24_000, ge=2_000, le=25_000)  # triangle budget of LOD0 after preparation
     category: str = Field("other", min_length=1, max_length=40)  # asset category (orientation and proportion rules)
     length_m: float | None = Field(None, gt=0, le=60)  # real length in metres, when the user knows it
     texture_resolution: Literal[512, 1024, 2048] = 1024
@@ -70,3 +72,41 @@ class WorkerResult(BaseModel):
     stats: dict[str, Any] = Field(default_factory=dict)
     validation: dict[str, Any] = Field(default_factory=dict)
     error: dict[str, Any] | None = None
+
+
+# ---------------------------------------------------------------------------------------------- what the RunPod handler receives
+class WorkerImage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    get_url: str = Field(min_length=10, max_length=4096)  # pre-signed GET for the one input image
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    bytes: int = Field(gt=0, le=10_000_000)
+    content_type: Literal["image/png", "image/jpeg", "image/webp"]
+
+
+class WorkerOutputSpec(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    put_url: str = Field(
+        min_length=10, max_length=4096
+    )  # pre-signed PUT for exactly one key; the worker holds no storage credentials
+    content_type: str = Field(min_length=3, max_length=100)
+
+
+class WorkerInput(BaseModel):
+    """The ``input`` of a RunPod /run call. Shared by the API (which builds it) and the handler (which parses it), so a contract test
+    catches drift. Unknown fields are ignored so an older worker image keeps working while the API is upgraded first."""
+
+    model_config = ConfigDict(extra="ignore")
+    schema_version: Literal[1]
+    job_id: uuid.UUID
+    kind: Literal["image_to_3d"]
+    engine: str = Field(min_length=1, max_length=40)
+    image: WorkerImage
+    settings: GenerationSettings
+    outputs: dict[str, WorkerOutputSpec]
+    limits: dict[str, int] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _outputs_are_the_fixed_set(self) -> WorkerInput:
+        if set(self.outputs) != set(JOB_FILES):
+            raise ValueError("outputs must be exactly: " + ", ".join(sorted(JOB_FILES)))
+        return self
