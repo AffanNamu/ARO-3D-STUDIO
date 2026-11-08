@@ -243,7 +243,7 @@ def _from_pipeline(e: PipelineError) -> HandlerError:
     log.warning("pipeline stopped: %s %s - %s | %s", e.state, e.code, e.message, e.recommended_action)
     code = e.code.lower()
     if e.code in ("INVALID_INPUT", "UNSUPPORTED_INPUT", "IMAGE_REJECTED") or e.state == "INVALID_INPUT":
-        return HandlerError("invalid_image", e.message)
+        return HandlerError("invalid_input", e.message)
     if e.code in ("ENGINE_UNAVAILABLE", "LICENSE_NOT_VERIFIED") or e.state == "REJECTED":
         return HandlerError("engine_unavailable", "The GPU worker cannot run this model right now.", retryable=False)
     if e.code == "RESOURCE_LIMIT" or e.state == "RESOURCE_LIMIT":

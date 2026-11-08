@@ -68,6 +68,26 @@ jobs:
       - run: pip install -r requirements-dev.txt && pip install -e . --no-deps
       - run: pytest tests/cloud -q -rs
 
+  web:
+    name: Web app · types · tests · build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: apps/web/package-lock.json }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+        env:  # build-time placeholders only: these public values are not secrets and no network call is made during the build
+          NEXT_PUBLIC_API_URL: https://api.example.test
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder-not-a-real-key
+
   e2e:
     name: Browser end-to-end
     runs-on: ubuntu-latest

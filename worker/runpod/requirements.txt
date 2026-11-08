@@ -1,0 +1,19 @@
+# Python packages for the RunPod worker image, installed ON TOP of the base image's PyTorch and the Studio's requirements.txt.
+# Licence review of this closure (2026-11-08, installed in a clean venv): docs/runpod-worker.md. Every package is permissive except
+# paramiko (LGPL-2.1, pulled in by the runpod SDK for its SSH/CLI helpers; unmodified, never imported by the serverless handler path).
+runpod>=2.1,<3  # MIT: the serverless worker loop (runpod.serverless.start)
+# --- TripoSG runtime (upstream requirements.txt at the pinned commit, minus: pymeshlab GPL-3.0, diso CC BY-NC, numpy==1.22.3 pin) ---
+diffusers>=0.32
+transformers>=4.46
+einops>=0.8
+omegaconf>=2.3
+scikit-image>=0.24
+opencv-python-headless>=4.10  # Apache-2.0; its wheels bundle FFmpeg libraries under LGPL (dynamically linked, unmodified)
+peft>=0.14
+jaxtyping>=0.2.36
+typeguard>=4.4
+safetensors>=0.4
+huggingface_hub>=0.26
+# --- Studio matting (explicit, permissively licensed models only; see aro_studio/imaging/matting.py) ---
+rembg>=2.0.60
+onnxruntime>=1.20

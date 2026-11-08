@@ -321,7 +321,7 @@ def test_oversized_output_is_refused_before_upload(store):
 @pytest.mark.parametrize(
     ("e", "code", "retryable"),
     [
-        (PipelineError("INVALID_INPUT", "The image is too small.", "INVALID_INPUT"), "invalid_image", False),
+        (PipelineError("INVALID_INPUT", "The image is too small.", "INVALID_INPUT"), "invalid_input", False),
         (
             PipelineError("ENGINE_UNAVAILABLE", "ARO_VERIFIED_MODEL_LICENSES secret detail", "REJECTED"),
             "engine_unavailable",
