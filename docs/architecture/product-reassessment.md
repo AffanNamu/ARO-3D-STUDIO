@@ -1,5 +1,7 @@
 # Product reassessment: from a TripoSR wrapper to a game-asset generation platform
 
+> **Direction update 2026-11-08:** the product goal and architecture are now defined in [docs/cto/](../cto/README.md) (audit, competitive matrix, architecture, model assessment, roadmap). This document is kept for its measured evidence and history; where it conflicts with `docs/cto/`, `docs/cto/` wins.
+
 Written 2026-10-26 after the owner rejected the direction of the project. This document is the decision, the evidence behind it,
 the roadmap tied to this repository, and an honest account of what exists and what does not. Status words: PASS / PARTIAL /
 BLOCKED / FAIL only.

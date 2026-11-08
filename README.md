@@ -14,7 +14,7 @@ short_description: Production 3D asset pipeline for African Online Roads
 
 The internal **3D asset factory** for [African Online Roads](#relationship-to-african-online-roads): reference image → analysis → preprocessing → image-to-3D → geometry → materials → textures → vehicle setup → collision → LOD → validation → 3D preview → immutable versions → GLB / glTF / OBJ / **Unity 6 package**.
 
-Zero-budget by design (₦0): open-source stack, no paid APIs, no paid hosting, no paid GPU. Nothing is faked: where something cannot run, the Studio says exactly why and how to activate it.
+Zero-budget by default: open-source stack, no paid APIs, no paid hosting, no paid GPU, and nothing is spent without the owner's approval (the owner reports small prepaid GPU and cloud balances as of 2026-11-08; none is verified or in use). Nothing is faked: where something cannot run, the Studio says exactly why and how to activate it.
 
 ## Direction (reassessed 2026-10-26)
 
@@ -25,6 +25,8 @@ swappable engines on a **GPU worker** ([docs/architecture/gpu-worker.md](docs/ar
 second, TripoSR kept as the free local draft engine. **No TRELLIS.2 / TripoSG output exists yet**: they need a 24 GB-class GPU session,
 which is outside the zero-budget envelope below unless you already have one. Every result is measured against its reference image
 (`scripts/score_model.py`, `scripts/engine_bakeoff.py`). The wider product vision and work packages are in [docs/architecture/platform-roadmap.md](docs/architecture/platform-roadmap.md); the next experiment is the Colab engine lab ([notebooks/aro_engine_lab_colab.ipynb](notebooks/aro_engine_lab_colab.ipynb): TripoSG on a free T4, compared with the TripoSR results already measured); the conditional fine-tuning plan is [docs/architecture/fine-tuning-plan.md](docs/architecture/fine-tuning-plan.md).
+
+**Update 2026-11-08: product direction.** The goal is now a Meshy-class, multi-user AI 3D platform (accounts, credits, cloud storage, GPU inference, workspace). The audit, competitive matrix, architecture proposal, model/licence assessment and roadmap are in [docs/cto/](docs/cto/README.md). It keeps this repository's processing code and replaces only the single-user shell; nothing in it is built or deployed yet.
 
 ## Current status (read this first)
 

@@ -1,5 +1,7 @@
 # ARO 3D Studio: platform vision and roadmap
 
+> **Direction update 2026-11-08:** the product goal and architecture are now defined in [docs/cto/](../cto/README.md) (audit, competitive matrix, architecture, model assessment, roadmap). This document is kept for its measured evidence and history; where it conflicts with `docs/cto/`, `docs/cto/` wins.
+
 Written 2026-10-26, after the owner widened the goal: not a TripoSR fixer or a basic converter, but a 3D creation and asset-production
 platform that serves African Roads Online (ARO) first (vehicles, interiors, roads, buildings, environments, with a GTA-level visual
 ambition) and other creators after. This document is the map from that vision to the repository. The engine decision and the measured
