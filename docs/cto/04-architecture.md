@@ -1,6 +1,6 @@
 # 04 · Technical architecture (Phase 2, proposal)
 
-Status: **proposal for owner approval; nothing here is built or deployed.** Evidence grades as in [`competitive-matrix.md`](competitive-matrix.md). Companion files: [`schema.sql`](schema.sql) (database, syntax-checked only), [`05-models-and-licensing.md`](05-models-and-licensing.md), [`06-roadmap.md`](06-roadmap.md).
+Status: **proposal, now partly implemented** (see [../platform/README.md](../platform/README.md) for what is built, tested and still unverified against the owner's accounts; deviations from the API table below are listed there). Nothing is deployed. Evidence grades as in [`competitive-matrix.md`](competitive-matrix.md). Companion files: [`aro_cloud/migrations/0001_init.sql`](../../aro_cloud/migrations/0001_init.sql) (database; exercised in CI on PostgreSQL 16), [`05-models-and-licensing.md`](05-models-and-licensing.md), [`06-roadmap.md`](06-roadmap.md).
 
 ## 1. Decisions (ADRs)
 
@@ -131,7 +131,7 @@ Images are versioned (`aro-worker-trellis2:<git-sha>`); the model registry store
 |---|---|---|
 | Secure authentication | Supabase Auth; API verifies the JWT signature and expiry on every request | auth tests |
 | Server-side authorisation | `owner_id` checked in every query and by RLS | cross-user access tests (must return 404/403) |
-| Row Level Security | policies in `schema.sql`; money and job tables are read-only for clients | RLS tests against a real Postgres in CI |
+| Row Level Security | policies in `aro_cloud/migrations/0001_init.sql`; money and job tables are read-only for clients | RLS tests against a real Postgres in CI (`tests/cloud/test_schema_and_credits.py`): PASS |
 | Secrets | environment or secret manager only; provider keys never reach the browser or the repository | secret-scan job (to add) |
 | Signed URLs | TTL minutes; scope one object | expiry test |
 | Input validation, file limits | content sniffing, size, pixel and prompt limits (existing code reused) | existing tests |

@@ -9,7 +9,9 @@ Status words: PASS, PARTIAL, BLOCKED, FAIL, NOT STARTED. Audit date 2026-11-08.
 | 0 | Repository and infrastructure audit | **PARTIAL** | repository audited; RunPod account seen in one owner screenshot; Google Cloud, Supabase and R2 still BLOCKED (owner checklist in `02-infrastructure-audit.md`) |
 | 1 | Meshy competitive audit | **PASS** for the documentation and API audit (Meshy's OpenAPI file and docs read at source); **NOT STARTED** for the product-experience audit and any quality comparison | matrix of 69 capabilities |
 | 2 | Technical architecture | **PARTIAL** | architecture, schema, model and licence assessment delivered as a proposal awaiting owner approval; weights licences read from Hub cards; TRELLIS.2 found **evaluation-only** until its blockers are removed |
-| 3-9 | Infrastructure to hardening | NOT STARTED | below |
+| 3 | Infrastructure | **PARTIAL** | code, migrations and CI (PostgreSQL service, S3-compatible server) done; no Supabase, R2, Cloud Run or budget alert exists yet: owner steps in `docs/platform/owner-setup.md` |
+| 4 | First real generation pipeline | **PARTIAL** | orchestrator, RunPod client, worker handler, output gate, credits and web app implemented and tested with labelled doubles; **no real model has run through it**: the first real generation needs the owner's RunPod endpoint (`python -m aro_cloud.smoke`) |
+| 5-9 | Quality, rigging, texturing, public API, hardening | NOT STARTED | below |
 
 ## 2. Phases 3 to 9
 
@@ -109,4 +111,4 @@ Nothing has been measured yet; this defines how it will be done so results are r
 1. **Owner:** approve or amend the architecture (ADR-1 to ADR-9).
 2. **Owner:** run the read-only infrastructure checklist (about 15 minutes) so Phase 0 can close.
 3. **Owner:** set the E1 ceiling and choose how to give access (run the Pod from a runbook, or use a newer app/computer session so the access request can be approved). Nothing is spent until then.
-4. **Engineering, no accounts needed:** a Postgres-backed test harness for `schema.sql` (RLS and ledger property tests in CI), an API skeleton with JWT verification, and CI secret/container scanning. All reversible and free.
+4. **Engineering, no accounts needed: DONE** (2026-11-08): Postgres-backed harness with RLS and ledger property tests, JWT verification, orchestrator, handler, web app. Open: container scanning in CI and the images themselves (neither image has been built).

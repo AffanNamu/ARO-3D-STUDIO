@@ -154,3 +154,11 @@ def test_secrets_never_appear_in_repr():
     )
     text = repr(s) + str(s.model_dump())
     assert "TOPSECRET" not in text and "hunter2" not in text and "r2secret" not in text
+
+
+def test_empty_environment_variables_count_as_unset(monkeypatch):
+    monkeypatch.setenv("ARO_GPU_USD_PER_SECOND", "")
+    monkeypatch.setenv("ARO_RUNPOD_API_KEY", "")
+    monkeypatch.setenv("ARO_SIGNUP_CREDITS", "")
+    s = CloudSettings()
+    assert s.gpu_usd_per_second is None and s.runpod_api_key is None and s.signup_credits == 0

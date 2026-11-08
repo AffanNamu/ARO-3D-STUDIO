@@ -1,6 +1,6 @@
 # ARO 3D AI STUDIO · CTO audit and plan (2026-11-08)
 
-Response to the Master CTO Directive. Phases 0 to 2 are delivered as an evidence-graded audit and a proposal. **Nothing here is built, deployed or spent.** Status words: PASS, PARTIAL, BLOCKED, FAIL, NOT STARTED.
+Response to the Master CTO Directive. Phases 0 to 2 are an evidence-graded audit and a proposal; **nothing is deployed or spent.** The backend, GPU worker handler and web app that implement the proposal are in `aro_cloud/`, `aro_worker/runpod_handler.py` and `apps/web/`; what is built, what is tested and what still needs the owner's accounts is in [../platform/README.md](../platform/README.md). Status words: PASS, PARTIAL, BLOCKED, FAIL, NOT STARTED.
 
 | Document | Content | Status |
 |---|---|---|
@@ -8,7 +8,7 @@ Response to the Master CTO Directive. Phases 0 to 2 are delivered as an evidence
 | [02-infrastructure-audit](02-infrastructure-audit.md) | Google Cloud, RunPod, Supabase, R2: what could and could not be verified; owner-run read-only checklist; cost controls | RunPod **PARTIAL** (owner screenshot); the other three **BLOCKED** |
 | [03-meshy-competitive-audit](03-meshy-competitive-audit.md) | Meshy's API, models, pricing, speed, limits and ecosystem, read from its OpenAPI file and docs | **PASS** for documentation; product experience and quality **NOT STARTED** |
 | [competitive-matrix](competitive-matrix.md) / [.json](competitive-matrix.json) | 69 capabilities, 13 required fields each, status, priority; tested tracker | PASS (as a tracker; Meshy column at grade G) |
-| [04-architecture](04-architecture.md) · [schema.sql](schema.sql) | ADRs, system design, job lifecycle, credits, API, storage, security, cost model | PARTIAL (proposal; schema syntax-checked only) |
+| [04-architecture](04-architecture.md) · [schema (migration 0001)](../../aro_cloud/migrations/0001_init.sql) | ADRs, system design, job lifecycle, credits, API, storage, security, cost model | PARTIAL (implemented and tested against a real PostgreSQL in CI; not yet applied to the owner's Supabase project) |
 | [05-models-and-licensing](05-models-and-licensing.md) | candidate models, licence classes, strategy per task, capped experiments | **PARTIAL** (code and weights licences read from source; two licence texts and several dependency chains unread) |
 | [06-roadmap](06-roadmap.md) | phases 3 to 9, milestones, benchmark protocol, risks | PARTIAL (needs owner approvals) |
 

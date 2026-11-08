@@ -30,7 +30,7 @@ Also verified: **`diso`**, the CUDA iso-surface package that TripoSG needs, is *
 | C | evaluation only | **no** |
 | D | blocked (non-commercial or unknown) | **no** |
 
-Enforced twice: the Studio's licence gate refuses unverified engines, and `schema.sql` forbids `enabled = true` unless `licence_status = 'verified'`. A person, never the agent, records `verified_by` and `verified_at`.
+Enforced twice: the Studio's licence gate refuses unverified engines, and `aro_cloud/migrations/0001_init.sql` forbids `enabled = true` unless `licence_status = 'verified'`. A person, never the agent, records `verified_by` and `verified_at`.
 
 ## 3. Candidates (weights licences from Hub model-card metadata, G, 2026-11-08)
 

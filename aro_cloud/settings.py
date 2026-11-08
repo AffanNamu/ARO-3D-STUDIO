@@ -24,7 +24,7 @@ class ConfigError(RuntimeError):
 
 
 class CloudSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="ARO_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="ARO_", extra="ignore", env_ignore_empty=True)  # an empty variable counts as unset
 
     env: str = "development"  # production | development | test
 
