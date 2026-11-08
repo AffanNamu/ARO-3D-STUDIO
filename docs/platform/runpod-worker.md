@@ -22,14 +22,18 @@ Studio pipeline in-process (background removal with U²-Net -> **TripoSG** shape
 
 `pymeshlab` (GPL-3.0; upstream lists it for an optional face-reduction example), `diso` (CC BY-NC; `aro_worker/shims/diso_shim.py` replaces it with scikit-image marching cubes, slower on large grids and recorded in each result), BRIA RMBG-1.4 / 2.0 (non-commercial), `nvdiffrast` / `nvdiffrec` (research or evaluation only), TRELLIS.2 and Hunyuan3D (evaluation-only; the handler refuses them unless `ARO_WORKER_EVALUATION_MODE=1`). The build fails if any import the TripoSG source needs is unresolved other than `diso`.
 
-## Dependency licences (clean-virtualenv closure of `worker/runpod/requirements.txt` plus the Studio runtime)
+## Dependency licences
 
-Every package declares a permissive licence (MIT, BSD, Apache-2.0, PSF, ISC, MPL-2.0) except:
+Method (2026-11-08): `worker/runpod/requirements.txt` and the Studio's `requirements.txt` were installed into a clean virtualenv (159 distributions) and each one's declared
+licence was read from its installed metadata. `torch` was stubbed because the image takes it from its base image (PyTorch is BSD-3-Clause; the base image also carries NVIDIA CUDA runtime libraries
+under NVIDIA's own terms and the usual Ubuntu/GNU system packages, which matters if you ever **publish** the image). Not scanned: the base image's contents and the TripoSG repository's own imports beyond what the build check
+resolves. Every scanned package declares a permissive licence (MIT, BSD, Apache-2.0, PSF, ISC, MPL-2.0) except these, which were read or noted individually:
 
 | Package | Licence | Why it is there, and why it is acceptable here |
 |---|---|---|
 | `paramiko` 5.1.0 | **LGPL-2.1** | a dependency of the `runpod` SDK, imported only by the SDK's SSH/CLI helper modules (`runpod/cli/...`), never by the serverless loop or by our code. Installed unmodified as its own package; LGPL permits that. Keep its licence file in any image you redistribute, and do not modify it. Have counsel confirm if you plan to **publish** the image |
 | FFmpeg libraries bundled in `opencv-python-headless` wheels | LGPL | dynamically linked, unmodified, shipped by the OpenCV project. Same note about redistribution |
+| `python-dateutil` 2.9.0 | Apache-2.0 for contributions after 2017-12-01, BSD-3-Clause before (its LICENSE file, read) | transitive; permissive |
 | `rembg` model download (`u2net`) | Apache-2.0 per the upstream repository (recalled, not read in this audit) | **unverified: read it before attesting** |
 | DINOv2 image encoder inside the TripoSG weights | Apache-2.0 per Meta's repository (recalled, not read in this audit) | covered by the TripoSG card's `mit` metadata only as far as the publisher's claim goes; read the card |
 
