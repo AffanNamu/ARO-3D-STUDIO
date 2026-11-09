@@ -1,6 +1,6 @@
 """Owner-only operations, run from a terminal with the same environment as the API. Nothing here is reachable over HTTP.
 
-    python -m aro_cloud.admin grant-credits --user <uuid> --amount 100 --note "welcome"
+    python -m aro_cloud.admin [--env-file FILE] grant-credits --user <uuid> --amount 100 --note "welcome"
     python -m aro_cloud.admin balance --user <uuid>
     python -m aro_cloud.admin verify-model --model triposg --verified-by "Your Name" --weights-licence "MIT" --attest-licence-read
     python -m aro_cloud.admin enable-model --model triposg
@@ -22,6 +22,7 @@ from typing import Any
 
 from aro_cloud import accounts
 from aro_cloud.db import Database, jdump
+from aro_cloud.envfile import load_env_file
 from aro_cloud.settings import load_settings
 from aro_cloud.wiring import build_database, build_orchestrator
 
@@ -87,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="python -m aro_cloud.admin", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    ap.add_argument("--env-file", help="private file with ARO_* settings (see aro_cloud/envfile.py)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("grant-credits")
     g.add_argument("--user", type=uuid.UUID, required=True)
@@ -106,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     lj.add_argument("--limit", type=int, default=30)
     sub.add_parser("reconcile")
     a = ap.parse_args(argv)
+    load_env_file(a.env_file)
 
     s = load_settings()
     if a.cmd == "reconcile":

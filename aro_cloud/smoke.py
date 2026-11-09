@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from aro_cloud import keys
+from aro_cloud.envfile import load_env_file
 from aro_cloud.orchestrator import Orchestrator
 from aro_cloud.output_gate import validate_glb
 from aro_cloud.providers.base import ModelProvider, ProviderUnavailable
@@ -149,6 +150,7 @@ def run_endpoint_smoke(
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--env-file", help="private file with ARO_* settings (see aro_cloud/envfile.py)")
     ap.add_argument("--image", type=Path, required=True)
     ap.add_argument("--engine", default="triposg")
     ap.add_argument("--preset", default="DRAFT", choices=["DRAFT", "STANDARD", "HIGH"])
@@ -157,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--keep", action="store_true", help="keep the objects in R2 and save the GLB next to you")
     ap.add_argument("--out", type=Path, help="write the evidence JSON here")
     a = ap.parse_args(argv)
+    load_env_file(a.env_file)
     from aro_cloud.settings import load_settings
     from aro_cloud.wiring import build_provider, build_store
 

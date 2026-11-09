@@ -1,6 +1,6 @@
 """Apply the SQL migrations in ``aro_cloud/migrations`` in order, once each.
 
-    ARO_DATABASE_URL=postgresql://... python -m aro_cloud.migrate            # against Supabase
+    python -m aro_cloud.migrate --env-file ~/aro-secrets/aro.env              # against Supabase (ARO_DATABASE_URL in the file)
     python -m aro_cloud.migrate --database-url postgresql://postgres@127.0.0.1:5432/postgres --stub-auth   # plain PostgreSQL for dev/CI
 
 ``--stub-auth`` installs the minimum of Supabase's ``auth`` schema (aro_cloud/dev/supabase_stub.sql) and is REFUSED when ``auth.users``
@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 from aro_cloud.db import Database, DatabaseError, Tx
+from aro_cloud.envfile import load_env_file
 
 HERE = Path(__file__).resolve().parent
 MIGRATIONS = HERE / "migrations"
@@ -126,6 +127,9 @@ def migrate(db: Database, *, stub_auth: bool = False) -> list[str]:
         tx.execute(
             "create table if not exists public.aro_migrations (name text primary key, sha256 text not null, applied_at timestamptz not null default now())"
         )
+        tx.execute(
+            "alter table public.aro_migrations enable row level security"
+        )  # no policy: Supabase's public API cannot read it
     applied: list[str] = []
     for path in _files():
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -145,12 +149,15 @@ def migrate(db: Database, *, stub_auth: bool = False) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--database-url", default=os.environ.get("ARO_DATABASE_URL"))
+    ap.add_argument("--env-file", help="private file with ARO_* settings (see aro_cloud/envfile.py)")
+    ap.add_argument("--database-url", default=None)
     ap.add_argument("--ssl", default=os.environ.get("ARO_DATABASE_SSL", "auto"))
     ap.add_argument(
         "--stub-auth", action="store_true", help="dev/CI only: create a minimal auth schema on plain PostgreSQL"
     )
     a = ap.parse_args(argv)
+    load_env_file(a.env_file)
+    a.database_url = a.database_url or os.environ.get("ARO_DATABASE_URL")
     if not a.database_url:
         print("set ARO_DATABASE_URL (or --database-url)", file=sys.stderr)
         return 2

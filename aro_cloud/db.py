@@ -13,6 +13,7 @@ from __future__ import annotations
 import contextlib
 import json
 import queue
+import socket
 import ssl
 import threading
 import time
@@ -73,6 +74,39 @@ def _ssl_context(mode: str, host: str, ca_file: str | None) -> ssl.SSLContext | 
     return ctx
 
 
+def explain_connect_error(e: BaseException) -> str:
+    """A fixed, safe explanation of why a connection failed. The driver's own message can contain host or user names: it is never returned."""
+    chain: list[BaseException] = []
+    cur: BaseException | None = e
+    while cur is not None and len(chain) < 8:
+        chain.append(cur)
+        cur = cur.__cause__ or cur.__context__
+    if any(isinstance(x, ssl.SSLCertVerificationError) for x in chain):
+        return (
+            "the server's TLS certificate could not be verified (download the provider's CA certificate and set ARO_DATABASE_CA_FILE, "
+            "or use ARO_DATABASE_SSL=require, which encrypts but does not authenticate the server)"
+        )
+    if any(isinstance(x, ssl.SSLError) for x in chain):
+        return "the TLS handshake failed"
+    if any(isinstance(x, socket.gaierror) for x in chain):
+        return "the database host name could not be resolved (check the host in ARO_DATABASE_URL)"
+    if any(isinstance(x, (TimeoutError, ConnectionRefusedError)) for x in chain):
+        return (
+            "the database host did not answer (a direct Supabase connection is IPv6-only on many networks: "
+            "use the pooler connection string, and check the port)"
+        )
+    for x in chain:
+        if isinstance(x, pg8000.exceptions.DatabaseError) and x.args and isinstance(x.args[0], dict):
+            code = str(x.args[0].get("C", ""))
+            if code in ("28P01", "28000"):
+                return "the database rejected the user name or password in ARO_DATABASE_URL"
+            if code == "3D000":
+                return "the database name in ARO_DATABASE_URL does not exist"
+            if code.startswith("08") or code == "53300":
+                return "the database refused the connection (too many connections or a pooler setting)"
+    return f"connection failed ({type(e).__name__})"
+
+
 class Database:
     def __init__(
         self,
@@ -108,8 +142,8 @@ class Database:
             return pg8000.native.Connection(**self._kw)
         except (pg8000.exceptions.InterfaceError, pg8000.exceptions.DatabaseError, OSError) as e:
             raise DatabaseError(
-                f"cannot connect to the database ({type(e).__name__})"
-            ) from None  # never echo the driver's message
+                f"cannot connect to the database: {explain_connect_error(e)}"
+            ) from None  # fixed texts only, never the driver's message
 
     def _acquire(self) -> pg8000.native.Connection:
         while True:

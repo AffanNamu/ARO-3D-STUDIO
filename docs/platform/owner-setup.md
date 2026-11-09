@@ -20,6 +20,23 @@ Dashboard wording changes over time: where a step names a button, treat the name
 
 Do 1 to 7 before 8. Step 5 is the one that matters most: send the printed evidence JSON back (it contains no secrets or URLs).
 
+## 0a. Your computer and the private env file (do this once)
+
+Every command below runs on **your** computer, so your secrets never leave it. You need Python 3.10 or newer and git.
+
+```
+git clone https://github.com/AffanNamu/ARO-3D-STUDIO.git
+cd ARO-3D-STUDIO
+git checkout claude/zen-johnson-je3dzk
+python -m venv .venv
+source .venv/bin/activate            # Windows PowerShell:  .venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-cloud.txt
+```
+
+Create ONE private file **outside the repository**, for example `~/aro-secrets/aro.env` (Windows: `C:\Users\<you>\aro-secrets\aro.env`), one `NAME=value` per line (see `.env.example` for the names).
+Every command takes `--env-file <that file>`, so you never type a secret into a terminal, a chat or a commit. On macOS/Linux run `chmod 600` on it.
+Check each step with `python -m aro_cloud.doctor --env-file <file> supabase|r2|runpod` (read-only apart from tiny test objects in R2; it prints no secrets and submits no GPU job).
+
 ## 1. Safety rails first
 
 * RunPod: Settings -> enable two-factor authentication; Billing -> keep auto-pay **off** and set a spending limit you are comfortable with.
@@ -33,7 +50,8 @@ Do 1 to 7 before 8. Step 5 is the one that matters most: send the printed eviden
 3. Apply the schema from your computer (the same command later applies new migrations; applied migrations are checksummed and refuse to be edited):
    ```
    pip install -r requirements.txt -r requirements-cloud.txt
-   ARO_DATABASE_URL='postgresql://...' python -m aro_cloud.migrate
+   python -m aro_cloud.migrate --env-file ~/aro-secrets/aro.env
+   python -m aro_cloud.doctor --env-file ~/aro-secrets/aro.env supabase      # must end with RESULT: PASS
    ```
    **Do not** pass `--stub-auth` (that creates a fake `auth` schema for throwaway test databases; the command refuses it when `auth.users` exists).
 4. Authentication -> Providers: enable Email. For production, require email confirmation. URL configuration: Site URL = your web app's origin; add it (and `http://localhost:3000` while developing) to the redirect allow-list.
@@ -69,9 +87,7 @@ Do 1 to 7 before 8. Step 5 is the one that matters most: send the printed eviden
 ## 5. Prove it: one real generation
 
 ```
-export ARO_R2_ACCOUNT_ID=... ARO_R2_BUCKET=... ARO_R2_ACCESS_KEY_ID=... ARO_R2_SECRET_ACCESS_KEY=...
-export ARO_RUNPOD_API_KEY=... ARO_RUNPOD_ENDPOINT_ID=...
-python -m aro_cloud.smoke --image my_concept.png --preset DRAFT --keep --out evidence.json
+python -m aro_cloud.smoke --env-file ~/aro-secrets/aro.env --image my_concept.png --preset DRAFT --keep --out evidence.json
 ```
 It uploads the image to R2, runs your endpoint, downloads the GLB, runs the same output gate as the API and prints evidence. `status: PASS`
 and `ai_inference: true` appear only if the worker reports a real (non-test-double) engine and the GLB passed the gate. The first run includes
