@@ -35,10 +35,10 @@
 |---|---|
 | Not investigated | 11 |
 | Investigated | 3 |
-| Planned | 23 |
+| Planned | 15 |
 | In development | 0 |
-| Implemented | 22 |
-| Implemented but unverified | 9 |
+| Implemented | 28 |
+| Implemented but unverified | 11 |
 | Fully tested | 1 |
 | Production ready | 0 |
 
@@ -55,7 +55,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 | A5 | Geometry controls (polycount, topology, pose) | Mixed | yes (G) | Implemented but unverified | P1 |
 | A6 | Output format selection | Conventional | yes (G) | Implemented | P1 |
 | A7 | Generation history and versions | Platform | yes (S) | Implemented | P0 |
-| A8 | Regeneration and variations | AI | yes (G) | Planned | P1 |
+| A8 | Regeneration and variations | AI | yes (G) | Implemented but unverified | P1 |
 | A9 | Character generation | AI | yes (G) | Not investigated | P2 |
 | A10 | Text-to-image and image-to-image (concept generation) | AI | yes (G) | Not investigated | P2 |
 | A11 | Conversational creation agent | AI | yes (G) | Not investigated | P3 |
@@ -80,7 +80,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 | D2 | Perspective and orthographic views | Conventional | unknown (none) | Planned | P2 |
 | D3 | Selection and transform gizmos | Conventional | unknown (none) | Planned | P2 |
 | D4 | Scene hierarchy | Conventional | unknown (none) | Planned | P2 |
-| D5 | Lighting and environment controls | Conventional | unknown (none) | Planned | P2 |
+| D5 | Lighting and environment controls | Conventional | unknown (none) | Implemented | P2 |
 | D6 | Undo and redo | Conventional | unknown (none) | Planned | P3 |
 | D7 | Save and restore projects | Platform | yes (S) | Implemented | P0 |
 | D8 | Compare versions side by side | Conventional | unknown (none) | Planned | P1 |
@@ -94,22 +94,22 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 | F3 | OBJ | Conventional | yes (G) | Implemented | P1 |
 | F4 | FBX (Unity and Unreal conventions) | Conventional | yes (G) | Implemented | P1 |
 | F5 | USD and .blend | Conventional | yes (G) | Implemented | P2 |
-| F6 | STL | Conventional | yes (G) | Planned | P2 |
+| F6 | STL | Conventional | yes (G) | Implemented | P2 |
 | F7 | USDZ and 3MF | Conventional | yes (G) | Planned | P3 |
 | F8 | Unity package with verifier | Conventional | not found in the sources searched (none) | Implemented but unverified | P1 |
 | F9 | Engine and DCC plug-ins | Conventional | yes (G) | Not investigated | P3 |
 | F10 | 3D-printing preparation | Conventional | yes (G) | Planned | P3 |
-| G1 | Personal asset library with search and filter | Platform | yes (G) | Implemented but unverified | P1 |
+| G1 | Personal asset library with search and filter | Platform | yes (G) | Implemented | P1 |
 | G2 | Projects and folders | Platform | yes (S) | Implemented | P1 |
-| G3 | Preview thumbnails | Conventional | not found in the sources searched (none) | Planned | P1 |
+| G3 | Preview thumbnails | Conventional | not found in the sources searched (none) | Implemented | P1 |
 | G4 | Asset metadata and versioning | Platform | not found in the sources searched (none) | Implemented | P0 |
 | G5 | Deletion and restoration policy | Platform | not found in the sources searched (none) | Implemented | P1 |
 | G6 | Download management | Platform | not found in the sources searched (none) | Implemented | P0 |
-| G7 | Usage and credit history | Platform | yes (G) | Planned | P1 |
+| G7 | Usage and credit history | Platform | yes (G) | Implemented | P1 |
 | G8 | Mobile capture app | Platform | yes (G) | Not investigated | P3 |
-| H1 | Authentication and accounts | Platform | yes (G) | Planned | P0 |
-| H2 | Credit ledger and billing | Platform | yes (G) | Planned | P1 |
-| H3 | Production job lifecycle | Platform | yes (G) | Planned | P0 |
+| H1 | Authentication and accounts | Platform | yes (G) | Implemented but unverified | P0 |
+| H2 | Credit ledger and billing | Platform | yes (G) | Implemented but unverified | P1 |
+| H3 | Production job lifecycle | Platform | yes (G) | Implemented | P0 |
 | H4 | Public API with keys | Platform | yes (G) | Planned | P2 |
 | H5 | Agent / MCP integration | Platform | yes (G) | Not investigated | P3 |
 | H6 | Rate limits and per-user concurrency | Platform | yes (G) | Implemented but unverified | P0 |
@@ -223,7 +223,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Low
 * **Estimated operating cost:** CPU only.
-* **ARO today (evidence):** POST /api/convert takes a formats list; GLB/glTF/OBJ/Unity package built in, FBX/USD/.blend via Blender when available (tests/test_convert.py, tests/test_blender_export.py).
+* **ARO today (evidence):** POST /api/convert takes a formats list; GLB/glTF/OBJ/Unity package built in, FBX/USD/.blend via Blender when available (tests/test_convert.py, tests/test_blender_export.py). Multi-user platform (2026-11-11): GLB plus on-demand OBJ (zip with material and texture), STL and PLY from the web app; FBX/USD/.blend are not offered there (no Blender in the API image).
 * **Work required:** Add STL/3MF/USDZ (F6, F7).
 * **Acceptance criteria:** Each selected format downloads and re-imports.
 * **Meshy:** offers: yes (evidence G). target_formats on every task; model URLs returned: glb, fbx, gltf, usdz, obj, mtl, vox, blend, stl, 3mf, pre_remeshed_glb. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml), [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
@@ -248,7 +248,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 
 ### A8 Regeneration and variations
 
-*Kind:* AI · *ARO status:* **Planned** · *Priority:* P1
+*Kind:* AI · *ARO status:* **Implemented but unverified** · *Priority:* P1
 
 * **What it does:** Generate another version with the same or changed settings.
 * **User workflow:** Press regenerate, optionally change seed/prompt/settings.
@@ -259,7 +259,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** As A2
 * **Implementation complexity:** Medium
 * **Estimated operating cost:** As A2.
-* **ARO today (evidence):** Cache and versions exist; no seed/variation control exposed.
+* **ARO today (evidence):** Multi-user platform: 'Make a variation' re-runs the same uploaded image with a new seed (apps/web AssetPanel, seed passed to the engine through WorkerInput; tests/cloud/test_exports_and_library.py checks the seed and upload id travel with the job). Never run with a real model, so whether seeds give useful variety is unmeasured.
 * **Work required:** Seed in request schema, parent_version link, UI.
 * **Acceptance criteria:** Same seed reproduces within tolerance; different seed differs.
 * **Meshy:** offers: yes (evidence G). seed parameter exists on text-to-3D (0 means random) but not on image-to-3D; input_task_id reuses a previous task's input; the web app gives free retries per task on paid plans. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
@@ -707,7 +707,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 
 ### D5 Lighting and environment controls
 
-*Kind:* Conventional · *ARO status:* **Planned** · *Priority:* P2
+*Kind:* Conventional · *ARO status:* **Implemented** · *Priority:* P2
 
 * **What it does:** Change lights, HDRI, background.
 * **User workflow:** Panel.
@@ -718,7 +718,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Low
 * **Estimated operating cost:** Client side.
-* **ARO today (evidence):** Fixed lights only.
+* **ARO today (evidence):** Web viewer (apps/web/src/components/Viewer.tsx): studio, outdoor and soft lighting presets from a procedural RoomEnvironment (no network), plus textured, clay and wireframe modes; exercised in Chromium end to end against the dev stack (2026-11-11). Custom HDRIs and light placement are not offered.
 * **Work required:** Add.
 * **Acceptance criteria:** Screenshot tests.
 * **Meshy:** offers: unknown (evidence none).  Sources: none
@@ -965,7 +965,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 
 ### F6 STL
 
-*Kind:* Conventional · *ARO status:* **Planned** · *Priority:* P2
+*Kind:* Conventional · *ARO status:* **Implemented** · *Priority:* P2
 
 * **What it does:** Mesh-only format for printing.
 * **User workflow:** Download.
@@ -976,7 +976,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Low
 * **Estimated operating cost:** CPU.
-* **ARO today (evidence):** Not in FORMATS.
+* **ARO today (evidence):** Multi-user platform: STL export of the full-detail model, Z-up for slicers, converted once from the stored GLB and cached (aro_cloud/exports.py, tests/cloud/test_exports_and_library.py checks axis order and triangle count). Geometry only; no print-readiness checks (see F10).
 * **Work required:** Add exporter + watertight check.
 * **Acceptance criteria:** Opens in a slicer.
 * **Meshy:** offers: yes (evidence G). stl listed. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
@@ -1058,7 +1058,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 
 ### G1 Personal asset library with search and filter
 
-*Kind:* Platform · *ARO status:* **Implemented but unverified** · *Priority:* P1
+*Kind:* Platform · *ARO status:* **Implemented** · *Priority:* P1
 
 * **What it does:** Browse, search, filter own assets.
 * **User workflow:** Library page.
@@ -1069,7 +1069,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Medium
 * **Estimated operating cost:** Negligible.
-* **ARO today (evidence):** Library page and asset list API exist (single-tenant); search/filter depth not audited.
+* **ARO today (evidence):** Multi-user platform: owner-scoped library API with name search (literal wildcards), rename and soft delete (GET/PATCH/DELETE /v1/assets, tests/cloud/test_exports_and_library.py, isolation tests in tests/cloud/test_api.py) and the web library with search; exercised in Chromium against the dev stack. No tags, folders or filters by category in the web app yet.
 * **Work required:** Per-user, indexed search, pagination.
 * **Acceptance criteria:** RLS test + filter tests.
 * **Meshy:** offers: yes (evidence G). Web app library and a community model library (downloads unlimited on paid plans). Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
@@ -1094,7 +1094,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 
 ### G3 Preview thumbnails
 
-*Kind:* Conventional · *ARO status:* **Planned** · *Priority:* P1
+*Kind:* Conventional · *ARO status:* **Implemented** · *Priority:* P1
 
 * **What it does:** Rendered thumbnail per version.
 * **User workflow:** Automatic.
@@ -1105,7 +1105,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Low
 * **Estimated operating cost:** CPU.
-* **ARO today (evidence):** Render utility exists; thumbnails are not stored.
+* **ARO today (evidence):** Worker renders a 512 px shaded thumbnail of LOD0 after preparation (aro_worker/headless.py), stored per version and shown in the web library through signed URLs; checked in the browser run against the dev stack. With the test-double engine only.
 * **Work required:** Render on completion, store in R2.
 * **Acceptance criteria:** Every completed job has a thumbnail.
 * **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
@@ -1159,14 +1159,14 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Low
 * **Estimated operating cost:** R2 egress is free (S).
-* **ARO today (evidence):** Export downloads served directly by the API with sanitised file names (FileResponse; download of a deleted export returns 404, tests/test_api_integration.py); no signed URLs, no per-user check.
+* **ARO today (evidence):** Multi-user platform: every download is a short-lived pre-signed R2 URL issued after an ownership check (aro_cloud/assets.py, exports.py), with sanitised file names; deleted models can no longer be linked to (tests/cloud/test_exports_and_library.py). The single-user Studio keeps its own FileResponse downloads.
 * **Work required:** Signed URLs.
 * **Acceptance criteria:** Expired URL refused; other user refused.
 * **Meshy:** offers: not found in the sources searched (evidence none). absence in search results is not proof Meshy lacks it Sources: none
 
 ### G7 Usage and credit history
 
-*Kind:* Platform · *ARO status:* **Planned** · *Priority:* P1
+*Kind:* Platform · *ARO status:* **Implemented** · *Priority:* P1
 
 * **What it does:** Show credits spent per job.
 * **User workflow:** Account page.
@@ -1177,7 +1177,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Medium
 * **Estimated operating cost:** Negligible.
-* **ARO today (evidence):** None.
+* **ARO today (evidence):** Append-only credit ledger with reserve/capture/release per job (aro_cloud/migrations/0001_init.sql, property tests in tests/cloud/test_schema_and_credits.py), GET /v1/credits/ledger, and the web Credits and Activity tabs that show what each generation cost and that failed ones were not charged.
 * **Work required:** Ledger (see 04).
 * **Acceptance criteria:** Balance equals ledger sum (property test).
 * **Meshy:** offers: yes (evidence G). GET /v1/balance and GET /v1/usage/tasks list usage records; every task carries consumed_credits. Sources: [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)
@@ -1205,7 +1205,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 
 ### H1 Authentication and accounts
 
-*Kind:* Platform · *ARO status:* **Planned** · *Priority:* P0
+*Kind:* Platform · *ARO status:* **Implemented but unverified** · *Priority:* P0
 
 * **What it does:** Sign up/in, profiles.
 * **User workflow:** Email/OAuth login.
@@ -1216,14 +1216,14 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** Medium
 * **Estimated operating cost:** Free tier then plan fee (S).
-* **ARO today (evidence):** Only an optional single shared bearer token (aro_studio/config.py). API binds 0.0.0.0 by default with no auth unless the token is set.
+* **ARO today (evidence):** Supabase JWT verification (HS256 or JWKS; algorithm confusion, expiry, audience, role and issuer tests in tests/cloud/test_auth.py), per-user Row Level Security, sign-in/sign-up/magic link in apps/web. Not yet run against a real Supabase project.
 * **Work required:** Supabase Auth; server-side JWT verification.
 * **Acceptance criteria:** Unauthenticated and cross-user requests refused (tests).
 * **Meshy:** offers: yes (evidence G). Accounts with Free, Pro, Premium, Ultra, Studio and Enterprise plans; team accounts share limits. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt)
 
 ### H2 Credit ledger and billing
 
-*Kind:* Platform · *ARO status:* **Planned** · *Priority:* P1
+*Kind:* Platform · *ARO status:* **Implemented but unverified** · *Priority:* P1
 
 * **What it does:** Reserve, capture, refund credits.
 * **User workflow:** Buy/spend credits.
@@ -1234,14 +1234,14 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** High
 * **Estimated operating cost:** Payment provider fees (owner decision).
-* **ARO today (evidence):** None.
+* **ARO today (evidence):** Credit ledger implemented and property-tested on PostgreSQL 16 (reserve in the job's transaction, capture with the asset, release on failure or cancel). Billing (buying credits) is NOT built; credits come from admin grants or sign-up credits. Not yet run on the owner's Supabase.
 * **Work required:** Ledger, reservation/refund tests; payment provider choice.
 * **Acceptance criteria:** Property tests: balance never negative; failed jobs release reserve.
 * **Meshy:** offers: yes (evidence G). Prepaid credits; failed generations are not charged; paid plans: Pro $20 per month for 1,000 credits, Premium $40 for 3,000, Ultra $100 for 8,000 (Free: 100 credits, 1 concurrent task); credits reset monthly, purchased credits do not expire. Sources: [docs.meshy.ai/api/pricing.md](https://docs.meshy.ai/api/pricing.md), [www.meshy.ai/pricing](https://www.meshy.ai/pricing), [docs.meshy.ai/en/webapp/pricing](https://docs.meshy.ai/en/webapp/pricing)
 
 ### H3 Production job lifecycle
 
-*Kind:* Platform · *ARO status:* **Planned** · *Priority:* P0
+*Kind:* Platform · *ARO status:* **Implemented** · *Priority:* P0
 
 * **What it does:** Idempotent, reconcilable jobs.
 * **User workflow:** Submit, watch, cancel.
@@ -1252,7 +1252,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **GPU requirements:** none
 * **Implementation complexity:** High
 * **Estimated operating cost:** Negligible.
-* **ARO today (evidence):** Single-node persistent queue with retries, cancel, timeouts exists (aro_studio/jobs). No idempotency keys, credit reservation or provider reconciliation.
+* **ARO today (evidence):** aro_cloud/orchestrator.py: idempotent submit, compare-and-set state machine with events, dispatch never repeated after an ambiguous answer, reconciliation from provider status or the storage marker, deadlines on database time, cancel, bounded retries, output gate before completion (48 tests in tests/cloud/test_orchestrator.py on a real PostgreSQL). Against RunPod only through a test double that follows its documented API.
 * **Work required:** Implement per 04-architecture.
 * **Acceptance criteria:** Duplicate submit makes one job; timeout never double-spends; killed worker is reconciled.
 * **Meshy:** offers: yes (evidence G). Task lifecycle PENDING, IN_PROGRESS, SUCCEEDED, FAILED (credits refunded on failure); progress 0-100; poll, SSE stream per task, or webhook; asset retention 3 days for non-Enterprise plans. Sources: [docs.meshy.ai/llms-full.txt](https://docs.meshy.ai/llms-full.txt), [docs.meshy.ai/openapi.yaml](https://docs.meshy.ai/openapi.yaml)

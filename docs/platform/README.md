@@ -17,7 +17,7 @@ Nothing has been deployed, no cloud resource was created, and no account of your
 | RunPod worker handler | **PASS** with a test-double engine; **NOT STARTED** with a real model | `tests/cloud/test_runpod_handler.py` (31), including the real Studio preparation pipeline around the test double |
 | Orchestrator -> RunPod client -> handler -> storage -> output gate -> ledger | **PASS** with test doubles | `tests/cloud/test_end_to_end.py` (3), `test_smoke.py` (4) |
 | HTTP API | **PASS** | `tests/cloud/test_api.py` (13): auth, per-user isolation, idempotent replay, envelope, size caps, CORS |
-| Web app | **PASS** (types, 28 tests, production build) | `apps/web/tests`; never driven in a real browser against a real API yet |
+| Web app | **PASS** (types, 50 tests, production build; driven end to end in Chromium against the local dev stack) | `apps/web/tests`; the browser run covered sign-up, upload, generate, progress, viewer (render modes, detail levels, collision), checks, OBJ download, rename, activity, credits, reload, phone layout and delete. Not yet run against your real Supabase, R2 or RunPod |
 | Worker image (`worker/runpod/Dockerfile`) | **NOT STARTED** (never built; authored without Docker or a GPU) | the first RunPod build is the first evidence |
 | API image (`deploy/api/Dockerfile`) | **NOT STARTED** (never built) | its dependency set was installed in a clean virtualenv and every module imported |
 | Real inference, real quality, real latency | **NOT STARTED** | needs your RunPod endpoint |
@@ -26,6 +26,22 @@ Nothing has been deployed, no cloud resource was created, and no account of your
 CI (`.github/workflows/ci.yml`): `quality` (ruff, format, mypy, bandit, pip-audit, licence audit), `tests` (Python 3.10/3.11/3.12),
 `platform` (PostgreSQL 16 service, Python 3.10/3.12; a missing database is a failure there), `web` (typecheck, tests, npm audit, build),
 `e2e`, `blender`.
+
+## Try the whole product on one machine (no accounts, nothing spent)
+
+```
+pip install -r requirements-dev.txt
+createdb aro_dev            # any throwaway local PostgreSQL, UTF8
+ARO_DEV_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/aro_dev python -m aro_cloud.dev.stack
+cd apps/web && npm ci       # then put the four values the stack prints into apps/web/.env.local
+npm run dev                 # http://localhost:3000 ; any email and password sign in
+```
+
+Every paid service is replaced by a labelled double: a sign-in double, the worker handler in a thread, an in-process S3 server and the
+procedural **test-double engine** (it draws the same placeholder car whatever you upload). Everything else is the real code: the API,
+PostgreSQL schema and credit ledger, the storage protocol and the whole Studio preparation pipeline. The app shows a banner and "Test
+output, not AI" on every result. The stack refuses `ARO_ENV=production`, any non-local database and a database with the real Supabase
+auth schema.
 
 ## How it fits together
 
@@ -71,7 +87,10 @@ state can go to `failed`, and `created` through `processing` to `cancelled`. `in
 | `POST /v1/generations` | `Idempotency-Key` header required; 201 new job, 200 replay of the same key and body, 409 if the key was used for a different body, 402 not enough credits, 429 too many active jobs |
 | `GET /v1/generations`, `GET /v1/generations/{id}`, `GET .../{id}/events` | list, status (also advances the job, throttled to one provider call per 2.5 s), history |
 | `POST /v1/generations/{id}/cancel` | idempotent; 409 once the model is being saved |
-| `GET /v1/assets`, `GET /v1/assets/{id}`, `GET /v1/assets/{id}/versions/{n}/files/{glb|raw_mesh|thumbnail}` | library; the last returns `{url, expires_at, filename}` (a signed URL, valid `ARO_SIGNED_URL_TTL_S` seconds) |
+| `GET /v1/assets?q=`, `GET /v1/assets/{id}`, `PATCH /v1/assets/{id}`, `DELETE /v1/assets/{id}` | library: search, detail (with a model summary: LODs, size in metres, game-readiness checks), rename, soft delete |
+| `GET /v1/assets/{id}/versions/{n}/files/{glb|raw_mesh|thumbnail}` | `{url, expires_at, filename}`: a signed URL, valid `ARO_SIGNED_URL_TTL_S` seconds |
+| `GET /v1/assets/{id}/versions/{n}/exports/{obj|stl|ply}` | the same model in another format (full-detail mesh), converted once and cached |
+| `GET /v1/uploads/{id}` | a signed link to your own reference image |
 | `GET /v1/credits`, `GET /v1/credits/ledger` | balance and history |
 | `POST /internal/reconcile` | `X-Internal-Token`; advances every unfinished job (Cloud Scheduler calls it) |
 
@@ -79,15 +98,16 @@ Errors always look like `{"error": {"code", "message", "recommended_action", "de
 
 **Differences from the proposal in `docs/cto/04-architecture.md` section 6**, so nobody is surprised: uploads go through the API rather than a
 client-side pre-signed PUT (the API must validate the content before storing it); there are no server-sent events (the app polls); no
-`/exports`, `/versions` (refine/retexture/rig) or provider webhook (a webhook body is untrusted, and polling plus the scheduler covers the same
+`/versions` (refine/retexture/rig) or provider webhook (a webhook body is untrusted, and polling plus the scheduler covers the same
 need); `kind` is `image_to_3d` only (text-to-3D and multi-image are refused, not faked).
 
 ## Not built (so you know)
 
 Credit purchase and invoicing; text-to-3D, multi-image-to-3D, retexture, remesh, rig, animate; PBR textures from a generative texturing model
-(TripoSG produces geometry; the Studio projects colour from the reference image); content moderation; account deletion and data export
-endpoints; per-IP and edge rate limiting (the in-process per-user limiter protects one instance only); asset delete/rename/search endpoints;
-container image scanning in CI; an admin web UI (admin work is the `python -m aro_cloud.admin` CLI).
+(TripoSG produces geometry; the Studio projects colour from the reference image, so the lighting in the photo ends up in the colours);
+FBX/USDZ/.blend from the web app; content moderation; account deletion and data export endpoints; per-IP and edge rate limiting (the
+in-process per-user limiter protects one instance only); container image scanning in CI; an admin web UI (admin work is the
+`python -m aro_cloud.admin` CLI).
 
 ## Where things are
 
