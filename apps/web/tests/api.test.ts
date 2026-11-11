@@ -15,7 +15,7 @@ describe("api client", () => {
   it("sends the bearer token and the idempotency key, and parses the job", async () => {
     const f = vi.fn(async () => json(job, 201));
     const out = await api(f as never).createGeneration(
-      { kind: "image_to_3d", upload_id: "u1", name: "Car", settings: { preset: "DRAFT", category: "car", target_faces: 24000, texture_resolution: 1024 } },
+      { kind: "image_to_3d", upload_id: "u1", name: "Car", engine: "triposg", settings: { preset: "DRAFT", category: "car", target_faces: 24000, texture_resolution: 1024 } },
       "gen-key-12345",
     );
     expect(out.job_id).toBe("j1");
@@ -57,6 +57,20 @@ describe("api client", () => {
     expect(e).toBeInstanceOf(ApiError);
     expect(e.status).toBe(502);
     expect(e.message).toContain("502");
+  });
+
+  it("handles an empty answer for delete, and builds the export and search paths", async () => {
+    const f = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") return new Response(null, { status: 204 });
+      if (String(url).includes("/exports/")) return json({ url: "https://store.test/x", expires_at: "2026-01-01T00:00:00Z", content_type: "application/zip", filename: "Car_obj.zip" });
+      return json({ items: [] });
+    });
+    const a = api(f as never);
+    await expect(a.deleteAsset("a/1")).resolves.toBeUndefined();
+    expect((await a.exportUrl("a1", 2, "obj")).filename).toBe("Car_obj.zip");
+    await a.listAssets("red & blue");
+    const urls = f.mock.calls.map((c) => String(c[0]));
+    expect(urls).toEqual(["https://api.test/v1/assets/a%2F1", "https://api.test/v1/assets/a1/versions/2/exports/obj", "https://api.test/v1/assets?limit=60&q=red%20%26%20blue"]);
   });
 
   it("encodes ids in paths", async () => {

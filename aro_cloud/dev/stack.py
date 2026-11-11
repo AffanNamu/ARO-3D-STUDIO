@@ -325,7 +325,7 @@ def build_stack(
         allowed_hosts=("127.0.0.1", "localhost"),
         allow_insecure_urls=True,
     )
-    deps = Deps(cfg, engine_factory=lambda _name: FakeEngine(delay_s=engine_delay_s), pipeline=run_pipeline)
+    deps = Deps(cfg, engine_factory=lambda _name: FakeEngine(delay_s=engine_delay_s, detail=3), pipeline=run_pipeline)
     provider = LocalWorkerProvider(deps)
     orch = Orchestrator(db, store, provider, settings)
     verifier = JwtVerifier(secret=secret, issuer=settings.jwt_issuer)

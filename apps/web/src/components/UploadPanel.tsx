@@ -44,7 +44,7 @@ export default function UploadPanel({ maxMb, disabled, onFile }: { maxMb: number
         <input ref={input} className="sr" type="file" accept={ACCEPT.join(",")} aria-label="Image file" disabled={disabled} onChange={(e) => take(e.target.files?.[0])} />
       </div>
       {problem && <div className="err" role="alert" style={{ marginTop: 8 }}>{problem}</div>}
-      <p className="note">One subject on a clear background works best. PNG, JPG or WebP up to {maxMb} MB.</p>
+      <p className="muted small">One subject on a clear background works best. PNG, JPG or WebP up to {maxMb} MB.</p>
     </div>
   );
 }

@@ -23,8 +23,11 @@ class FakeEngine(WorkerEngine):
     vram_mb = 0
     license = {"spdx": "MIT", "source_url": "https://github.com/", "commercial_use": "allowed", "notes": "test double"}
 
-    def __init__(self, delay_s: float = 0.0) -> None:
+    def __init__(self, delay_s: float = 0.0, detail: int = 0) -> None:
+        """``detail`` subdivides the body boxes that many times. 0 keeps the 12-triangle boxes the protocol tests use; the local dev
+        stack uses 3, because the Studio's smoothing collapses a 12-triangle box (a real engine's mesh has hundreds of thousands)."""
         self.delay_s = delay_s
+        self.detail = detail
         self.loaded = False
 
     def presets(self) -> dict[str, dict[str, Any]]:
@@ -50,6 +53,8 @@ class FakeEngine(WorkerEngine):
             trimesh.creation.box((1.8, 0.5, 4.2)).apply_translation((0, 0.55, 0)),
             trimesh.creation.box((1.6, 0.5, 2.0)).apply_translation((0, 1.0, -0.3)),
         ]
+        for _ in range(self.detail):
+            parts = [p.subdivide() for p in parts]
         for x in (-0.9, 0.9):
             for z in (-1.3, 1.3):
                 w = trimesh.creation.cylinder(radius=0.35, height=0.25, sections=24)

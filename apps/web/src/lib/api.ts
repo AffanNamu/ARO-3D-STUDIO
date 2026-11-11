@@ -9,7 +9,13 @@ const me = z.object({
   credits,
   price: z.object({ image_to_3d: z.number() }),
   engines: z.array(z.string()),
-  limits: z.object({ max_upload_mb: z.number(), min_image_side: z.number(), max_active_jobs: z.number(), target_faces: z.array(z.number()) }),
+  limits: z.object({
+    max_upload_mb: z.number(),
+    min_image_side: z.number(),
+    max_active_jobs: z.number(),
+    target_faces: z.array(z.number()),
+    export_formats: z.array(z.string()).default([]),
+  }),
 });
 
 const upload = z.object({
@@ -21,6 +27,17 @@ const upload = z.object({
   has_alpha: z.boolean(),
   warnings: z.array(z.string()).default([]),
 });
+
+const settings = z
+  .object({
+    preset: z.string().optional(),
+    seed: z.number().nullable().optional(),
+    target_faces: z.number().optional(),
+    category: z.string().optional(),
+    length_m: z.number().nullable().optional(),
+    texture_resolution: z.number().optional(),
+  })
+  .passthrough();
 
 const job = z.object({
   job_id: z.string(),
@@ -37,6 +54,8 @@ const job = z.object({
   started_at: z.string().nullable(),
   finished_at: z.string().nullable(),
   result: z.object({ asset_id: z.string(), version_id: z.string().nullable() }).nullable(),
+  settings: settings.nullable().optional(),
+  upload_id: z.string().nullable().optional(),
 });
 
 const asset = z.object({
@@ -51,20 +70,80 @@ const asset = z.object({
   ai_inference: z.boolean().nullable(),
 });
 
+const checkProblem = z.object({
+  id: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  severity: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  message: z.string().nullable().optional(),
+});
+
+const model = z.object({
+  version: z.number(),
+  triangles: z.number().nullable(),
+  vertices: z.number().nullable(),
+  extents_m: z.array(z.number()).nullable(),
+  lods: z.array(z.object({ level: z.number(), triangles: z.number() })),
+  collision_triangles: z.number().nullable(),
+  has_uv: z.boolean().nullable(),
+  bytes: z.number().nullable(),
+  engine: z.string().nullable(),
+  engine_version: z.string().nullable(),
+  ai_inference: z.boolean().nullable(),
+  test_double: z.boolean().nullable(),
+  settings,
+  files: z.array(z.object({ role: z.string(), bytes: z.number() })),
+  checks: z
+    .object({
+      status: z.string().nullable(),
+      overall: z.number().nullable(),
+      critical_failures: z.number().nullable(),
+      major_failures: z.number().nullable(),
+      blocking_reasons: z.array(z.string()),
+      categories: z.array(
+        z.object({ id: z.string(), score: z.number().nullable(), failed: z.number().nullable(), warnings: z.number().nullable(), applicable: z.boolean().nullable() }),
+      ),
+      problems: z.array(checkProblem),
+    })
+    .nullable(),
+  needs_human: z.array(z.unknown()),
+  warnings: z.array(z.string()),
+});
+
+const assetDetail = asset.extend({
+  metadata: z.object({ job_id: z.string().nullable().optional(), upload_id: z.string().nullable().optional() }).passthrough(),
+  model: model.nullable(),
+});
+
 const fileUrl = z.object({ url: z.string().url(), expires_at: z.string(), content_type: z.string(), filename: z.string() });
+const uploadLink = z.object({ url: z.string().url(), content_type: z.string(), width: z.number(), height: z.number() });
+const ledgerEntry = z.object({
+  entry_id: z.number(),
+  kind: z.string(),
+  amount: z.number(),
+  balance_after: z.number(),
+  job_id: z.string().nullable(),
+  note: z.string().nullable(),
+  at: z.string().nullable(),
+});
 
 export type Me = z.infer<typeof me>;
 export type Upload = z.infer<typeof upload>;
 export type Job = z.infer<typeof job>;
 export type Asset = z.infer<typeof asset>;
+export type AssetDetail = z.infer<typeof assetDetail>;
+export type ModelSummary = z.infer<typeof model>;
 export type FileUrl = z.infer<typeof fileUrl>;
+export type LedgerEntry = z.infer<typeof ledgerEntry>;
+export type Preset = "DRAFT" | "STANDARD" | "HIGH";
 
 export type GenerationRequest = {
   kind: "image_to_3d";
   upload_id: string;
   name: string;
-  engine?: string;
-  settings: { preset: "DRAFT" | "STANDARD" | "HIGH"; category: string; target_faces: number; texture_resolution: 512 | 1024 | 2048; length_m?: number; seed?: number };
+  engine: string;
+  settings: { preset: Preset; category: string; target_faces: number; texture_resolution: 512 | 1024 | 2048; length_m?: number; seed?: number };
 };
 
 /** The server's error envelope: {"error": {"code", "message", "recommended_action", "details"}}. */
@@ -86,7 +165,7 @@ type Options = { baseUrl: string; getToken: () => Promise<string | null>; fetchI
 export function createApi({ baseUrl, getToken, fetchImpl }: Options) {
   const doFetch: typeof fetch = (...a) => (fetchImpl ?? fetch)(...a);
 
-  async function call<T>(schema: z.ZodType<T>, path: string, init: RequestInit = {}, extra: Record<string, string> = {}): Promise<T> {
+  async function send(path: string, init: RequestInit = {}, extra: Record<string, string> = {}): Promise<Response> {
     const token = await getToken();
     if (!token) throw new ApiError(401, "unauthorized", "Sign in to continue.");
     let res: Response;
@@ -96,22 +175,39 @@ export function createApi({ baseUrl, getToken, fetchImpl }: Options) {
       throw new ApiError(0, "network", "The server could not be reached.", "Check your connection and try again.");
     }
     if (!res.ok) throw await toError(res);
+    return res;
+  }
+
+  async function call<T>(schema: z.ZodType<T>, path: string, init: RequestInit = {}, extra: Record<string, string> = {}): Promise<T> {
+    const res = await send(path, init, extra);
     const body: unknown = await res.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) throw new ApiError(res.status, "bad_response", "The server answered in an unexpected format.");
     return parsed.data;
   }
 
+  const id = encodeURIComponent;
+  const jsonHeaders = { "Content-Type": "application/json" };
+
   return {
     me: () => call(me, "/v1/me"),
     uploadImage: (file: Blob) => call(upload, "/v1/uploads", { method: "POST", body: file }, { "Content-Type": file.type }),
+    uploadLink: (uploadId: string) => call(uploadLink, `/v1/uploads/${id(uploadId)}`),
     createGeneration: (body: GenerationRequest, idempotencyKey: string) =>
-      call(job, "/v1/generations", { method: "POST", body: JSON.stringify(body) }, { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey }),
-    getGeneration: (id: string) => call(job, `/v1/generations/${encodeURIComponent(id)}`),
-    cancelGeneration: (id: string) => call(job, `/v1/generations/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
-    listAssets: () => call(z.object({ items: z.array(asset) }), "/v1/assets?limit=60"),
-    fileUrl: (assetId: string, version: number, role: "glb" | "thumbnail" | "raw_mesh") =>
-      call(fileUrl, `/v1/assets/${encodeURIComponent(assetId)}/versions/${version}/files/${role}`),
+      call(job, "/v1/generations", { method: "POST", body: JSON.stringify(body) }, { ...jsonHeaders, "Idempotency-Key": idempotencyKey }),
+    getGeneration: (jobId: string) => call(job, `/v1/generations/${id(jobId)}`),
+    listGenerations: (limit = 20) => call(z.object({ items: z.array(job) }), `/v1/generations?limit=${limit}`),
+    cancelGeneration: (jobId: string) => call(job, `/v1/generations/${id(jobId)}/cancel`, { method: "POST" }),
+    listAssets: (q?: string) => call(z.object({ items: z.array(asset) }), `/v1/assets?limit=60${q ? `&q=${id(q)}` : ""}`),
+    getAsset: (assetId: string) => call(assetDetail, `/v1/assets/${id(assetId)}`),
+    renameAsset: (assetId: string, name: string) => call(assetDetail, `/v1/assets/${id(assetId)}`, { method: "PATCH", body: JSON.stringify({ name }) }, jsonHeaders),
+    deleteAsset: async (assetId: string): Promise<void> => {
+      await send(`/v1/assets/${id(assetId)}`, { method: "DELETE" });
+    },
+    fileUrl: (assetId: string, version: number, role: "glb" | "thumbnail" | "raw_mesh") => call(fileUrl, `/v1/assets/${id(assetId)}/versions/${version}/files/${role}`),
+    exportUrl: (assetId: string, version: number, format: string) => call(fileUrl, `/v1/assets/${id(assetId)}/versions/${version}/exports/${id(format)}`),
+    credits: () => call(credits.extend({ price: z.object({ image_to_3d: z.number() }) }), "/v1/credits"),
+    ledger: (limit = 30) => call(z.object({ items: z.array(ledgerEntry) }), `/v1/credits/ledger?limit=${limit}`),
   };
 }
 
@@ -126,4 +222,9 @@ async function toError(res: Response): Promise<ApiError> {
     /* not JSON */
   }
   return new ApiError(res.status, "error", `The request failed (HTTP ${res.status}).`);
+}
+
+export function describeError(e: unknown): string {
+  if (e instanceof ApiError) return e.recommendedAction ? `${e.message} ${e.recommendedAction}` : e.message;
+  return "Something went wrong. Please try again.";
 }
