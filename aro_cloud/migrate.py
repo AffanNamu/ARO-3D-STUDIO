@@ -112,6 +112,11 @@ def _run_script(tx: Tx, path: Path) -> None:
 def migrate(db: Database, *, stub_auth: bool = False) -> list[str]:
     """Apply pending migrations; returns the names applied. Each file runs in its own transaction."""
     with db.transaction() as tx:
+        enc = tx.one("show server_encoding")
+        if enc and str(next(iter(enc.values()))).upper() != "UTF8":
+            raise DatabaseError(
+                "the database encoding must be UTF8 (Supabase's is); create the database with ENCODING 'UTF8'."
+            )
         has_auth = bool(tx.one("select to_regclass('auth.users') as t")["t"])  # type: ignore[index]
         if stub_auth:
             if has_auth:

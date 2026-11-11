@@ -19,13 +19,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from aro_cloud import __version__, accounts, assets, jobs, uploads
+from aro_cloud import __version__, accounts, assets, exports, jobs, uploads
 from aro_cloud.auth import JwtVerifier, Principal
 from aro_cloud.db import Database
 from aro_cloud.errors import ApiError, InvalidRequest, NotFound, TooManyRequests, Unauthorized, Unavailable
 from aro_cloud.orchestrator import Orchestrator
 from aro_cloud.providers.base import ModelProvider
-from aro_cloud.schemas import CreateGeneration
+from aro_cloud.schemas import CreateGeneration, RenameAsset
 from aro_cloud.settings import CloudSettings
 from aro_cloud.storage import ObjectStore
 from aro_studio.core.errors import RateLimitedError
@@ -113,6 +113,7 @@ def job_view(job: dict[str, Any], asset_id: str | None = None) -> dict[str, Any]
         if job["state"] == "completed" and asset_id
         else None,
         "settings": (job.get("request") or {}).get("settings"),
+        "upload_id": job.get("upload_id"),
     }
 
 
@@ -149,7 +150,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.origins,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
         allow_credentials=False,
         max_age=600,
@@ -240,7 +241,8 @@ def create_app(
                 "max_upload_mb": settings.max_upload_mb,
                 "min_image_side": settings.min_image_side,
                 "max_active_jobs": settings.max_active_jobs_per_user,
-                "target_faces": [2_000, 200_000],
+                "target_faces": [2_000, 25_000],
+                "export_formats": list(exports.FORMATS),
             },
         }
 
@@ -264,6 +266,10 @@ def create_app(
                     code="image_too_large",
                 )
         return await run_in_threadpool(uploads.create_upload, db, store, settings, who.user_id, bytes(data))
+
+    @app.get("/v1/uploads/{upload_id}")
+    def upload_link(upload_id: uuid.UUID, who: Principal = Depends(principal)) -> dict[str, Any]:
+        return uploads.upload_url(db, store, who.user_id, upload_id, settings.signed_url_ttl_s)
 
     # ---------------------------------------------------------------------------------------------------- generations
     @app.post("/v1/generations")
@@ -364,14 +370,42 @@ def create_app(
         who: Principal = Depends(principal),
         limit: int = Query(50, ge=1, le=100),
         offset: int = Query(0, ge=0, le=100_000),
+        q: str | None = Query(None, max_length=100),
     ) -> dict[str, Any]:
         with db.transaction() as tx:
-            return {"items": assets.list_assets(tx, who.user_id, limit, offset), "limit": limit, "offset": offset}
+            return {"items": assets.list_assets(tx, who.user_id, limit, offset, q), "limit": limit, "offset": offset}
 
     @app.get("/v1/assets/{asset_id}")
     def get_asset(asset_id: uuid.UUID, who: Principal = Depends(principal)) -> dict[str, Any]:
         with db.transaction() as tx:
             return assets.get_asset(tx, who.user_id, asset_id)
+
+    @app.patch("/v1/assets/{asset_id}")
+    def rename_asset(asset_id: uuid.UUID, body: RenameAsset, who: Principal = Depends(principal)) -> dict[str, Any]:
+        with db.transaction() as tx:
+            return assets.rename_asset(tx, who.user_id, asset_id, body.name)
+
+    @app.delete("/v1/assets/{asset_id}", status_code=204)
+    def delete_asset(asset_id: uuid.UUID, who: Principal = Depends(principal)) -> Response:
+        with db.transaction() as tx:
+            assets.delete_asset(tx, who.user_id, asset_id)
+        return Response(status_code=204)
+
+    @app.get("/v1/assets/{asset_id}/versions/{version_no}/exports/{fmt}")
+    def asset_export(
+        asset_id: uuid.UUID, version_no: int, fmt: str, who: Principal = Depends(principal)
+    ) -> dict[str, Any]:
+        """Another file format of the model (obj, stl, ply), converted once on first request."""
+        return exports.export_file(
+            db,
+            store,
+            who.user_id,
+            asset_id,
+            version_no,
+            fmt.lower(),
+            max_glb_bytes=settings.max_glb_mb * 1_000_000,
+            ttl_s=settings.signed_url_ttl_s,
+        )
 
     @app.get("/v1/assets/{asset_id}/versions/{version_no}/files/{role}")
     def asset_file(

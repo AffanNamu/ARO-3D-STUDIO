@@ -47,6 +47,19 @@ class CreateGeneration(BaseModel):
         return v
 
 
+class RenameAsset(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=120)
+
+    @field_validator("name")
+    @classmethod
+    def _clean_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v or _CONTROL.search(v):
+            raise ValueError("the name must be 1 to 120 printable characters")
+        return v
+
+
 class WorkerFile(BaseModel):
     model_config = ConfigDict(extra="ignore")
     role: str

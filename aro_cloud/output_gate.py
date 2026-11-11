@@ -8,12 +8,12 @@ triangle count. A labelled test double is refused unless the deployment explicit
 from __future__ import annotations
 
 import hashlib
-import io
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-import trimesh
+
+from aro_cloud.glb import full_detail, load_scene, lod_table, parts_of
 
 
 @dataclass
@@ -49,28 +49,36 @@ def validate_glb(
         res.reasons.append("the GLB does not match the checksum the worker reported (corrupt or substituted upload)")
         return res
     try:
-        scene: Any = trimesh.load(io.BytesIO(data), file_type="glb", force="scene", process=False)
+        scene: Any = load_scene(data)
     except Exception as e:  # noqa: BLE001 - any parser failure means the file is not usable
         res.reasons.append(f"the GLB cannot be parsed ({type(e).__name__})")
         return res
-    geoms = [
-        g
-        for name, g in scene.geometry.items()
-        if isinstance(g, trimesh.Trimesh) and not str(name).upper().startswith("COL_")
-    ]
-    if not geoms:
+    parts = parts_of(scene)
+    visual = [p for p in parts if not p.collision]
+    if not visual:
         res.reasons.append("the GLB contains no mesh geometry")
         return res
-    triangles = int(sum(len(g.faces) for g in geoms))
-    vertices = int(sum(len(g.vertices) for g in geoms))
-    res.stats = {"meshes": len(geoms), "triangles": triangles, "vertices": vertices, "bytes": len(data)}
+    model = full_detail(
+        parts
+    )  # LOD0 (or everything, when the file has no LOD naming): what the triangle count of "the model" means
+    triangles = int(sum(len(p.mesh.faces) for p in model))
+    vertices = int(sum(len(p.mesh.vertices) for p in model))
+    res.stats = {
+        "meshes": len(model),
+        "triangles": triangles,
+        "vertices": vertices,
+        "bytes": len(data),
+        "lods": lod_table(parts),
+        "collision_meshes": sum(1 for p in parts if p.collision),
+        "collision_triangles": int(sum(len(p.mesh.faces) for p in parts if p.collision)),
+    }
     if triangles < min_triangles:
         res.reasons.append(f"only {triangles} triangles: too little geometry to be a model")
         return res
-    allv = np.concatenate([np.asarray(g.vertices, dtype=np.float64) for g in geoms])
-    if not np.isfinite(allv).all():
+    if not all(np.isfinite(np.asarray(p.mesh.vertices, dtype=np.float64)).all() for p in visual):
         res.reasons.append("the geometry contains NaN or infinite coordinates")
         return res
+    allv = np.concatenate([np.asarray(p.mesh.vertices, dtype=np.float64) for p in model])
     ext = allv.max(axis=0) - allv.min(axis=0)
     res.stats["extents"] = [round(float(x), 6) for x in ext]
     if float(ext.max()) <= 1e-6:
@@ -80,16 +88,16 @@ def validate_glb(
         res.reasons.append("the geometry is implausibly large (more than 100 km)")
         return res
     degenerate = 0
-    for g in geoms:
-        tri = np.asarray(g.triangles, dtype=np.float64)
+    for p in model:
+        tri = np.asarray(p.mesh.triangles, dtype=np.float64)
         area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
         degenerate += int((area < 1e-12).sum())
     res.stats["degenerate_triangles"] = degenerate
     if degenerate > 0.5 * triangles:
         res.reasons.append("more than half of the triangles have no area")
         return res
-    res.stats["has_uv"] = any(getattr(g.visual, "uv", None) is not None for g in geoms)
-    res.stats["materials"] = len({id(getattr(g.visual, "material", None)) for g in geoms})
+    res.stats["has_uv"] = any(getattr(p.mesh.visual, "uv", None) is not None for p in model)
+    res.stats["materials"] = len({id(getattr(p.mesh.visual, "material", None)) for p in model})
     if not res.stats["has_uv"]:
         res.warnings.append("the model has no UV coordinates (it carries vertex colours or no colour)")
     res.ok = True

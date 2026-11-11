@@ -8,7 +8,7 @@ from typing import Any
 
 from aro_cloud import keys
 from aro_cloud.db import Database
-from aro_cloud.errors import InvalidRequest
+from aro_cloud.errors import InvalidRequest, NotFound
 from aro_cloud.settings import CloudSettings
 from aro_cloud.storage import ObjectStore, StorageError
 from aro_studio.core.errors import InvalidInputError
@@ -86,4 +86,22 @@ def _view(row: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
         if hasattr(row["created_at"], "isoformat")
         else str(row["created_at"]),
         "warnings": warnings,
+    }
+
+
+def upload_url(db: Database, store: ObjectStore, owner: uuid.UUID, upload_id: uuid.UUID, ttl_s: int) -> dict[str, Any]:
+    """A short-lived link to one of the caller's own uploaded images (the reference a model was made from)."""
+    with db.transaction() as tx:
+        row = tx.one(
+            "select r2_key, content_type, width, height from uploads where upload_id = CAST(:u AS uuid) and owner_id = CAST(:o AS uuid)",
+            u=str(upload_id),
+            o=str(owner),
+        )
+    if not row:
+        raise NotFound("That upload does not exist.", code="upload_not_found")
+    return {
+        "url": store.presign_get(row["r2_key"], ttl_s),
+        "content_type": row["content_type"],
+        "width": row["width"],
+        "height": row["height"],
     }

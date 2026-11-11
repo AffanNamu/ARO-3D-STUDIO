@@ -42,9 +42,11 @@ def declared(path: str) -> set[str]:
     return out
 
 
-def third_party_imports(package: str = "aro_studio") -> set[str]:
+def third_party_imports(package: str = "aro_studio", *, skip: tuple[str, ...] = ()) -> set[str]:
     mods: set[str] = set()
     for f in (ROOT / package).rglob("*.py"):
+        if any(part in skip for part in f.relative_to(ROOT / package).parts):
+            continue
         for node in ast.walk(ast.parse(f.read_text())):
             if isinstance(node, ast.Import):
                 mods |= {a.name.split(".")[0] for a in node.names}
@@ -92,11 +94,18 @@ def test_cloud_platform_imports_are_declared_and_the_extra_matches_requirements_
     dist_map = metadata.packages_distributions()
     req = declared("requirements.txt") | declared("requirements-cloud.txt")
     missing = []
-    for m in sorted(third_party_imports("aro_cloud")):
+    for m in sorted(
+        third_party_imports("aro_cloud", skip=("dev",))
+    ):  # aro_cloud/dev is the local development stack, never run in production
         dists = {norm(d) for d in dist_map.get(m, [m])}
         if not dists & req:
             missing.append(f"{m} (distribution {sorted(dists)})")
     assert not missing, f"aro_cloud imports not declared in requirements*.txt: {missing}"
+    dev_req = req | declared("requirements-dev.txt")
+    dev_missing = [
+        m for m in sorted(third_party_imports("aro_cloud/dev")) if not {norm(d) for d in dist_map.get(m, [m])} & dev_req
+    ]
+    assert not dev_missing, f"aro_cloud/dev imports not declared in requirements-dev.txt: {dev_missing}"
     text = (ROOT / "pyproject.toml").read_text()
     line = next(x for x in text.splitlines() if x.startswith("cloud = ["))
     extra = {

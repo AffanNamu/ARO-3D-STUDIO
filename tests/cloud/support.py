@@ -209,3 +209,19 @@ __all__ = [
     "sha",
     "upload_as_worker",
 ]
+
+
+def make_game_glb() -> bytes:
+    """A GLB shaped like the pipeline's output: textured LOD0..LOD2 plus a collision hull, all overlapping."""
+    import numpy as np
+
+    scene = trimesh.Scene()
+    for level, sub in ((0, 3), (1, 2), (2, 1)):
+        m = trimesh.creation.icosphere(subdivisions=sub, radius=1.0)
+        uv = np.column_stack([(m.vertices[:, 0] + 1) / 2, (m.vertices[:, 1] + 1) / 2])
+        tex = Image.new("RGB", (16, 16), (200, 60, 50))
+        m.visual = trimesh.visual.TextureVisuals(uv=uv, image=tex)
+        scene.add_geometry(m, node_name=f"Car_LOD{level}", geom_name=f"Car_LOD{level}")
+    hull = trimesh.creation.box((2, 2, 2))
+    scene.add_geometry(hull, node_name="COL_Hull", geom_name="COL_Hull")
+    return bytes(scene.export(file_type="glb"))
