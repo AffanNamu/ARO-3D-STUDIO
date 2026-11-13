@@ -112,5 +112,5 @@ in-process per-user limiter protects one instance only); container image scannin
 ## Where things are
 
 `aro_cloud/` the backend · `aro_cloud/migrations/` SQL · `aro_worker/runpod_handler.py`, `aro_worker/headless.py`, `aro_worker/inprocess.py` the worker ·
-`worker/runpod/` worker image · `deploy/api/` API image · `apps/web/` the web app · `tests/cloud/` the tests · owner steps: [owner-setup.md](owner-setup.md) ·
+`worker/runpod/` worker image · `deploy/api/` API image · `apps/web/` the web app · `tests/cloud/` the tests · owner steps: [first-real-generation.md](first-real-generation.md) (the ordered checklist) and [owner-setup.md](owner-setup.md) (reference) ·
 worker image and licences: [runpod-worker.md](runpod-worker.md).

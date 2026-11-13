@@ -73,3 +73,20 @@ def test_cleanup_removes_the_objects_it_created(store, settings, concept_png):
         store, provider_for(FakeAsTripoSG), settings, concept_png, preset="STANDARD", sleep=lambda _s: None
     )
     assert store._c.list_objects_v2(Bucket=store.bucket).get("KeyCount", 0) == 0
+
+
+def test_the_real_length_reaches_the_worker(store, settings, concept_png):
+    seen = {}
+
+    class Recorder:
+        name = "recorder"
+
+        def submit(self, payload, *, execution_timeout_s, ttl_s):
+            seen.update(payload["settings"])
+            raise RuntimeError("stop here")
+
+    with pytest.raises(RuntimeError):
+        run_endpoint_smoke(
+            store, Recorder(), settings, concept_png, category="heavy_truck", length_m=6.9, sleep=lambda _s: None
+        )
+    assert seen["length_m"] == 6.9 and seen["category"] == "heavy_truck"

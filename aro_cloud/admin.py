@@ -1,6 +1,6 @@
 """Owner-only operations, run from a terminal with the same environment as the API. Nothing here is reachable over HTTP.
 
-    python -m aro_cloud.admin [--env-file FILE] grant-credits --user <uuid> --amount 100 --note "welcome"
+    python -m aro_cloud.admin [--env-file FILE] grant-credits --email you@example.com --amount 100 --note "welcome"   (or --user <uuid>)
     python -m aro_cloud.admin balance --user <uuid>
     python -m aro_cloud.admin verify-model --model triposg --verified-by "Your Name" --weights-licence "MIT weights; Tencent Hunyuan + FlashVDM community licences in the code" --attest-licence-read
     python -m aro_cloud.admin enable-model --model triposg
@@ -37,6 +37,16 @@ def _audit(db: Database, action: str, target: str, detail: dict[str, Any]) -> No
             t=target,
             d=jdump({**detail, "via": "cli"}),
         )
+
+
+def user_by_email(db: Database, email: str) -> uuid.UUID:
+    with db.transaction() as tx:
+        rows = tx.all("select id from auth.users where lower(email) = lower(:e)", e=email.strip())
+    if len(rows) != 1:
+        raise SystemExit(
+            f"No single account with the email {email!r}: sign up in the web app first (found {len(rows)})."
+        )
+    return uuid.UUID(str(rows[0]["id"]))
 
 
 def grant_credits(db: Database, user: uuid.UUID, amount: int, note: str) -> int:
@@ -96,7 +106,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--env-file", help="private file with ARO_* settings (see aro_cloud/envfile.py)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("grant-credits")
-    g.add_argument("--user", type=uuid.UUID, required=True)
+    who = g.add_mutually_exclusive_group(required=True)
+    who.add_argument("--user", type=uuid.UUID)
+    who.add_argument("--email", help="the email the person signed up with")
     g.add_argument("--amount", type=int, required=True)
     g.add_argument("--note", required=True)
     b = sub.add_parser("balance")
@@ -121,7 +133,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     db = build_database(s)
     if a.cmd == "grant-credits":
-        print(f"balance is now {grant_credits(db, a.user, a.amount, a.note)}")
+        user = a.user or user_by_email(db, a.email)
+        print(f"balance is now {grant_credits(db, user, a.amount, a.note)}")
     elif a.cmd == "balance":
         with db.transaction() as tx:
             print(json.dumps(accounts.balance(tx, a.user)))

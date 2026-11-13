@@ -1,6 +1,6 @@
 """Owner-run proof that the real chain works: R2 -> RunPod endpoint -> worker -> R2 -> output gate. No database, no Supabase.
 
-    python -m aro_cloud.smoke --image path/to/concept.png [--preset DRAFT] [--category car] [--keep]
+    python -m aro_cloud.smoke --env-file FILE --image path/to/concept.png [--preset DRAFT] [--category car] [--length 4.5] [--keep]
 
 It needs ONLY the environment you give the API for storage and RunPod (ARO_R2_*, ARO_RUNPOD_API_KEY, ARO_RUNPOD_ENDPOINT_ID). It spends GPU
 time on your RunPod account (a cold start plus one generation: a few cents), so it is never run by CI or by the assistant.
@@ -41,6 +41,7 @@ def run_endpoint_smoke(
     engine: str = "triposg",
     preset: str = "DRAFT",
     category: str = "car",
+    length_m: float | None = None,
     timeout_s: int = 1200,
     poll_s: float = 5.0,
     keep: bool = False,
@@ -60,7 +61,7 @@ def run_endpoint_smoke(
         "request": {
             "kind": "image_to_3d",
             "engine": engine,
-            "settings": GenerationSettings(preset=preset, category=category).model_dump(mode="json"),
+            "settings": GenerationSettings(preset=preset, category=category, length_m=length_m).model_dump(mode="json"),
         },
     }
     payload = orch.worker_input(
@@ -155,6 +156,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--engine", default="triposg")
     ap.add_argument("--preset", default="DRAFT", choices=["DRAFT", "STANDARD", "HIGH"])
     ap.add_argument("--category", default="car")
+    ap.add_argument(
+        "--length", type=float, default=None, help="real length in metres (gives the model its true size), e.g. 6.9"
+    )
     ap.add_argument("--timeout", type=int, default=1200)
     ap.add_argument("--keep", action="store_true", help="keep the objects in R2 and save the GLB next to you")
     ap.add_argument("--out", type=Path, help="write the evidence JSON here")
@@ -172,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
         engine=a.engine,
         preset=a.preset,
         category=a.category,
+        length_m=a.length,
         timeout_s=a.timeout,
         keep=a.keep,
     )

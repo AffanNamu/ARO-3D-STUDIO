@@ -243,3 +243,15 @@ def test_triposg_carries_its_tencent_terms_and_an_old_verification_is_withdrawn(
         )
         assert row == {"s": "claimed", "enabled": False, "verified_by": None}
         assert tx.one("select count(*) as n from audit_log where action = 'licence_correction'")["n"] >= 1
+
+
+def test_admin_grants_credits_by_email(pg):
+    from aro_cloud.admin import grant_credits, user_by_email
+
+    a = make_user(pg, 0)
+    with pg.transaction() as tx:
+        email = tx.one("select email from auth.users where id = CAST(:u AS uuid)", u=str(a))["email"]
+    assert user_by_email(pg, email.upper()) == a
+    assert grant_credits(pg, user_by_email(pg, email), 25, "owner test") == 25
+    with pytest.raises(SystemExit, match="sign up in the web app first"):
+        user_by_email(pg, "nobody@example.test")

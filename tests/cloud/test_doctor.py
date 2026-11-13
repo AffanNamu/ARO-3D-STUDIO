@@ -272,3 +272,29 @@ def test_runpod_health_is_read_only_and_reports_workers():
 def test_runpod_failures_are_specific(status, needle):
     c = check_runpod(rp_settings(), http=rp(status))[-1]
     assert c.status == "FAIL" and needle in c.detail
+
+
+def test_the_api_entry_point_reads_the_env_file_and_stays_local(tmp_path, monkeypatch):
+    import os
+
+    import aro_cloud.__main__ as entry
+
+    f = tmp_path / "aro.env"
+    f.write_text("ARO_ENV=development\nARO_ALLOWED_ORIGINS=http://localhost:3000\n")
+    f.chmod(0o600)
+    calls = {}
+    monkeypatch.setattr(entry.uvicorn, "run", lambda app, **kw: calls.update(kw, app=app))
+    monkeypatch.delenv("HOST", raising=False)
+    before = {k: os.environ.get(k) for k in ("ARO_ENV", "ARO_ALLOWED_ORIGINS")}
+    for k in before:
+        os.environ.pop(k, None)
+    try:
+        entry.main(["--env-file", str(f), "--port", "8099"])
+        assert os.environ["ARO_ALLOWED_ORIGINS"] == "http://localhost:3000"
+        assert calls["host"] == "127.0.0.1" and calls["port"] == 8099 and calls["factory"] is True
+    finally:  # the loader writes to the real environment: put it back exactly as it was for the tests that follow
+        for k, v in before.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
