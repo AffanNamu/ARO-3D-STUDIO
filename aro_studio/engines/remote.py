@@ -50,11 +50,15 @@ KNOWN: dict[str, dict[str, Any]] = {
     "triposg": {
         "name": "TripoSG (1.5B, geometry) - remote GPU",
         "license": ModelLicense(
-            spdx="MIT",
-            source_url="https://github.com/VAST-AI-Research/TripoSG/blob/main/LICENSE",
-            commercial_use="allowed",
+            spdx="MIT AND LicenseRef-Tencent-Hunyuan-Community AND LicenseRef-Tencent-Hunyuan-FlashVDM-Community",
+            source_url="https://github.com/VAST-AI-Research/TripoSG/blob/main/triposg/LICENSE",
+            commercial_use="restricted",
             status="claimed",
-            notes="Code MIT. Weights licence: read the model card. BRIA RMBG-1.4 (non-commercial) is not used. Geometry only: no texture.",
+            notes="Weights and repository licence MIT, BUT the core model code (triposg_transformer.py) is adapted from Tencent HunyuanDiT "
+            "(Tencent Hunyuan Community License: not valid in the EU) and the decoder from Tencent FlashVDM (FlashVDM Community License: "
+            "not valid in the EU, UK or South Korea; above 1M monthly users needs Tencent's licence). Both: Acceptable Use Policy, Outputs "
+            "may not improve other AI models, restrictions must be in your terms of use. Read 2026-11-13 at commit fc5c409. BRIA RMBG-1.4 "
+            "(non-commercial) is not used. Geometry only: no texture.",
         ),
         "description": "VAST-AI TripoSG: high-resolution geometry from one image (~8 GB VRAM); the Studio adds colour from the reference image.",
         "source_url": "https://github.com/VAST-AI-Research/TripoSG",

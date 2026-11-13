@@ -1,4 +1,8 @@
-"""TripoSG (VAST-AI, 1.5B rectified-flow shape model, MIT): high-resolution GEOMETRY only (no texture), about 8 GB of VRAM (fp16).
+"""TripoSG (VAST-AI, 1.5B rectified-flow shape model): high-resolution GEOMETRY only (no texture), about 8 GB of VRAM (fp16).
+
+LICENCE (read 2026-11-13 at commit fc5c409): weights and repository MIT, but the core transformer is adapted from Tencent HunyuanDiT and the
+decoder from Tencent FlashVDM, under Tencent community licences that exclude the EU (and, for FlashVDM, the UK and South Korea). See
+aro_cloud/migrations/0002_triposg_licence_terms.sql. Not "MIT" as a whole.
 
 STATUS: written against the upstream source (VAST-AI-Research/TripoSG: ``scripts/inference_triposg.py``, ``scripts/image_process.py``,
 ``triposg/pipelines/pipeline_triposg.py``, ``triposg/inference_utils.py``, read 2026-10-26) but NOT run on a GPU yet. The first real run
@@ -55,10 +59,11 @@ class TripoSGEngine(WorkerEngine):
     version = f"{REPO_ID}@UNRESOLVED"
     vram_mb = 8_000  # upstream README: "CUDA-enabled GPU with at least 8GB VRAM"
     license = {
-        "spdx": "MIT",
-        "source_url": "https://github.com/VAST-AI-Research/TripoSG/blob/main/LICENSE",
-        "commercial_use": "allowed",
-        "notes": "code MIT; weights licence to be read on the model card; BRIA RMBG-1.4 (non-commercial) is NOT used; no texture is produced",
+        "spdx": "MIT AND LicenseRef-Tencent-Hunyuan-Community AND LicenseRef-Tencent-Hunyuan-FlashVDM-Community",
+        "source_url": "https://github.com/VAST-AI-Research/TripoSG/blob/main/triposg/LICENSE",
+        "commercial_use": "restricted",
+        "notes": "weights MIT; model code includes Tencent Hunyuan DiT and FlashVDM community licences (not valid in the EU, UK, South Korea); "
+        "BRIA RMBG-1.4 (non-commercial) is NOT used; no texture is produced",
     }
 
     def __init__(self) -> None:

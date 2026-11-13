@@ -95,12 +95,16 @@ a cold start (image pull, weights load): expect minutes, not seconds. `--keep` l
 
 ## 6. Licences: your decision, recorded in the database
 
-The platform will not run a model until a person records that they read its licence. Read, at least: the TripoSG model card
-(`https://huggingface.co/VAST-AI/TripoSG`, metadata says MIT, not gated) and its repository licence; the U²-Net licence used for background removal; and
-`docs/platform/runpod-worker.md` (the LGPL and bundled-library notes). If you agree:
+The platform will not run a model until a person records that they read its licence. For TripoSG read: the weights card
+(`https://huggingface.co/VAST-AI/TripoSG`, MIT), the repository LICENSE (MIT), **and the two Tencent licences inside its code**:
+`triposg/LICENSE` (FlashVDM: not valid in the EU, UK or South Korea; over 1M monthly users needs Tencent's licence) and the header of
+`triposg/models/transformers/triposg_transformer.py` (Hunyuan DiT: not valid in the EU). Both forbid using outputs to improve other AI models
+and require Tencent's Acceptable Use Policy. Testing from Nigeria is inside their territory. Also read the U²-Net licence (background
+removal) and `docs/platform/runpod-worker.md`. If you accept them for testing:
 ```
-python -m aro_cloud.admin verify-model --model triposg --verified-by "Your Name" --weights-licence "MIT" --attest-licence-read
-python -m aro_cloud.admin enable-model --model triposg
+python -m aro_cloud.admin --env-file ~/aro-secrets/aro.env verify-model --model triposg --verified-by "Your Name" \
+    --weights-licence "MIT weights; Tencent Hunyuan DiT + FlashVDM community licences in the code" --attest-licence-read
+python -m aro_cloud.admin --env-file ~/aro-secrets/aro.env enable-model --model triposg
 ```
 and set `ARO_VERIFIED_MODEL_LICENSES=triposg` on the RunPod endpoint. TRELLIS.2 and Hunyuan3D are registered `evaluation_only`; the CLI refuses to verify them and the database refuses to enable them.
 

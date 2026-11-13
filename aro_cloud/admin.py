@@ -2,7 +2,7 @@
 
     python -m aro_cloud.admin [--env-file FILE] grant-credits --user <uuid> --amount 100 --note "welcome"
     python -m aro_cloud.admin balance --user <uuid>
-    python -m aro_cloud.admin verify-model --model triposg --verified-by "Your Name" --weights-licence "MIT" --attest-licence-read
+    python -m aro_cloud.admin verify-model --model triposg --verified-by "Your Name" --weights-licence "MIT weights; Tencent Hunyuan + FlashVDM community licences in the code" --attest-licence-read
     python -m aro_cloud.admin enable-model --model triposg
     python -m aro_cloud.admin disable-model --model triposg
     python -m aro_cloud.admin list-jobs [--state failed]
@@ -58,6 +58,11 @@ def verify_model(db: Database, model: str, verified_by: str, weights_licence: st
         row = tx.one("select licence_status::text as licence_status from model_registry where model_id = :m", m=model)
         if row is None:
             raise SystemExit(f"Unknown model '{model}'.")
+        note = tx.one("select weights_licence, code_licence_spdx from model_registry where model_id = :m", m=model)
+        if note:
+            print(
+                f"Licence on record for {model}:\n  code: {note['code_licence_spdx']}\n  terms: {note['weights_licence']}"
+            )
         if row["licence_status"] in REFUSED_STATUSES:
             raise SystemExit(
                 f"Refusing: '{model}' is marked {row['licence_status']} (it is not licensed for commercial serving as it stands)."

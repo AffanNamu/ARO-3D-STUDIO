@@ -147,7 +147,7 @@ Total: 69. **No capability is Production ready; claiming parity with Meshy is no
 * **Inputs:** One image (PNG/JPEG/WebP), category, optional real length.
 * **Outputs:** Prepared GLB (LODs, collision, validation report), raw engine mesh, provenance.
 * **Technology:** Reconstruction model on a GPU worker, then conventional preparation.
-* **Candidate models / services:** TRELLIS.2, TripoSG, TripoSR (MIT, G); Hunyuan3D is evaluation-only (restricted licence).
+* **Candidate models / services:** TRELLIS.2 (evaluation-only: nvdiffrast), TripoSG (weights MIT but Tencent community licences in its model code: EU/UK/South Korea excluded, G), TripoSR (MIT, G); Hunyuan3D is evaluation-only (restricted licence).
 * **GPU requirements:** TripoSR runs on a 15 GB T4; TripoSG ran on a T4 once; TRELLIS.2 README asks 24 GB+ (T).
 * **Implementation complexity:** High
 * **Estimated operating cost:** Estimate only: see cost model. TripoSR/TripoSG on Colab cost nothing so far.

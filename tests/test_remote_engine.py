@@ -160,7 +160,13 @@ def test_real_engines_say_why_they_cannot_run_here_instead_of_pretending():
         ok, reasons = eng.available()
         assert not ok and reasons  # this sandbox has no GPU / checkout: the reasons are concrete
         m = eng.manifest()
-        assert m["available"] is False and m["reasons"] and m["license"]["spdx"] == "MIT"
+        assert m["available"] is False and m["reasons"] and m["license"]["spdx"].startswith("MIT")
+    # TripoSG's model code carries Tencent community licences (EU/UK/South Korea excluded): never presented as plain MIT
+    tsg = TripoSGEngine().manifest()["license"]
+    assert "Tencent" in tsg["spdx"] and tsg["commercial_use"] == "restricted"
+    from aro_studio.engines.remote import KNOWN
+
+    assert KNOWN["triposg"]["license"].commercial_use == "restricted" and "Tencent" in KNOWN["triposg"]["license"].spdx
 
 
 def test_a_cutout_is_mandatory_so_no_non_commercial_matting_model_ever_runs():

@@ -14,9 +14,25 @@ Studio pipeline in-process (background removal with U²-Net -> **TripoSG** shape
 | Item | Pin | Source (read 2026-11-08) |
 |---|---|---|
 | Base image | `pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime` @ `sha256:77f17f84...` | Docker Hub tag API |
-| TripoSG code | `VAST-AI-Research/TripoSG` commit `fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c` | `git ls-remote`; `LICENSE` is MIT |
+| TripoSG code | `VAST-AI-Research/TripoSG` commit `fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c` | `git ls-remote`; root `LICENSE` is MIT, **but see the Tencent section below** |
 | TripoSG weights | `VAST-AI/TripoSG` revision `2c1c516d22d58db486a058d98d31bb6177344e06` | Hugging Face API: `license: mit`, not gated |
 | Matting model | rembg `u2net`, allow-listed in `aro_studio/imaging/matting.py` | the Studio refuses any model not on its list (BRIA RMBG is blocked) |
+
+## TripoSG is not plain MIT (correction, read 2026-11-13 at the pinned commit)
+
+* `triposg/models/transformers/triposg_transformer.py`, the core model, says it is "based on Tencent HunyuanDiT" and carries the
+  **Tencent Hunyuan Community License**: not valid in the European Union; Tencent's Acceptable Use Policy applies; Outputs may not be used
+  to improve another large language model; the use restrictions must be written into your terms of use; above 100 million monthly users
+  you need Tencent's licence.
+* `triposg/LICENSE` is the **Tencent Hunyuan FlashVDM Community License**, for the FlashVDM-derived decoder the pipeline uses: not valid in
+  the EU, the United Kingdom or South Korea; Acceptable Use Policy; Outputs may not be used to improve any other AI model; above 1 million
+  monthly users you need Tencent's licence.
+* The weights card says MIT, but the weights cannot run without this code.
+
+What it means for you: testing in Nigeria is inside the licence territory. Before a public launch you must decide (ideally with legal
+advice) either to accept the Tencent terms (block users in the EU, UK and South Korea, add the use restrictions to your terms of use, stay
+under 1M monthly users) or to switch to an engine with no territorial terms. Migration 0002 records these terms in the database and
+withdraws any verification made before this correction.
 
 ## Deliberately not installed
 

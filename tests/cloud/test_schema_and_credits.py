@@ -219,3 +219,27 @@ def test_random_operation_sequences_never_break_the_credit_invariants(pg, seed):
                     u=str(user),
                 )["s"]
                 assert bal["balance"] >= 0 and bal["balance"] == ledger_sum and bal["reserved"] == held
+
+
+def test_triposg_carries_its_tencent_terms_and_an_old_verification_is_withdrawn(pg):
+    with pg.transaction() as tx:
+        row = tx.one(
+            "select code_licence_spdx, weights_licence, licence_status::text as s, enabled from model_registry where model_id = 'triposg'"
+        )
+        assert (
+            "Tencent" in row["code_licence_spdx"] and "NOT valid in the EU, UK or South Korea" in row["weights_licence"]
+        )
+        assert row["s"] == "claimed" and row["enabled"] is False
+        # replay the correction against a model that a person had verified on the old information
+        tx.execute(
+            "update model_registry set licence_status = 'verified', verified_by = 'someone', verified_at = now(), enabled = true where model_id = 'triposg'"
+        )
+    from aro_cloud.migrate import MIGRATIONS, _run_script
+
+    with pg.transaction() as tx:
+        _run_script(tx, MIGRATIONS / "0002_triposg_licence_terms.sql")
+        row = tx.one(
+            "select licence_status::text as s, enabled, verified_by from model_registry where model_id = 'triposg'"
+        )
+        assert row == {"s": "claimed", "enabled": False, "verified_by": None}
+        assert tx.one("select count(*) as n from audit_log where action = 'licence_correction'")["n"] >= 1
