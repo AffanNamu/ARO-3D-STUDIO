@@ -26,6 +26,10 @@ class GenerationSettings(BaseModel):
     target_faces: int = Field(24_000, ge=2_000, le=25_000)  # triangle budget of LOD0 after preparation
     category: str = Field("other", min_length=1, max_length=40)  # asset category (orientation and proportion rules)
     length_m: float | None = Field(None, gt=0, le=60)  # real length in metres, when the user knows it
+    # Real width and height. From one photo the model often gets the proportions wrong (a 3/4 view comes out too short for its
+    # width): with these the Studio fits each axis to the real size, and says in the report that it stretched the model.
+    width_m: float | None = Field(None, gt=0, le=60)
+    height_m: float | None = Field(None, gt=0, le=60)
     texture_resolution: Literal[512, 1024, 2048] = 1024
 
 

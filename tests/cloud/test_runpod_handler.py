@@ -172,6 +172,8 @@ def test_settings_reach_the_pipeline_unchanged(store):
         "target_faces": 12000,
         "category": "bus",
         "length_m": 11.5,
+        "width_m": 2.55,
+        "height_m": 3.2,
         "texture_resolution": 2048,
     }
     handle(event_for(store, settings=s), deps_for(pipeline=pipe))
@@ -182,8 +184,10 @@ def test_settings_reach_the_pipeline_unchanged(store):
         kw["target_triangles"],
         kw["category"],
         kw["length_m"],
+        kw["width_m"],
+        kw["height_m"],
         kw["texture_resolution"],
-    ) == ("HIGH", 99, 12000, "bus", 11.5, 2048)
+    ) == ("HIGH", 99, 12000, "bus", 11.5, 2.55, 3.2, 2048)
 
 
 # ------------------------------------------------------------------------------------------------------ engine gating

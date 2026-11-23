@@ -164,6 +164,8 @@ def _run(event: dict[str, Any], deps: Deps, progress: Callable[[str], None], t0:
             target_triangles=s.target_faces,
             texture_resolution=s.texture_resolution,
             length_m=s.length_m,
+            width_m=s.width_m,
+            height_m=s.height_m,
             verified_licenses=cfg.verified_licenses,
             timeout_s=cfg.job_timeout_s,
             progress=lambda p, m: progress(f"{m} ({p:.0%})" if m else f"{p:.0%}"),

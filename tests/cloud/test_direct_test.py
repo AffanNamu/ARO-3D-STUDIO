@@ -170,3 +170,34 @@ def test_the_real_pipeline_through_the_direct_path(tmp_path, concept_png):
     assert ev["provider_state"] == "succeeded" and ev["model"]["triangles"] > 200 and len(ev["model"]["lods"]) == 4
     assert ev["ai_inference"] is False  # test double: labelled and refused, never reported as inference
     assert {"model.glb", "thumbnail.png", "report.json"} <= set(ev["files_written"])
+
+
+@pytest.mark.slow
+def test_a_real_width_and_height_reach_the_model(tmp_path, concept_png):
+    """From one photo the model's proportions are a guess; the real width and height the user gives must decide the final size."""
+    deps = Deps(
+        cfg(allowed_engines=("triposg",)),
+        lambda n: FakeAsTripoSG(detail=3),
+        pipeline=run_pipeline,
+        sleep=lambda _s: None,
+    )
+    ev = run(
+        provider_with(deps),
+        concept_png,
+        tmp_path / "run",
+        category="car",
+        length_m=4.5,
+        width_m=1.8,
+        height_m=1.4,
+        preset="STANDARD",
+        sleep=lambda _s: None,
+        say=lambda _m: None,
+    )
+    assert ev["provider_state"] == "succeeded", ev
+    w, h, length = ev["model"]["extents"]
+    assert length == pytest.approx(4.5, rel=0.05)
+    assert w == pytest.approx(1.8, rel=0.05)
+    assert h == pytest.approx(1.4, rel=0.05)
+    assert (ev["width_m"], ev["height_m"]) == (1.8, 1.4)
+    report = json.loads((tmp_path / "run" / "report.json").read_text())
+    assert any("STRETCHED" in note for note in report["needs_human"])  # the report says the proportions were imposed

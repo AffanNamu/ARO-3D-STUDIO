@@ -134,9 +134,13 @@ describe("CreatePanel", () => {
     expect(screen.getByRole("button", { name: /Generate · 10 credits/ })).toBeDisabled();
     choose();
     fireEvent.change(screen.getByLabelText("Category"), { target: { value: "bus" } });
-    fireEvent.change(screen.getByLabelText(/Real length/), { target: { value: "11.5" } });
+    fireEvent.change(screen.getByLabelText("Length"), { target: { value: "11.5" } });
+    fireEvent.change(screen.getByLabelText("Width"), { target: { value: "2,55" } });
+    fireEvent.change(screen.getByLabelText("Height"), { target: { value: "3.2" } });
     fireEvent.click(screen.getByRole("button", { name: /Generate · 10 credits/ }));
-    expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ engine: "triposg", name: "truck", category: "bus", preset: "STANDARD", faces: 24000, texture: 1024, lengthM: 11.5 }));
+    expect(onGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ engine: "triposg", name: "truck", category: "bus", preset: "STANDARD", faces: 24000, texture: 1024, lengthM: 11.5, widthM: 2.55, heightM: 3.2 }),
+    );
   });
 
   it("explains why nothing can be generated when no model is enabled", () => {
@@ -146,16 +150,27 @@ describe("CreatePanel", () => {
     expect(screen.getByRole("button", { name: /Generate/ })).toBeDisabled();
   });
 
-  it("blocks on too few credits, a bad length, or a full queue", () => {
+  it("leaves unknown sizes out", () => {
+    const onGenerate = vi.fn();
+    render(<CreatePanel me={me()} busy={false} blocked={null} problem={null} onGenerate={onGenerate} />);
+    choose();
+    fireEvent.click(screen.getByRole("button", { name: /Generate/ }));
+    expect(onGenerate.mock.calls[0]?.[0]).toMatchObject({ lengthM: undefined, widthM: undefined, heightM: undefined });
+  });
+
+  it("blocks on too few credits, a bad size, or a full queue", () => {
     const { rerender } = render(<CreatePanel me={me({ credits: { balance: 3, reserved: 0 } })} busy={false} blocked={null} problem={null} onGenerate={vi.fn()} />);
     choose();
     expect(screen.getByText(/You need 10 credits to generate and have 3/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Generate/ })).toBeDisabled();
     rerender(<CreatePanel me={me()} busy={false} blocked={null} problem={null} onGenerate={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText(/Real length/), { target: { value: "500" } });
-    expect(screen.getByText("Enter a length between 0 and 60 metres.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Length"), { target: { value: "500" } });
+    expect(screen.getByText("Each size must be between 0 and 60 metres.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Generate/ })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText(/Real length/), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Length"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Height"), { target: { value: "-1" } });
+    expect(screen.getByRole("button", { name: /Generate/ })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Height"), { target: { value: "" } });
     rerender(<CreatePanel me={me()} busy={false} blocked="You already have 2 generations running." problem={null} onGenerate={vi.fn()} />);
     expect(screen.getByText("You already have 2 generations running.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Generate/ })).toBeDisabled();

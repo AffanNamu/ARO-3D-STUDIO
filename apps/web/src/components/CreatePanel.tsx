@@ -13,7 +13,16 @@ export type CreateInput = {
   faces: number;
   texture: 512 | 1024 | 2048;
   lengthM?: number;
+  widthM?: number;
+  heightM?: number;
 };
+
+/** An optional size field: blank is "unknown"; anything else must be a number of metres in (0, 60]. */
+function metres(text: string): { value: number | undefined; bad: boolean } {
+  if (text.trim() === "") return { value: undefined, bad: false };
+  const n = Number(text.trim().replace(",", "."));
+  return { value: n, bad: !(n > 0 && n <= 60) };
+}
 
 export default function CreatePanel({ me, busy, blocked, problem, onGenerate }: { me: Me | null; busy: boolean; blocked: string | null; problem: string | null; onGenerate: (input: CreateInput) => void }) {
   const [file, setFile] = useState<File | null>(null);
@@ -23,17 +32,21 @@ export default function CreatePanel({ me, busy, blocked, problem, onGenerate }: 
   const [faces, setFaces] = useState(24000);
   const [texture, setTexture] = useState<512 | 1024 | 2048>(1024);
   const [length, setLength] = useState("");
+  const [width, setWidth] = useState("");
+  const [height, setHeight] = useState("");
   const [engine, setEngine] = useState<string | null>(null);
   const [advanced, setAdvanced] = useState(false);
 
   const engines = me?.engines ?? [];
   const chosen = engine && engines.includes(engine) ? engine : (engines[0] ?? null);
   const price = me?.price.image_to_3d ?? 0;
-  const lengthN = length.trim() === "" ? undefined : Number(length);
-  const lengthBad = lengthN !== undefined && !(lengthN > 0 && lengthN <= 60);
+  const len = metres(length);
+  const wid = metres(width);
+  const hei = metres(height);
+  const sizeBad = len.bad || wid.bad || hei.bad;
   const poor = !!me && me.credits.balance < price;
   const noEngine = !!me && engines.length === 0;
-  const disabled = !file || busy || !!blocked || poor || noEngine || lengthBad || !chosen;
+  const disabled = !file || busy || !!blocked || poor || noEngine || sizeBad || !chosen;
 
   return (
     <section className="panel stack" aria-label="Create a model">
@@ -70,11 +83,28 @@ export default function CreatePanel({ me, busy, blocked, problem, onGenerate }: 
           </select>
         </div>
       </div>
-      <div>
-        <label htmlFor="len">Real length in metres (optional)</label>
-        <input id="len" inputMode="decimal" placeholder="e.g. 4.5 — gives the model its true size" value={length} aria-invalid={lengthBad} onChange={(e) => setLength(e.target.value)} />
-        {lengthBad && <div className="field-err">Enter a length between 0 and 60 metres.</div>}
-      </div>
+      <fieldset className="size">
+        <legend>Real size in metres (optional)</legend>
+        <div className="row three">
+          <div>
+            <label htmlFor="len">Length</label>
+            <input id="len" inputMode="decimal" placeholder="e.g. 6.9" value={length} aria-invalid={len.bad} onChange={(e) => setLength(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="wid">Width</label>
+            <input id="wid" inputMode="decimal" placeholder="e.g. 2.55" value={width} aria-invalid={wid.bad} onChange={(e) => setWidth(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="hei">Height</label>
+            <input id="hei" inputMode="decimal" placeholder="e.g. 3.9" value={height} aria-invalid={hei.bad} onChange={(e) => setHeight(e.target.value)} />
+          </div>
+        </div>
+        {sizeBad ? (
+          <div className="field-err">Each size must be between 0 and 60 metres.</div>
+        ) : (
+          <p className="hint">Length gives the model its true size. Width and height fix its proportions: from one photo the AI often makes objects too short or too wide.</p>
+        )}
+      </fieldset>
       <button type="button" className="link" aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>
         {advanced ? "Hide" : "Show"} advanced settings
       </button>
@@ -120,7 +150,7 @@ export default function CreatePanel({ me, busy, blocked, problem, onGenerate }: 
         className="primary"
         type="button"
         disabled={disabled}
-        onClick={() => file && chosen && onGenerate({ file, name: name.trim() || file.name.replace(/\.[^.]+$/, "") || "Untitled", engine: chosen, preset, category, faces, texture, lengthM: lengthN })}
+        onClick={() => file && chosen && onGenerate({ file, name: name.trim() || file.name.replace(/\.[^.]+$/, "") || "Untitled", engine: chosen, preset, category, faces, texture, lengthM: len.value, widthM: wid.value, heightM: hei.value })}
       >
         {busy ? "Starting…" : `Generate${price ? ` · ${price} credits` : ""}`}
       </button>

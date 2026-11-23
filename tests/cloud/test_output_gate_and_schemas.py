@@ -93,6 +93,8 @@ def test_a_minimal_request_gets_safe_defaults():
         body(settings={"target_faces": 10_000_000}),
         body(settings={"texture_resolution": 4096}),
         body(settings={"length_m": -1}),
+        body(settings={"width_m": 0}),
+        body(settings={"height_m": 61}),
         body(settings={"seed": -5}),
         body(settings={"decorative_knob": True}),
     ],

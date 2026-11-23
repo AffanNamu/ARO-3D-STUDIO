@@ -43,6 +43,8 @@ def run_endpoint_smoke(
     category: str = "car",
     length_m: float | None = None,
     timeout_s: int = 1200,
+    width_m: float | None = None,
+    height_m: float | None = None,
     poll_s: float = 5.0,
     keep: bool = False,
     sleep: Any = time.sleep,
@@ -61,7 +63,9 @@ def run_endpoint_smoke(
         "request": {
             "kind": "image_to_3d",
             "engine": engine,
-            "settings": GenerationSettings(preset=preset, category=category, length_m=length_m).model_dump(mode="json"),
+            "settings": GenerationSettings(
+                preset=preset, category=category, length_m=length_m, width_m=width_m, height_m=height_m
+            ).model_dump(mode="json"),
         },
     }
     payload = orch.worker_input(
@@ -159,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--length", type=float, default=None, help="real length in metres (gives the model its true size), e.g. 6.9"
     )
+    ap.add_argument("--width", type=float, default=None, help="real width in metres (corrects the proportions)")
+    ap.add_argument("--height", type=float, default=None, help="real height in metres (corrects the proportions)")
     ap.add_argument("--timeout", type=int, default=1200)
     ap.add_argument("--keep", action="store_true", help="keep the objects in R2 and save the GLB next to you")
     ap.add_argument("--out", type=Path, help="write the evidence JSON here")
@@ -177,6 +183,8 @@ def main(argv: list[str] | None = None) -> int:
         preset=a.preset,
         category=a.category,
         length_m=a.length,
+        width_m=a.width,
+        height_m=a.height,
         timeout_s=a.timeout,
         keep=a.keep,
     )

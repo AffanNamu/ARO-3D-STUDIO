@@ -238,6 +238,12 @@ def run_ai_pipeline(
                 # smoothing and decimation shift the surface a little: restore the exact requested length, then re-ground so the
                 # wheels/base sit exactly on Y=0
                 {"op": "scale", "params": {"length_m": opts.length_m, "axis": "Z"}},
+                # that uniform rescale moves a supplied width/height off its value again: re-fit them so all three are what the user gave
+                *(
+                    [{"op": "fit_dimensions", "params": {"width_m": opts.width_m, "height_m": opts.height_m}}]
+                    if opts.width_m is not None or opts.height_m is not None
+                    else []
+                ),
                 {"op": "set_pivot", "params": {"mode": "ground_center"}},
             ]
         },

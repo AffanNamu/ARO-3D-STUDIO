@@ -108,8 +108,12 @@ If the endpoint has `ARO_WORKER_ALLOW_INLINE=1`, the image can travel inside the
 
 ```
 python -m aro_cloud.direct_test --env-file ~/aro-secrets/aro.env --image truck.png \
-    --category heavy_truck --length 6.9 --preset STANDARD --out first_run
+    --category heavy_truck --length 6.9 --width 3.44 --height 4.0 --preset STANDARD --out first_run
 ```
+
+`--width` and `--height` are optional, but give them when you know them. From one photo the model guesses the proportions, and
+a 3/4 view usually comes out too short for its width. With all three sizes, the model is fitted to them, and the report says so.
+The web app has the same three fields under **Real size in metres**.
 
 **CHECK:** `"status": "PASS"` and `"ai_inference": true`; `first_run/model.glb` is the game-ready model. Part E below is the same proof
 through R2, which is the path the full app uses.
@@ -134,8 +138,8 @@ What it shows honestly:
 * **The geometry is recognisably this truck**: high cab with roof spoiler, mirrors, grille and bumper, fuel tank, chassis and wheels.
 * **The proportions are wrong.** From one 3/4 view, TripoSG made the truck too short for its width (raw footprint 1.89 x 1.31). Scaled to
   the 6.9 m length you gave, it comes out 4.79 m wide and 5.16 m high (a real tractor is about 2.5 m wide, about 3.9 m high). The
-  comparison tool flags W/L 0.69 and H/L 0.75 as implausible for a heavy truck. Fix: let the user give width and height as well (the
-  Studio pipeline already accepts them; the platform's job settings do not pass them yet).
+  comparison tool flags W/L 0.69 and H/L 0.75 as implausible for a heavy truck. Fixed afterwards: jobs now take a real width and height
+  (`width_m`, `height_m`; web app, `direct_test --width/--height`) and the model is fitted to all three sizes.
 * **The texture is the weakest part.** TripoSG makes geometry only. The colour is projected from the one photo: 10% of the surface
   was seen, 22% mirrored, 68% filled in. Up close it looks faceted. This is the main gap to Meshy, whose textures are generated.
 * The raw (untouched) TripoSG mesh was not returned: inline results are capped at ~9 MB, so it is dropped first.

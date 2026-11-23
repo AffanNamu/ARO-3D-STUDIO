@@ -35,6 +35,8 @@ const settings = z
     target_faces: z.number().optional(),
     category: z.string().optional(),
     length_m: z.number().nullable().optional(),
+    width_m: z.number().nullable().optional(),
+    height_m: z.number().nullable().optional(),
     texture_resolution: z.number().optional(),
   })
   .passthrough();
@@ -143,7 +145,7 @@ export type GenerationRequest = {
   upload_id: string;
   name: string;
   engine: string;
-  settings: { preset: Preset; category: string; target_faces: number; texture_resolution: 512 | 1024 | 2048; length_m?: number; seed?: number };
+  settings: { preset: Preset; category: string; target_faces: number; texture_resolution: 512 | 1024 | 2048; length_m?: number; width_m?: number; height_m?: number; seed?: number };
 };
 
 /** The server's error envelope: {"error": {"code", "message", "recommended_action", "details"}}. */

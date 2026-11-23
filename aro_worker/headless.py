@@ -67,6 +67,8 @@ def run_pipeline(
     timeout_s: int,
     progress: Callable[[float, str], None] | None = None,
     workdir: Path | None = None,
+    width_m: float | None = None,
+    height_m: float | None = None,
 ) -> PipelineOutput:
     from fastapi.testclient import TestClient
 
@@ -92,8 +94,9 @@ def run_pipeline(
             "texture_resolution": str(texture_resolution),
             "settings_json": json.dumps({"seed": seed} if seed is not None else {}),
         }
-        if length_m:
-            form["length_m"] = str(length_m)
+        for key, value in (("length_m", length_m), ("width_m", width_m), ("height_m", height_m)):
+            if value:
+                form[key] = str(value)
         r = client.post("/api/convert", files={"file": (filename, image, "application/octet-stream")}, data=form)
         if r.status_code >= 400:
             err = _error_of(r)

@@ -180,7 +180,11 @@ export default function Studio() {
         upload_id: up.upload_id,
         name: input.name.slice(0, 120),
         engine: input.engine,
-        settings: { preset: input.preset, category: input.category, target_faces: input.faces, texture_resolution: input.texture, ...(input.lengthM !== undefined ? { length_m: input.lengthM } : {}) },
+        settings: { preset: input.preset, category: input.category, target_faces: input.faces, texture_resolution: input.texture,
+          ...(input.lengthM !== undefined ? { length_m: input.lengthM } : {}),
+          ...(input.widthM !== undefined ? { width_m: input.widthM } : {}),
+          ...(input.heightM !== undefined ? { height_m: input.heightM } : {}),
+        },
       });
     } catch (e) {
       setProblem(describeError(e));
@@ -209,6 +213,8 @@ export default function Studio() {
           target_faces: s.target_faces ?? 24000,
           texture_resolution: tex,
           ...(s.length_m ? { length_m: s.length_m } : {}),
+          ...(s.width_m ? { width_m: s.width_m } : {}),
+          ...(s.height_m ? { height_m: s.height_m } : {}),
           seed: randomSeed(),
         },
       });

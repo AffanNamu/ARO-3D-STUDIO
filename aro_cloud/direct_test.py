@@ -1,7 +1,7 @@
 """The shortest honest proof that the AI works: one image straight to your RunPod endpoint, the finished model straight back.
 
     python -m aro_cloud.direct_test --env-file ~/aro-secrets/aro.env --image truck.png \\
-        --category heavy_truck --length 6.9 --preset STANDARD --out first_run
+        --category heavy_truck --length 6.9 [--width 2.55 --height 3.9] --preset STANDARD --out first_run
 
 Needs only ARO_RUNPOD_API_KEY and ARO_RUNPOD_ENDPOINT_ID, and the endpoint must allow inline transfers (ARO_WORKER_ALLOW_INLINE=1).
 No database, no Supabase, no R2: the image travels inside the job (up to 6 MB) and the model comes back inside the result (RunPod keeps
@@ -33,7 +33,15 @@ EXT = {"glb": "model.glb", "thumbnail": "thumbnail.png", "report": "report.json"
 
 
 def build_input(
-    image: bytes, *, engine: str, preset: str, category: str, length_m: float | None, seed: int | None
+    image: bytes,
+    *,
+    engine: str,
+    preset: str,
+    category: str,
+    length_m: float | None,
+    seed: int | None,
+    width_m: float | None = None,
+    height_m: float | None = None,
 ) -> dict[str, Any]:
     ctype = next((v for k, v in CONTENT_TYPES.items() if image.startswith(k)), "")
     if not ctype:
@@ -42,7 +50,9 @@ def build_input(
         raise SystemExit(
             f"The image is {len(image) / 1e6:.1f} MB; a direct test takes up to {INLINE_IMAGE_MAX_BYTES / 1e6:.0f} MB. Save it smaller (e.g. JPEG)."
         )
-    settings = GenerationSettings(preset=preset, category=category, length_m=length_m, seed=seed)
+    settings = GenerationSettings(
+        preset=preset, category=category, length_m=length_m, width_m=width_m, height_m=height_m, seed=seed
+    )
     return {
         "schema_version": 1,
         "job_id": str(uuid.uuid4()),
@@ -70,6 +80,8 @@ def run(
     category: str = "other",
     length_m: float | None = None,
     seed: int | None = None,
+    width_m: float | None = None,
+    height_m: float | None = None,
     timeout_s: int = 2400,
     execution_timeout_s: int = 900,
     poll_s: float = 5.0,
@@ -77,12 +89,23 @@ def run(
     say: Any = print,
 ) -> dict[str, Any]:
     out.mkdir(parents=True, exist_ok=True)
-    payload = build_input(image, engine=engine, preset=preset, category=category, length_m=length_m, seed=seed)
+    payload = build_input(
+        image,
+        engine=engine,
+        preset=preset,
+        category=category,
+        length_m=length_m,
+        seed=seed,
+        width_m=width_m,
+        height_m=height_m,
+    )
     ev: dict[str, Any] = {
         "engine_requested": engine,
         "preset": preset,
         "category": category,
         "length_m": length_m,
+        "width_m": width_m,
+        "height_m": height_m,
         "ai_inference": False,
         "status": "FAIL",
     }
@@ -189,6 +212,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--preset", default="STANDARD", choices=["DRAFT", "STANDARD", "HIGH"])
     ap.add_argument("--category", default="other")
     ap.add_argument("--length", type=float, default=None, help="real length in metres, e.g. 6.9")
+    ap.add_argument(
+        "--width", type=float, default=None, help="real width in metres (corrects the proportions), e.g. 2.55"
+    )
+    ap.add_argument(
+        "--height", type=float, default=None, help="real height in metres (corrects the proportions), e.g. 3.9"
+    )
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument(
         "--timeout", type=int, default=2400, help="seconds to wait in total (the first run includes a cold start)"
@@ -208,6 +237,8 @@ def main(argv: list[str] | None = None) -> int:
         preset=a.preset,
         category=a.category,
         length_m=a.length,
+        width_m=a.width,
+        height_m=a.height,
         seed=a.seed,
         timeout_s=a.timeout,
         execution_timeout_s=s.execution_timeout_s,
