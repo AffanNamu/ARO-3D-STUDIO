@@ -43,7 +43,7 @@ Enforced twice: the Studio's licence gate refuses unverified engines, and `aro_c
 | **Step1X-3D** | geometry + texture | Apache-2.0 | Apache-2.0 | `requirements.txt` has no flagged package; the texture stage was not read | pending |
 | Direct3D-S2 | high-resolution geometry | MIT | not read | not read | pending |
 | UniRig | auto-rigging | MIT | MIT | `open3d` in requirements (MIT per PyPI); rest unread | A pending dependency read |
-| Hunyuan3D-2 / 2.1 | shape + PBR texture | Tencent Community Licence | same | **licence "does not apply in the European Union, United Kingdom and South Korea"** (first lines of the LICENSE) | **C** |
+| Hunyuan3D-2 / 2.1 | shape + PBR texture | Tencent Community Licence | same | **licence "does not apply in the European Union, United Kingdom and South Korea"** (first lines of the LICENSE); 2.1's dependency chain read 2026-11-23, see section 3a | **C** (same class as TripoSG) |
 | Stable Fast 3D | very fast image to 3D | Stability AI Community Licence | `stabilityai-ai-community` (gated) | free below US$1,000,000 annual revenue, registration required, terminates above it (LICENSE text) | B |
 | FLUX.1-schnell | text to image | n/a | Apache-2.0 (Hub card; gated, automatic acceptance) | none read | A pending |
 | FLUX.1-dev | text to image | n/a | non-commercial licence | | **D** |
@@ -55,6 +55,28 @@ Enforced twice: the Studio's licence gate refuses unverified engines, and `aro_c
 | Hunyuan3D-Paint, UniTEX, RomanTex, MV-Adapter | texturing | Hunyuan: restricted; others not read | | | C / unread |
 
 Other components: `xatlas` MIT, `open3d` MIT, `scikit-image` BSD (PyPI metadata, G); `trimesh` MIT (earlier dependency audit, R); `pymeshlab` GPL-3.0 (PyPI, G) and Blender's `bpy` GPL-3.0 (audit finding R-06).
+
+## 3a. Hunyuan3D-2.1: what its code actually loads (read 2026-11-23, `main` branch, evidence grade G)
+
+Why now: on 2026-11-23 the owner compared Meshy 7.1 with our first real TripoSG result on the same truck photo, and Meshy was far
+ahead on proportions, detail and texture. Hunyuan3D-2.1 is in the **same licence class as TripoSG** (Tencent community terms, not valid
+in the EU, UK or South Korea), which the owner already accepted for testing, and it adds a PBR texture stage. So it is the cheapest
+licence-wise step up. What its files show:
+
+| Part | Finding | Consequence |
+|---|---|---|
+| `LICENSE` | "TENCENT HUNYUAN 3D 2.1 COMMUNITY LICENSE AGREEMENT", release 2025-06-13; "does not apply in the European Union, United Kingdom and South Korea"; covers use "via any Hosted Service" | class C; a separate licence document from TripoSG's, so the owner accepts it explicitly |
+| shape surface extraction (`hy3dshape/.../surface_extractors.py`) | default `MCSurfaceExtractor` uses scikit-image; `DMCSurfaceExtractor` imports `diso` (CC BY-NC) only when chosen | use MC; never install `diso` |
+| shape background removal (`hy3dshape/hy3dshape/rembg.py`) | `rembg` with its default session | our worker hands it the Studio's cut-out |
+| texture pipeline (`hy3dpaint/textureGenPipeline.py`) | imports, at module top, `utils.simplify_mesh_utils` (**`pymeshlab`, GPL-3.0**) and `DifferentiableRenderer.mesh_utils` (**`bpy`, Blender, GPL**) for `convert_obj_to_glb` | both load on import: replace both modules with our own (fast-simplification remesh; trimesh/pygltflib GLB writer), as `aro_worker/shims/diso_shim.py` replaces `diso` |
+| texture super-resolution (`hy3dpaint/utils/image_super_utils.py`) | Real-ESRGAN (`realesrgan`, `basicsr`) | BSD-3-Clause / Apache-2.0 per their projects (not re-read) |
+| multiview model (`hy3dpaint/utils/multiview_utils.py`) | `hunyuan3d-paintpbr-v2-1` through diffusers, plus a DINOv2 encoder (`config.dino_ckpt_path`) | Tencent licence; the DINOv2 checkpoint's own licence to be read |
+| rasteriser | `hy3dpaint/custom_rasterizer` (Tencent's own CUDA extension, built at install) | **no nvdiffrast** in the files read |
+| requirements | pins diffusers 0.30.0, transformers 4.46.0, huggingface-hub 0.30.2; lists `pymeshlab`, `bpy`, `open3d`, `cupy-cuda12x`, `deepspeed`, `gradio` | install only what the inference path imports; pymeshlab and bpy never |
+| memory | README: "10 GB VRAM for shape generation, 21GB for texture generation and 29GB for shape and texture generation in total" | shape fits a 24 GB RTX 4090; shape + texture needs a 48 GB card (A40 / L40S) or the README's `--low_vram_mode` |
+
+Status: **PARTIAL**. Enough read to say it can be made commercially clean of GPL code with two replacement modules. The DINOv2
+checkpoint licence, Real-ESRGAN weights licence and the full Acceptable Use Policy remain to be read before any customer-facing use.
 
 ## 4. Recommended strategy (a choice per task, not one model for all)
 
