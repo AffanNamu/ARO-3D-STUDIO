@@ -18,6 +18,8 @@ What this process is allowed to be trusted with, and what it is not:
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import ipaddress
 import json
@@ -67,6 +69,9 @@ class HandlerConfig:
     verified_licenses: str = ""
     allowed_hosts: tuple[str, ...] = DEFAULT_HOSTS
     allow_insecure_urls: bool = False  # tests only: http and loopback addresses
+    allow_inline: bool = (
+        False  # direct tests: image in, model out through the job payload itself (no storage), size-capped
+    )
     job_timeout_s: int = 840
     workdir: Path | None = None
 
@@ -82,6 +87,7 @@ class HandlerConfig:
             verified_licenses=os.environ.get("ARO_VERIFIED_MODEL_LICENSES", ""),
             allowed_hosts=csv("ARO_WORKER_ALLOWED_HOSTS", ",".join(DEFAULT_HOSTS)),
             allow_insecure_urls=os.environ.get("ARO_WORKER_ALLOW_INSECURE_URLS") == "1",
+            allow_inline=os.environ.get("ARO_WORKER_ALLOW_INLINE") == "1",
             job_timeout_s=int(os.environ.get("ARO_WORKER_JOB_TIMEOUT_S", "840")),
             workdir=Path(os.environ["ARO_WORKER_WORKDIR"]) if os.environ.get("ARO_WORKER_WORKDIR") else None,
         )
@@ -128,13 +134,22 @@ def _run(event: dict[str, Any], deps: Deps, progress: Callable[[str], None], t0:
     cfg = deps.config
     spec = _parse(event)
     _check_engine(spec.engine, cfg)
-    for role, o in spec.outputs.items():
-        _check_url(o.put_url, cfg, f"output {role}")
-    _check_url(spec.image.get_url, cfg, "input image")
-    engine = deps.engine(spec.engine)
-
-    progress("Downloading the image")
-    image = _download(spec.image.get_url, spec.image.bytes, spec.image.sha256, deps)
+    if spec.inline:
+        if not cfg.allow_inline:
+            raise HandlerError(
+                "inline_not_allowed",
+                "This worker does not accept images inside the job (set ARO_WORKER_ALLOW_INLINE=1).",
+            )
+        image = _decode_inline(spec)
+        engine = deps.engine(spec.engine)
+    else:
+        assert isinstance(spec.outputs, dict) and spec.image.get_url
+        for role, o in spec.outputs.items():
+            _check_url(o.put_url, cfg, f"output {role}")
+        _check_url(spec.image.get_url, cfg, "input image")
+        engine = deps.engine(spec.engine)
+        progress("Downloading the image")
+        image = _download(spec.image.get_url, spec.image.bytes, spec.image.sha256, deps)
 
     progress("Generating the 3D model")
     s = spec.settings
@@ -169,6 +184,9 @@ def _run(event: dict[str, Any], deps: Deps, progress: Callable[[str], None], t0:
                 "output_too_large",
                 f"The generated {role.replace('_', ' ')} is {len(blobs[role]) / 1e6:.0f} MB, above the limit.",
             )
+    if spec.inline:
+        return _inline_result(blobs, engine, out, t0)
+    assert isinstance(spec.outputs, dict)
     files = []
     for role in WRITE_ORDER:
         if role in blobs:
@@ -189,6 +207,56 @@ def _run(event: dict[str, Any], deps: Deps, progress: Callable[[str], None], t0:
         deps,
     )
     return result
+
+
+# ================================================================================================================ inline
+INLINE_OUTPUT_MAX_B64 = 9_000_000  # RunPod keeps /run results up to ~10 MB
+
+
+def _decode_inline(spec: WorkerInput) -> bytes:
+    try:
+        data = base64.b64decode(spec.image.data_b64 or "", validate=True)
+    except (binascii.Error, ValueError):
+        raise HandlerError("invalid_input", "The inline image is not valid base64.") from None
+    if len(data) != spec.image.bytes or hashlib.sha256(data).hexdigest() != spec.image.sha256:
+        raise HandlerError("invalid_input", "The inline image does not match its declared size and SHA-256.")
+    return data
+
+
+def _inline_result(blobs: dict[str, bytes], engine: WorkerEngine, out: PipelineOutput, t0: float) -> dict[str, Any]:
+    """The files travel back inside the job result. The raw engine mesh is the first thing dropped when the result would be too big."""
+    order = ["glb", "thumbnail", "report", "raw_mesh"]
+    inline: dict[str, str] = {}
+    used = 0
+    dropped = []
+    for role in order:
+        if role not in blobs:
+            continue
+        enc = base64.b64encode(blobs[role]).decode()
+        if used + len(enc) > INLINE_OUTPUT_MAX_B64:
+            if role == "glb":
+                raise HandlerError(
+                    "output_too_large",
+                    f"The model is {len(blobs['glb']) / 1e6:.1f} MB: too large to return inside the job. Use storage.",
+                )
+            dropped.append(role)
+            continue
+        inline[role] = enc
+        used += len(enc)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "ok": True,
+        "engine": {"id": engine.id, "version": engine.version, "test_double": bool(engine.test_double)},
+        "files": [
+            {"role": r, "bytes": len(blobs[r]), "sha256": hashlib.sha256(blobs[r]).hexdigest()}
+            for r in order
+            if r in inline
+        ],
+        "inline_files": inline,
+        "not_returned": dropped,
+        "stats": {"total_s": round(time.time() - t0, 2), "pipeline_s": round(out.seconds, 2), "gpu": gpu_info()},
+        "validation": (out.report.get("validation") or {}),
+    }
 
 
 # ================================================================================================================ checks

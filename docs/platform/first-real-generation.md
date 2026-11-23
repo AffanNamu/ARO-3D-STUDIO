@@ -90,12 +90,27 @@ separate decision for later (block EU/UK/South Korea and add the Tencent terms t
    ```
    ARO_VERIFIED_MODEL_LICENSES=triposg
    ARO_WORKER_ALLOWED_HOSTS=<your account id>.r2.cloudflarestorage.com
+   ARO_WORKER_ALLOW_INLINE=1
    ```
+   (`ARO_WORKER_ALLOW_INLINE=1` enables the direct test in part E0; without R2 yet, leave `ARO_WORKER_ALLOWED_HOSTS` out.)
    Do NOT set `ARO_WORKER_ALLOW_TEST_DOUBLE`, `ARO_WORKER_EVALUATION_MODE` or `ARO_WORKER_ALLOW_INSECURE_URLS`.
 6. Wait for the build. **This image has never been built**: if the build fails, copy the build log's last ~80 lines to me and I fix it.
 7. Copy the **Endpoint ID** into your file: `ARO_RUNPOD_ENDPOINT_ID=...`
 8. **CHECK:** `python -m aro_cloud.doctor --env-file ~/aro-secrets/aro.env runpod` must end `RESULT: PASS`. It only calls the free health
    route; it starts no GPU.
+
+## E0. Fastest first proof (no R2 needed): direct test
+
+If the endpoint has `ARO_WORKER_ALLOW_INLINE=1`, the image can travel inside the job and the model come back inside the result
+(up to ~6 MB in, ~9 MB out). Only `ARO_RUNPOD_API_KEY` and `ARO_RUNPOD_ENDPOINT_ID` are needed in your file:
+
+```
+python -m aro_cloud.direct_test --env-file ~/aro-secrets/aro.env --image truck.png \
+    --category heavy_truck --length 6.9 --preset STANDARD --out first_run
+```
+
+**CHECK:** `"status": "PASS"` and `"ai_inference": true`; `first_run/model.glb` is the game-ready model. Part E below is the same proof
+through R2, which is the path the full app uses.
 
 ## E. First real generation (the milestone)
 

@@ -88,12 +88,25 @@ class WorkerResult(BaseModel):
 
 
 # ---------------------------------------------------------------------------------------------- what the RunPod handler receives
+INLINE_IMAGE_MAX_BYTES = 6_000_000  # RunPod's /run body limit is ~10 MB, and base64 adds a third
+
+
 class WorkerImage(BaseModel):
+    """The one input image: a pre-signed GET URL (what the API sends), or the bytes themselves in base64 for a direct test
+    (``python -m aro_cloud.direct_test``; only when the worker allows inline transfers)."""
+
     model_config = ConfigDict(extra="ignore")
-    get_url: str = Field(min_length=10, max_length=4096)  # pre-signed GET for the one input image
+    get_url: str | None = Field(None, min_length=10, max_length=4096)
+    data_b64: str | None = Field(None, min_length=8, max_length=(INLINE_IMAGE_MAX_BYTES * 4) // 3 + 8)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     bytes: int = Field(gt=0, le=10_000_000)
     content_type: Literal["image/png", "image/jpeg", "image/webp"]
+
+    @model_validator(mode="after")
+    def _exactly_one_source(self) -> WorkerImage:
+        if (self.get_url is None) == (self.data_b64 is None):
+            raise ValueError("give exactly one of image.get_url and image.data_b64")
+        return self
 
 
 class WorkerOutputSpec(BaseModel):
@@ -115,11 +128,17 @@ class WorkerInput(BaseModel):
     engine: str = Field(min_length=1, max_length=40)
     image: WorkerImage
     settings: GenerationSettings
-    outputs: dict[str, WorkerOutputSpec]
+    outputs: dict[str, WorkerOutputSpec] | Literal["inline"]
     limits: dict[str, int] = Field(default_factory=dict)
+
+    @property
+    def inline(self) -> bool:
+        return self.outputs == "inline"
 
     @model_validator(mode="after")
     def _outputs_are_the_fixed_set(self) -> WorkerInput:
-        if set(self.outputs) != set(JOB_FILES):
+        if isinstance(self.outputs, dict) and set(self.outputs) != set(JOB_FILES):
             raise ValueError("outputs must be exactly: " + ", ".join(sorted(JOB_FILES)))
+        if self.inline != (self.image.data_b64 is not None):
+            raise ValueError("an inline image goes with inline outputs, and a URL image with output URLs")
         return self
