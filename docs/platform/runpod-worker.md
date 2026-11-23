@@ -1,6 +1,8 @@
 # The RunPod worker image: contents, pins and licences
 
-Status: **NOT BUILT.** `worker/runpod/Dockerfile` was written without Docker or a GPU. Its first build on RunPod and the first real generation are the open evidence items.
+Status (2026-11-23): **BUILT and self-tested on CPU** by `.github/workflows/worker-image.yml`; published as
+`ghcr.io/affannamu/aro-worker` (public: RunPod pulls it without a registry credential). Endpoint `aro-worker` runs it pinned by digest.
+The first GPU generation on that endpoint is in progress (2026-11-23); its evidence will be recorded in `docs/platform/first-real-generation.md`.
 Licence facts below were read on 2026-11-08 from the sources named; "attested" is a decision only the owner makes (`docs/platform/owner-setup.md` step 6).
 
 ## What runs
@@ -8,6 +10,28 @@ Licence facts below were read on 2026-11-08 from the sources named; "attested" i
 `python -m aro_worker.runpod_handler` starts RunPod's serverless loop. Per job: download the one input image from a signed URL (SHA-256 checked) ->
 Studio pipeline in-process (background removal with U²-Net -> **TripoSG** shape generation -> orientation and scale -> mesh preparation -> UVs and colour projection
 -> validation -> GLB export) -> upload `raw.glb`, `model.glb`, `thumbnail.png`, `report.json` to signed URLs, then `result.json` last. Weights stay in memory between jobs on a warm worker.
+
+## How the image is built and deployed
+
+RunPod's GitHub integration builds only from the RunPod console, so the image is built by GitHub Actions instead (free for a public
+repository, no GPU): `.github/workflows/worker-image.yml` runs on every push to the worker's code. In order:
+
+1. `docker build -f worker/runpod/Dockerfile .` (about 10 minutes; the image is about 20 GB unpacked, most of it PyTorch and the 7.95 GB of weights).
+2. `worker/runpod/selftest.py` inside the built image, **with no network**. Before anything is pushed it must show:
+   * the pinned weights are complete (sizes and safetensors headers);
+   * the TripoSG checkout and packages are importable (the engine's only complaint is "no CUDA GPU");
+   * U²-Net matting works offline;
+   * the weights resolve offline exactly as the engine's `load()` asks for them (`HF_HUB_OFFLINE=1`);
+   * TripoSG runs through our engine's `generate()` on the CPU (4 flow steps, 128³ grid). This is a smoke test of the code path, not a quality result;
+   * one job runs through the real handler and the Studio pipeline in direct mode with the labelled test-double engine.
+3. Push to GHCR. The job summary prints the digest to pin, and whether the package can be pulled anonymously.
+
+To deploy a new image, update the endpoint's image to the new digest (RunPod rolls it out as workers cycle). Each build's digest is in its
+run summary under **Actions -> Worker image**.
+
+What the self-test caught on the first build (2026-11-23): upstream pins no library versions, so pip installed diffusers 0.43,
+transformers 5.24 and huggingface_hub 2.4. TripoSG imports `diffusers.models.normalization.LayerNorm`, which diffusers 0.43 removed.
+`worker/runpod/requirements.txt` now pins the libraries TripoSG's model code touches to releases from its own period.
 
 ## Pins
 

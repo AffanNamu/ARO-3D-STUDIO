@@ -41,14 +41,16 @@ REPO_ID = "VAST-AI/TripoSG"
 
 def ensure_diso() -> str:
     """Make ``import diso`` work. Returns "diso" (the compiled package) or "skimage-shim" (the CPU stand-in)."""
+    from aro_worker.shims import diso_shim
+
+    if sys.modules.get("diso") is diso_shim:  # already stood in (a second load in the same process): say so, not "diso"
+        return "skimage-shim"
     try:
         import diso  # noqa: F401
 
         return "diso"
     except Exception as e:  # noqa: BLE001 - missing, or built against a different CUDA
         log.warning("diso is not importable (%s): using the skimage marching-cubes stand-in", type(e).__name__)
-        from aro_worker.shims import diso_shim
-
         sys.modules["diso"] = diso_shim
         return "skimage-shim"
 

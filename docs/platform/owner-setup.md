@@ -68,7 +68,7 @@ Check each step with `python -m aro_cloud.doctor --env-file <file> supabase|r2|r
 
 ## 4. RunPod endpoint (the GPU)
 
-1. Confirm the GitHub connection you made covers this repository. Serverless -> **New Endpoint** -> **Import Git Repository** -> branch `claude/zen-johnson-je3dzk` (or `main` once merged) -> **Dockerfile path** `worker/runpod/Dockerfile`. RunPod builds the image; later changes deploy when you publish a GitHub release.
+1. Image: `ghcr.io/affannamu/aro-worker@sha256:<digest>`, built, CPU self-tested and published by GitHub Actions (`.github/workflows/worker-image.yml`; the digest is in each run's summary). Serverless -> **New Endpoint** -> **Docker image**, paste it. To deploy a change, set the endpoint's image to the new digest. Keep the endpoint's data centres outside the EU, UK and South Korea (TripoSG's Tencent licence terms).
 2. GPU: a 24 GB-class GPU is enough for TripoSG (about 8 GB VRAM documented). Rates on 2026-11-08 are in `docs/cto/02-infrastructure-audit.md`.
 3. Scaling (keeps the bill small while testing): **min workers 0**, **max workers 1**, short idle timeout. Execution timeout 900 s. Container disk at least 25 GB (image plus weights).
 4. Environment variables on the endpoint (non-secret):

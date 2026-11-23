@@ -1,11 +1,11 @@
 # ARO RunPod Serverless worker: TripoSG image-to-3D behind runpod_handler, with the Studio's preparation pipeline in-process.
 #
-# Build context = the REPOSITORY ROOT. On RunPod: Serverless -> New Endpoint -> Import Git Repository -> branch -> Dockerfile Path
-# `worker/runpod/Dockerfile` (RunPod rebuilds when you publish a GitHub release). Locally: docker build -f worker/runpod/Dockerfile -t aro-runpod .
+# Build context = the REPOSITORY ROOT. Built, self-tested (worker/runpod/selftest.py, no network) and published to
+# ghcr.io/affannamu/aro-worker by .github/workflows/worker-image.yml; RunPod runs it by digest. Locally:
+#   docker build -f worker/runpod/Dockerfile -t aro-runpod .
 #
-# STATUS: NOT BUILT. Authored without Docker or a GPU. The first RunPod build and the first real generation are the open evidence items;
-# send the build log and `scripts/runpod_smoke.py` output back. What is pinned, so a rebuild is reproducible and the licences you attest are
-# the licences that run:
+# STATUS: BUILT and CPU-self-tested on GitHub Actions (2026-11-23). What is pinned, so a rebuild is reproducible and the
+# licences you attest are the licences that run:
 #   * base image   pytorch/pytorch 2.6.0 / CUDA 12.4 / cuDNN 9 runtime, by digest (read on Docker Hub 2026-11-08)
 #   * TripoSG code VAST-AI-Research/TripoSG commit fc5c409... (repository MIT, BUT the model code includes Tencent Hunyuan DiT and
 #     FlashVDM community licences: not valid in the EU, UK or South Korea. Read 2026-11-13; see docs/platform/runpod-worker.md)

@@ -72,8 +72,9 @@ separate decision for later (block EU/UK/South Korea and add the Tencent terms t
 
 1. Settings: two-factor authentication ON. Billing: auto-pay OFF; keep the balance you are willing to spend.
 2. Settings > **API Keys** > create a key (read/write). Put it in your file as `ARO_RUNPOD_API_KEY=...`.
-3. **Serverless** > **New Endpoint** > **Import Git Repository** > `AffanNamu/ARO-3D-STUDIO`, branch `claude/zen-johnson-je3dzk`,
-   Dockerfile path `worker/runpod/Dockerfile` (build context: repository root).
+3. **Serverless** > **New Endpoint** > **Docker image**: `ghcr.io/affannamu/aro-worker@sha256:<digest>`. The image is built, CPU
+   self-tested and published by GitHub Actions (**Actions -> Worker image**; the run summary prints the digest), so RunPod builds nothing.
+   *Done on 2026-11-23: endpoint `aro-worker` was created this way through the RunPod API, with the owner's confirmation.*
 4. Settings (names may differ slightly):
 
    | Setting | Value | Why |
@@ -94,7 +95,8 @@ separate decision for later (block EU/UK/South Korea and add the Tencent terms t
    ```
    (`ARO_WORKER_ALLOW_INLINE=1` enables the direct test in part E0; without R2 yet, leave `ARO_WORKER_ALLOWED_HOSTS` out.)
    Do NOT set `ARO_WORKER_ALLOW_TEST_DOUBLE`, `ARO_WORKER_EVALUATION_MODE` or `ARO_WORKER_ALLOW_INSECURE_URLS`.
-6. Wait for the build. **This image has never been built**: if the build fails, copy the build log's last ~80 lines to me and I fix it.
+6. Data centres: restrict the endpoint to data centres outside the EU, UK and South Korea. TripoSG's Tencent licence terms exclude
+   those territories, and the GPU pools otherwise include EU sites (EU-CZ-1, EU-FR-1, EU-NL-1, EU-RO-1, EU-SE-1).
 7. Copy the **Endpoint ID** into your file: `ARO_RUNPOD_ENDPOINT_ID=...`
 8. **CHECK:** `python -m aro_cloud.doctor --env-file ~/aro-secrets/aro.env runpod` must end `RESULT: PASS`. It only calls the free health
    route; it starts no GPU.

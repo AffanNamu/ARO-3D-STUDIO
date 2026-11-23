@@ -127,6 +127,8 @@ def test_ensure_diso_falls_back_when_the_compiled_package_is_missing(monkeypatch
     if importlib.util.find_spec("diso") is not None:
         pytest.skip("the real diso is installed here")
     assert triposg.ensure_diso() == "skimage-shim"
+    # a second load in the same process must still report the stand-in, not the compiled package it is standing in for
+    assert triposg.ensure_diso() == "skimage-shim"
     assert sys.modules["diso"].DiffDMC is not None
     sys.modules.pop("diso", None)
 
