@@ -3,17 +3,21 @@
 # paramiko (LGPL-2.1, pulled in by the runpod SDK for its SSH/CLI helpers; unmodified, never imported by the serverless handler path).
 runpod>=2.1,<3  # MIT: the serverless worker loop (runpod.serverless.start)
 # --- TripoSG runtime (upstream requirements.txt at the pinned commit, minus: pymeshlab GPL-3.0, diso CC BY-NC, numpy==1.22.3 pin) ---
-diffusers>=0.32
-transformers>=4.46
-einops>=0.8
-omegaconf>=2.3
+# Upstream pins nothing, and its code imports names newer releases removed (diffusers.models.normalization.LayerNorm is gone in 0.43;
+# the first image build, 2026-11-23, resolved diffusers 0.43 / transformers 5.24 / huggingface_hub 2.4 and failed its self-test).
+# So the libraries TripoSG's model code touches are pinned to releases from TripoSG's own period (early 2025), all on torch 2.6:
+diffusers==0.32.2  # Apache-2.0
+transformers==4.49.0  # Apache-2.0 (BitImageProcessor, Dinov2Model)
+huggingface_hub==0.29.3  # Apache-2.0
+peft==0.14.0  # Apache-2.0 (diffusers' PeftAdapterMixin backend)
+accelerate==1.4.0  # Apache-2.0
+einops>=0.8,<0.9
+omegaconf>=2.3,<2.4
 scikit-image>=0.24
-opencv-python-headless>=4.10  # Apache-2.0; its wheels bundle FFmpeg libraries under LGPL (dynamically linked, unmodified)
-peft>=0.14
+opencv-python-headless>=4.10,<5  # Apache-2.0; its wheels bundle FFmpeg libraries under LGPL (dynamically linked, unmodified)
 jaxtyping>=0.2.36
 typeguard>=4.4
 safetensors>=0.4
-huggingface_hub>=0.26
 # --- Studio matting (explicit, permissively licensed models only; see aro_studio/imaging/matting.py) ---
 rembg>=2.0.60
 onnxruntime>=1.20

@@ -42,6 +42,8 @@ RUN git clone https://github.com/VAST-AI-Research/TripoSG.git /opt/TripoSG \
 RUN python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='VAST-AI/TripoSG', revision='${TRIPOSG_WEIGHTS_REVISION}', local_dir='/models/TripoSG')"
 # Matting model, explicit and allow-listed in aro_studio/imaging/matting.py
 RUN python -c "import rembg; rembg.new_session('u2net')"
+# Everything a job needs is in the image now: from here on, never reach Hugging Face (deterministic, and a cold start cannot stall on it)
+ENV HF_HUB_OFFLINE=1
 
 COPY aro_studio ./aro_studio
 COPY aro_worker ./aro_worker

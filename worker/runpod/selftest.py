@@ -7,10 +7,13 @@ It proves what can be proven without a GPU, so a broken image fails for free on 
 1. the pinned TripoSG weights are in the image, complete, and loadable as safetensors headers;
 2. the TripoSG code checkout and its Python dependencies are present (the engine's only complaint must be "no CUDA GPU");
 3. the U^2-Net matting model is baked in and cuts a subject out of an image without any network access;
-4. one complete job runs through the REAL RunPod handler and the REAL Studio pipeline in direct (inline) mode, with the labelled test-double
+4. the weights resolve offline exactly the way the engine's ``load()`` asks for them (HF_HUB_OFFLINE=1, no network);
+5. TripoSG itself runs through OUR engine's ``generate()`` on the CPU: 4 flow steps on a coarse grid, so the model code, these library
+   versions and these weights are proven to work together. The mesh is a smoke result, not a quality result (a real run is 50 steps);
+6. one complete job runs through the REAL RunPod handler and the REAL Studio pipeline in direct (inline) mode, with the labelled test-double
    engine standing in for the GPU model. Its result is stamped ``test_double: true`` and is never presented as AI output.
 
-What it does NOT prove: that TripoSG produces a good mesh. That needs the GPU, and is the first real generation on the endpoint.
+What it does NOT prove: that TripoSG produces a GOOD mesh, or that it fits a GPU. That is the first real generation on the endpoint.
 """
 
 from __future__ import annotations
@@ -23,7 +26,9 @@ import os
 import struct
 import sys
 import time
+import traceback
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -89,7 +94,7 @@ def check_engine() -> None:
     check("triposg pipeline import", True, "triposg.pipelines.pipeline_triposg")
 
 
-def check_matting(image: bytes) -> None:
+def check_matting(image: bytes) -> Image.Image:
     import numpy as np
     import rembg
 
@@ -104,6 +109,64 @@ def check_matting(image: bytes) -> None:
         0.05 < share < 0.6,
         f"subject covers {share:.0%} of the frame, {time.time() - t:.1f}s",
     )
+    return cut
+
+
+def check_offline_weights() -> None:
+    """The engine's load() calls snapshot_download for the pinned revision; with HF_HUB_OFFLINE=1 it must resolve to the baked copy."""
+    from huggingface_hub import snapshot_download
+
+    path = snapshot_download(
+        repo_id="VAST-AI/TripoSG", revision=os.environ.get("ARO_TRIPOSG_REVISION"), local_dir=str(WEIGHTS)
+    )
+    check("weights resolve offline, as load() asks", Path(path).resolve() == WEIGHTS.resolve(), path)
+
+
+def check_triposg_cpu(cutout: Image.Image) -> None:
+    """TripoSG through our engine's generate() on the CPU. A smoke test of the code path: 4 steps, 128^3 grid, NOT a quality result."""
+    import torch
+    import trimesh
+
+    from aro_worker.engines import triposg as tsg
+
+    # CPU-only shims, for this smoke test only: upstream scripts/image_process.py hard-codes .cuda(), and generate() reads CUDA memory stats
+    torch.Tensor.cuda = lambda self, *a, **k: self  # type: ignore[method-assign]
+    torch.cuda.reset_peak_memory_stats = lambda *a, **k: None  # type: ignore[assignment]
+    torch.cuda.max_memory_allocated = lambda *a, **k: 0  # type: ignore[assignment]
+    torch.cuda.empty_cache = lambda: None  # type: ignore[assignment]
+    torch.set_num_threads(os.cpu_count() or 4)
+
+    eng = tsg.TripoSGEngine()
+    for p in (str(eng._root), str(eng._root / "scripts")):
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    eng._diso = tsg.ensure_diso()
+    from triposg.pipelines.pipeline_triposg import TripoSGPipeline
+
+    t = time.time()
+    eng._pipe = TripoSGPipeline.from_pretrained(str(WEIGHTS)).to("cpu", torch.float32)
+    load_s = time.time() - t
+    seen: list[str] = []
+    t = time.time()
+    res = eng.generate(
+        cutout,
+        {"preset": "DRAFT", "steps": 4, "octree_depth": 7, "target_faces": 20_000, "seed": 0},
+        lambda _f, msg: seen.append(msg),
+        lambda: False,
+    )
+    mesh = trimesh.load(io.BytesIO(res.glb), file_type="glb", force="mesh")
+    check(
+        "triposg runs in our engine (CPU smoke, 4 steps, not a quality result)",
+        len(mesh.faces) > 0 and any("flow step 4 of 4" in m for m in seen),
+        {
+            "load_s": round(load_s, 1),
+            "generate_s": round(time.time() - t, 1),
+            "faces": int(len(mesh.faces)),
+            "extents": [round(float(x), 3) for x in mesh.extents],
+            "surface_extractor": res.details.get("surface_extractor"),
+        },
+    )
+    eng._pipe = None
 
 
 def check_job(image: bytes) -> None:
@@ -163,12 +226,25 @@ def check_job(image: bytes) -> None:
         )
 
 
+def guarded(name: str, fn: Callable[..., object], *args: object) -> object:
+    """Run one check; an exception is that check's FAIL (with its traceback), and the remaining checks still run."""
+    try:
+        return fn(*args)
+    except Exception as e:  # noqa: BLE001 - the point is to report every failure, not stop at the first
+        traceback.print_exc()
+        check(name, False, f"{type(e).__name__}: {e}"[:500])
+        return None
+
+
 def main() -> int:
-    check_weights()
-    check_engine()
+    guarded("weights", check_weights)
+    guarded("engine code and packages", check_engine)
     image = synthetic_vehicle()
-    check_matting(image)
-    check_job(image)
+    cutout = guarded("u2net matting (offline)", check_matting, image)
+    guarded("weights resolve offline", check_offline_weights)
+    if isinstance(cutout, Image.Image):
+        guarded("triposg runs in our engine (CPU smoke)", check_triposg_cpu, cutout)
+    guarded("handler job (test double)", check_job, image)
     failed = [k for k, v in results.items() if not v["ok"]]  # type: ignore[index]
     print(json.dumps({"selftest": "PASS" if not failed else "FAIL", "failed": failed}), flush=True)
     return 1 if failed else 0
