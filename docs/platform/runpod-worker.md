@@ -2,7 +2,7 @@
 
 Status (2026-11-23): **BUILT and self-tested on CPU** by `.github/workflows/worker-image.yml`; published as
 `ghcr.io/affannamu/aro-worker` (public: RunPod pulls it without a registry credential). Endpoint `aro-worker` runs it pinned by digest.
-The first GPU generation on that endpoint is in progress (2026-11-23); its evidence will be recorded in `docs/platform/first-real-generation.md`.
+First real GPU generation on that endpoint: **PASS** (2026-11-23, RTX 4090; evidence in `docs/platform/first-real-generation.md`, part E0).
 Licence facts below were read on 2026-11-08 from the sources named; "attested" is a decision only the owner makes (`docs/platform/owner-setup.md` step 6).
 
 ## What runs

@@ -114,6 +114,32 @@ python -m aro_cloud.direct_test --env-file ~/aro-secrets/aro.env --image truck.p
 **CHECK:** `"status": "PASS"` and `"ai_inference": true`; `first_run/model.glb` is the game-ready model. Part E below is the same proof
 through R2, which is the path the full app uses.
 
+### Result, 2026-11-23: PASS (first real AI generation)
+
+The owner's ARO 480 tractor photo (1536 x 1024 PNG), `--category heavy_truck --length 6.9 --preset STANDARD`, on endpoint `aro-worker`
+(image `ghcr.io/affannamu/aro-worker@sha256:f1121c18...352e`). Evidence: `docs/acceptance/evidence/first-real-generation/`
+(`evidence.json`, `studio-report.json`, `comparison.json`, `thumbnail.png`, `views.png`; the reference photo is not committed).
+
+| Fact | Value |
+|---|---|
+| Verdict | `status: PASS`, `ai_inference: true`: the worker reported `triposg` (not a test double) at weights revision `2c1c516...`, and the GLB passed the platform's output gate |
+| GPU | NVIDIA GeForce RTX 4090 (24 GB), Iceland data centre |
+| Time | 279 s cold start (first download of the ~20 GB image), then 168 s of work: 77 s TripoSG reconstruction, 88 s Studio preparation |
+| Model | 23,950 triangles at LOD0; LODs 11,967 / 5,974 / 2,458; 252-triangle collision mesh; UV-mapped 1024 px texture; 4.9 MB GLB |
+| Studio checks | NEEDS_REVIEW, 75.6%. 9 of the 10 failures are "vehicle metadata missing" (wheels, axles, pivots are a rigging step, not generated); the one geometry failure is inconsistent normals in the mesh |
+| Outline match | 0.93 silhouette IoU against the photo at the best view |
+
+What it shows honestly:
+
+* **The geometry is recognisably this truck**: high cab with roof spoiler, mirrors, grille and bumper, fuel tank, chassis and wheels.
+* **The proportions are wrong.** From one 3/4 view, TripoSG made the truck too short for its width (raw footprint 1.89 x 1.31). Scaled to
+  the 6.9 m length you gave, it comes out 4.79 m wide and 5.16 m high (a real tractor is about 2.5 m wide, about 3.9 m high). The
+  comparison tool flags W/L 0.69 and H/L 0.75 as implausible for a heavy truck. Fix: let the user give width and height as well (the
+  Studio pipeline already accepts them; the platform's job settings do not pass them yet).
+* **The texture is the weakest part.** TripoSG makes geometry only. The colour is projected from the one photo: 10% of the surface
+  was seen, 22% mirrored, 68% filled in. Up close it looks faceted. This is the main gap to Meshy, whose textures are generated.
+* The raw (untouched) TripoSG mesh was not returned: inline results are capped at ~9 MB, so it is dropped first.
+
 ## E. First real generation (the milestone)
 
 ```

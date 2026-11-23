@@ -4,7 +4,7 @@ Status words: PASS, PARTIAL, BLOCKED, FAIL, NOT STARTED. Written 2026-11-08.
 
 **Bottom line.** The whole path from "user signs in and uploads an image" to "the finished GLB opens in the 3D viewer" is implemented and
 tested end to end against a real PostgreSQL and an S3-compatible server, with the GPU model and RunPod replaced by **labelled test doubles**.
-**No real AI model has run through it yet**: that needs your RunPod endpoint (one command, `python -m aro_cloud.smoke`, costs a few cents).
+**First real AI generation: PASS (2026-11-23)**: TripoSG on an RTX 4090 through the RunPod endpoint, in direct mode (image inside the job, no R2). The full app path (Supabase + R2 + RunPod) has not run yet. Evidence: [first-real-generation.md](first-real-generation.md), part E0.
 Nothing has been deployed, no cloud resource was created, and no account of yours was touched.
 
 | Part | Status | Evidence |
@@ -13,14 +13,14 @@ Nothing has been deployed, no cloud resource was created, and no account of your
 | Job orchestration: submit, idempotency, dispatch, reconcile, retries, deadlines, cancel, output verification | **PASS** | `tests/cloud/test_orchestrator.py` (48 tests, real PostgreSQL + S3 API; a mutation check confirmed the "never resend after an ambiguous answer" tests fail when the rule is broken) |
 | Supabase token verification | **PASS** (against locally signed tokens) | `tests/cloud/test_auth.py` (19: expired, wrong audience/issuer/role, `alg: none`, algorithm confusion, key rotation). Not yet run against your Supabase project's real keys |
 | R2 access through the S3 API | **PASS** against moto; **NOT STARTED** against real R2 | `tests/cloud/test_storage.py` (14). moto does not check SigV4, so signature enforcement is R2's job and is untested here |
-| RunPod client | **PASS** against a test double that follows RunPod's documented API | `tests/cloud/test_runpod_provider.py` (26). Not yet run against RunPod |
-| RunPod worker handler | **PASS** with a test-double engine; **NOT STARTED** with a real model | `tests/cloud/test_runpod_handler.py` (31), including the real Studio preparation pipeline around the test double |
+| RunPod client | **PASS** against a test double; **PASS** against real RunPod (direct mode, 2026-11-23) | `tests/cloud/test_runpod_provider.py` (26); `aro_cloud.direct_test` submitted, polled and decoded a real job |
+| RunPod worker handler | **PASS** with a test-double engine; **PASS** with TripoSG on a GPU (direct mode) | `tests/cloud/test_runpod_handler.py` (31), including the real Studio preparation pipeline around the test double |
 | Orchestrator -> RunPod client -> handler -> storage -> output gate -> ledger | **PASS** with test doubles | `tests/cloud/test_end_to_end.py` (3), `test_smoke.py` (4) |
 | HTTP API | **PASS** | `tests/cloud/test_api.py` (13): auth, per-user isolation, idempotent replay, envelope, size caps, CORS |
 | Web app | **PASS** (types, 50 tests, production build; driven end to end in Chromium against the local dev stack) | `apps/web/tests`; the browser run covered sign-up, upload, generate, progress, viewer (render modes, detail levels, collision), checks, OBJ download, rename, activity, credits, reload, phone layout and delete. Not yet run against your real Supabase, R2 or RunPod |
-| Worker image (`worker/runpod/Dockerfile`) | **NOT STARTED** (never built; authored without Docker or a GPU) | the first RunPod build is the first evidence |
+| Worker image (`worker/runpod/Dockerfile`) | **PASS** (built and CPU self-tested by GitHub Actions, published to GHCR, run on RunPod) | `.github/workflows/worker-image.yml`, `worker/runpod/selftest.py` |
 | API image (`deploy/api/Dockerfile`) | **NOT STARTED** (never built) | its dependency set was installed in a clean virtualenv and every module imported |
-| Real inference, real quality, real latency | **NOT STARTED** | needs your RunPod endpoint |
+| Real inference, real quality, real latency | **PARTIAL**: one real run. 168 s of work on an RTX 4090 after a 279 s cold start. Geometry recognisable; proportions too wide and tall from one 3/4 photo; texture projected (68% inferred) | `docs/acceptance/evidence/first-real-generation/`. Not yet compared with Meshy |
 | Payments / buying credits | **NOT STARTED** | no payment provider chosen; credits come from `admin grant-credits` or `ARO_SIGNUP_CREDITS` |
 
 CI (`.github/workflows/ci.yml`): `quality` (ruff, format, mypy, bandit, pip-audit, licence audit), `tests` (Python 3.10/3.11/3.12),

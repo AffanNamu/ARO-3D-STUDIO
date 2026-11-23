@@ -5,8 +5,8 @@ decoder from Tencent FlashVDM, under Tencent community licences that exclude the
 aro_cloud/migrations/0002_triposg_licence_terms.sql. Not "MIT" as a whole.
 
 STATUS: written against the upstream source (VAST-AI-Research/TripoSG: ``scripts/inference_triposg.py``, ``scripts/image_process.py``,
-``triposg/pipelines/pipeline_triposg.py``, ``triposg/inference_utils.py``, read 2026-10-26) but NOT run on a GPU yet. The first real run
-is the open evidence item (docs/architecture/product-reassessment.md).
+``triposg/pipelines/pipeline_triposg.py``, ``triposg/inference_utils.py``, read 2026-10-26). First real GPU run 2026-11-23 on an RTX 4090
+(docs/platform/first-real-generation.md, part E0); it also runs on CPU in the worker image's self-test.
 
 Licensing and install notes that matter:
 
