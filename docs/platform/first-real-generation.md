@@ -144,6 +144,17 @@ What it shows honestly:
   was seen, 22% mirrored, 68% filled in. Up close it looks faceted. This is the main gap to Meshy, whose textures are generated.
 * The raw (untouched) TripoSG mesh was not returned: inline results are capped at ~9 MB, so it is dropped first.
 
+### Second run, same day: real width and height (`--length 6.9 --width 3.44 --height 4.0`)
+
+Width and height from the owner's TITAN 480 reference design (`aro_studio/vehicles/titan480.py`: 3.44 m mirror to mirror, 4.0 m high).
+**PASS**, `ai_inference: true`; the model now measures exactly 3.44 x 4.0 x 6.9 m (W/L 0.50, H/L 0.58, was 0.69 and 0.75). The report
+says the proportions were stretched (factors vs a uniform scale: width 0.87, height 0.94, length 1.22). What it does not fix: the
+stretch is of TripoSG's shape, so the rear axles stay merged, and detail and texture are unchanged. Evidence:
+`docs/acceptance/evidence/first-real-generation/real-size/` (`before-after.png`). Billed for the first job: US$0.07.
+
+The owner then generated the same photo in Meshy 7.1: correct chassis length, all three axles, the fifth wheel and crisp panel detail.
+TripoSG is the bottleneck, so the next step is the model bake-off (`docs/cto/05-models-and-licensing.md`, sections 3a and 5).
+
 ## E. First real generation (the milestone)
 
 ```

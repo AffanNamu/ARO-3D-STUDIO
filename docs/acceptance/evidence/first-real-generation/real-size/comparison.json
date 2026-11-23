@@ -1,0 +1,112 @@
+{
+  "reference": "truck.png",
+  "category": "heavy_truck",
+  "blind": false,
+  "models": {
+    "before": {
+      "file": "model.glb",
+      "file_bytes": 4888516,
+      "meshes": 1,
+      "lod_levels": 4,
+      "collision_mesh": true,
+      "has_uv": true,
+      "texture_px": [
+        1024,
+        1024
+      ],
+      "silhouette_iou": 0.9278,
+      "aspect_error": 0.0031,
+      "best_view": {
+        "azimuth_deg": 144.0,
+        "elevation_deg": 1.0
+      },
+      "proportions": {
+        "ratios": {
+          "width_over_length": 0.694,
+          "height_over_length": 0.748
+        },
+        "class": "heavy_truck",
+        "bands_are_heuristic": true,
+        "bands": {
+          "width_over_length": [
+            0.25,
+            0.46
+          ],
+          "height_over_length": [
+            0.4,
+            0.66
+          ]
+        },
+        "inside": {
+          "width_over_length": false,
+          "height_over_length": false
+        },
+        "verdict": "implausible"
+      },
+      "triangles": 23950,
+      "vertices": 33306,
+      "pieces": 5504,
+      "watertight": false,
+      "extents": [
+        4.7905,
+        5.1625,
+        6.9
+      ]
+    },
+    "after": {
+      "file": "model.glb",
+      "file_bytes": 4806396,
+      "meshes": 1,
+      "lod_levels": 4,
+      "collision_mesh": true,
+      "has_uv": true,
+      "texture_px": [
+        1024,
+        1024
+      ],
+      "silhouette_iou": 0.9312,
+      "aspect_error": 0.0206,
+      "best_view": {
+        "azimuth_deg": 152.0,
+        "elevation_deg": 1.0
+      },
+      "proportions": {
+        "ratios": {
+          "width_over_length": 0.499,
+          "height_over_length": 0.58
+        },
+        "class": "heavy_truck",
+        "bands_are_heuristic": true,
+        "bands": {
+          "width_over_length": [
+            0.25,
+            0.46
+          ],
+          "height_over_length": [
+            0.4,
+            0.66
+          ]
+        },
+        "inside": {
+          "width_over_length": false,
+          "height_over_length": true
+        },
+        "verdict": "implausible"
+      },
+      "triangles": 23954,
+      "vertices": 33040,
+      "pieces": 5422,
+      "watertight": false,
+      "extents": [
+        3.44,
+        4.0,
+        6.9
+      ]
+    }
+  },
+  "not_measured": [
+    "surface detail",
+    "texture and colour quality",
+    "correctness of small parts"
+  ]
+}

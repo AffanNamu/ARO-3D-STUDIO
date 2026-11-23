@@ -1,0 +1,82 @@
+{
+  "engine_requested": "triposg",
+  "preset": "STANDARD",
+  "category": "heavy_truck",
+  "length_m": 6.9,
+  "width_m": 3.44,
+  "height_m": 4.0,
+  "ai_inference": true,
+  "status": "PASS",
+  "run_id_suffix": "e1a-u2",
+  "provider_state": "succeeded",
+  "execution_ms": 256565,
+  "queue_delay_ms": 316911,
+  "wall_seconds": 577.0,
+  "engine_reported": {
+    "id": "triposg",
+    "version": "VAST-AI/TripoSG@2c1c516d22d58db486a058d98d31bb6177344e06",
+    "test_double": false
+  },
+  "gate_ok": true,
+  "gate_reasons": [],
+  "model": {
+    "meshes": 1,
+    "triangles": 23954,
+    "vertices": 33040,
+    "bytes": 4806396,
+    "lods": [
+      {
+        "level": 0,
+        "triangles": 23954
+      },
+      {
+        "level": 1,
+        "triangles": 11974
+      },
+      {
+        "level": 2,
+        "triangles": 5971
+      },
+      {
+        "level": 3,
+        "triangles": 2744
+      }
+    ],
+    "collision_meshes": 1,
+    "collision_triangles": 252,
+    "extents": [
+      3.44,
+      4.0,
+      6.9
+    ],
+    "degenerate_triangles": 0,
+    "has_uv": true,
+    "materials": 1
+  },
+  "glb_sha256": "11d24196c913750e2b23217902d3cbc2cc7129bdeb8746d157d25b07d3ff37b3",
+  "files_written": [
+    "model.glb",
+    "report.json",
+    "thumbnail.png"
+  ],
+  "not_returned": [
+    "raw_mesh"
+  ],
+  "worker_stats": {
+    "gpu": {
+      "bf16": true,
+      "compute_capability": "8.9",
+      "free_mb": 19713,
+      "name": "NVIDIA GeForce RTX 4090",
+      "total_mb": 24082
+    },
+    "pipeline_s": 255.1,
+    "total_s": 255.25
+  },
+  "studio_checks": {
+    "status": "NEEDS_REVIEW",
+    "overall": 75.6,
+    "critical_failures": 3,
+    "major_failures": 7
+  }
+}
